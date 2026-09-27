@@ -45,6 +45,7 @@ import type { LabelSummary } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import { useInbox } from "./inbox-provider"
 import { NotificationsButton } from "./notifications-popover"
+import { useShortcutHint } from "./shortcut-hint"
 
 const PRIMARY: { box: string; label: string; icon: LucideIcon; count?: "unread" | "total" }[] = [
   { box: "inbox", label: "Inbox", icon: Inbox, count: "unread" },
@@ -177,6 +178,7 @@ function labelTree(labels: LabelSummary[]): LabelNode[] {
 export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; onCollapse?: () => void }) {
   const { slug, bootstrap, member, meId } = useInbox()
   const { can } = useOrg()
+  const hint = useShortcutHint()
   const params = useParams<{ box?: string; conversationId?: string }>()
   const current = params.box ? decodeURIComponent(params.box) : ""
   const conversationId = params.conversationId
@@ -230,7 +232,7 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
         >
           <SquarePen />
           Compose
-          <Kbd className="ml-auto bg-primary-foreground/15 text-primary-foreground/80 max-lg:hidden">N</Kbd>
+          {hint("compose") && <Kbd className="ml-auto bg-primary-foreground/15 text-primary-foreground/80 max-lg:hidden">{hint("compose")}</Kbd>}
         </Button>
         <Tooltip>
           <TooltipTrigger asChild>

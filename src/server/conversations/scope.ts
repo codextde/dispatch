@@ -48,11 +48,16 @@ export function atLeast(level: AccessLevel, min: AccessLevel) {
   return rank[level] >= rank[min]
 }
 
-/** Access level of a (visible) conversation row, mirroring getConversationAccess(). */
+/**
+ * Access level of a (visible) conversation row. Conversations in an inbox the
+ * user can't access (visible because they were assigned or @mentioned) are
+ * read-only: they can be viewed and commented on, but not replied to or
+ * changed (sending needs inbox access anyway).
+ */
 export function levelFor(ctx: Ctx, scope: InboxScope, conv: { accountId: string | null; kind: string }): AccessLevel {
-  if (conv.accountId && scope.access.has(conv.accountId)) return scope.access.get(conv.accountId)!
-  if (!ctx.permissions.has("conversations.reply")) return conv.kind === "chat" ? "reply" : "read"
-  return "reply"
+  if (conv.kind === "chat") return "reply"
+  if (conv.accountId) return scope.access.get(conv.accountId) ?? "read"
+  return ctx.permissions.has("conversations.reply") ? "reply" : "read"
 }
 
 export type AccessibleConversation = { conversation: typeof schema.conversations.$inferSelect; level: AccessLevel }

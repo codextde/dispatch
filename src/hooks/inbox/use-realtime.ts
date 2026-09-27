@@ -81,7 +81,7 @@ export function useRealtime(slug: string, opts: { meId: string; notificationPref
     const startedAt = Date.now()
     const notified = new Set<string>()
 
-    const pending = { lists: false, counts: false, bootstrap: false, chats: false, notifications: false, threads: new Set<string>(), allThreads: false }
+    const pending = { lists: false, counts: false, bootstrap: false, chats: false, notifications: false, tasks: false, contacts: false, threads: new Set<string>(), allThreads: false }
     const flush = () => {
       flushTimer = null
       if (pending.lists) void qc.invalidateQueries({ queryKey: inboxKeys.lists(slug) })
@@ -94,10 +94,13 @@ export function useRealtime(slug: string, opts: { meId: string; notificationPref
       }
       if (pending.bootstrap) void qc.invalidateQueries({ queryKey: inboxKeys.bootstrap(slug) })
       if (pending.chats) void qc.invalidateQueries({ queryKey: inboxKeys.chats(slug) })
+      // Query keys owned by the tasks / contacts areas (embedded in the conversation sidebar).
+      if (pending.tasks) void qc.invalidateQueries({ queryKey: ["tasks", slug] })
+      if (pending.contacts) void qc.invalidateQueries({ queryKey: ["contacts", slug] })
       if (pending.notifications) void qc.invalidateQueries({ queryKey: inboxKeys.notifications(slug) })
       if (pending.allThreads) void qc.invalidateQueries({ queryKey: inboxKeys.threads(slug) })
       else for (const id of pending.threads) void qc.invalidateQueries({ queryKey: inboxKeys.thread(slug, id) })
-      pending.lists = pending.counts = pending.bootstrap = pending.chats = pending.notifications = pending.allThreads = false
+      pending.lists = pending.counts = pending.bootstrap = pending.chats = pending.notifications = pending.tasks = pending.contacts = pending.allThreads = false
       pending.threads.clear()
     }
     const schedule = () => {
@@ -162,6 +165,8 @@ export function useRealtime(slug: string, opts: { meId: string; notificationPref
           schedule()
           return
         case "task.updated":
+          pending.tasks = true
+          schedule()
           return
         default:
           // conversation.* / message.* / comment.*
@@ -170,6 +175,7 @@ export function useRealtime(slug: string, opts: { meId: string; notificationPref
           if (cid) pending.threads.add(cid)
           else pending.allThreads = true
           if (event.type.startsWith("conversation.") || event.type.startsWith("comment.")) pending.chats = true
+          if (event.type.startsWith("message.") || event.type === "conversation.created") pending.contacts = true
           schedule()
       }
     }

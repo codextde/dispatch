@@ -44,6 +44,8 @@ import { inboxUI, useInboxUI } from "@/hooks/inbox/store"
 import { shortcutLabel } from "@/hooks/inbox/use-hotkeys"
 import { STATIC_BOX_ICONS } from "./box-info"
 import { useInbox } from "./inbox-provider"
+import { useShortcutCombo } from "./shortcut-hint"
+import type { ShortcutAction } from "@/lib/inbox/shortcuts"
 
 type StaticItem = {
   id: string
@@ -56,13 +58,15 @@ type StaticItem = {
   run: () => void
 }
 
-const BOX_SHORTCUTS: Partial<Record<StaticBox, string>> = {
-  inbox: "g i",
-  assigned: "g a",
-  starred: "g s",
-  drafts: "g d",
-  mentions: "g m",
-  chats: "g c",
+const BOX_SHORTCUTS: Partial<Record<StaticBox, ShortcutAction>> = {
+  inbox: "goInbox",
+  assigned: "goAssigned",
+  starred: "goStarred",
+  drafts: "goDrafts",
+  mentions: "goMentions",
+  chats: "goChats",
+  sent: "goSent",
+  all: "goAll",
 }
 
 const matches = (item: StaticItem, q: string) => !q || `${item.label} ${item.keywords ?? ""}`.toLowerCase().includes(q)
@@ -127,6 +131,7 @@ export function CommandPalette() {
   const [debounced, setDebounced] = useState(query)
   const inputRef = useRef<HTMLInputElement>(null)
   const { data: chats = bootstrap.chats } = useChats(slug, bootstrap.chats)
+  const combo = useShortcutCombo()
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query), 150)
@@ -160,7 +165,7 @@ export function CommandPalette() {
       label: STATIC_BOX_META[b].title,
       keywords: `${b} ${STATIC_BOX_META[b].description}`,
       icon: STATIC_BOX_ICONS[b],
-      shortcut: BOX_SHORTCUTS[b],
+      shortcut: BOX_SHORTCUTS[b] ? combo(BOX_SHORTCUTS[b]) : undefined,
       run: () => router.push(`${base}/${b}`),
     }))
     for (const t of bootstrap.teams) {
@@ -190,14 +195,14 @@ export function CommandPalette() {
       { id: "page:settings", label: "Settings", keywords: "preferences workspace", icon: Settings, run: () => router.push(`${base}/settings`) }
     )
     return items
-  }, [bootstrap.teams, bootstrap.accounts, bootstrap.labels, chats, base, router, can, member, meId])
+  }, [bootstrap.teams, bootstrap.accounts, bootstrap.labels, chats, base, router, can, member, meId, combo])
 
   const actions = useMemo<StaticItem[]>(() => {
     const list: StaticItem[] = [
-      { id: "action:compose", label: "Compose new message", keywords: "write email new", icon: SquarePen, shortcut: "n", run: () => inboxUI.openCompose() },
+      { id: "action:compose", label: "Compose new message", keywords: "write email new", icon: SquarePen, shortcut: combo("compose"), run: () => inboxUI.openCompose() },
     ]
     if (can("chats.create")) {
-      list.push({ id: "action:chat", label: "New chat", keywords: "message teammate dm group", icon: MessagesSquare, shortcut: "mod+shift+n", run: () => inboxUI.set({ newChatOpen: true }) })
+      list.push({ id: "action:chat", label: "New chat", keywords: "message teammate dm group", icon: MessagesSquare, shortcut: combo("newChat"), run: () => inboxUI.set({ newChatOpen: true }) })
     }
     list.push(
       {
@@ -207,10 +212,10 @@ export function CommandPalette() {
         icon: resolvedTheme === "dark" ? Sun : Moon,
         run: () => setTheme(resolvedTheme === "dark" ? "light" : "dark"),
       },
-      { id: "action:shortcuts", label: "Keyboard shortcuts", keywords: "help keys hotkeys", icon: Keyboard, shortcut: "?", run: () => inboxUI.set({ shortcutsOpen: true }) }
+      { id: "action:shortcuts", label: "Keyboard shortcuts", keywords: "help keys hotkeys", icon: Keyboard, shortcut: combo("help"), run: () => inboxUI.set({ shortcutsOpen: true }) }
     )
     return list
-  }, [can, resolvedTheme, setTheme])
+  }, [can, resolvedTheme, setTheme, combo])
 
   // Operator hints: all when empty, otherwise those completing the last word.
   const lastWord = query.endsWith(" ") ? "" : (query.split(/\s+/).pop() ?? "")

@@ -37,6 +37,7 @@ export function useEventText() {
     const d = e.data ?? {}
     const actor = e.actorId ? (e.actorId === meId ? "You" : memberName(member(e.actorId))) : "Dispatch"
     const userIds = asArray(d.userIds ?? d.userId)
+    const byReply = d.reason === "reply"
     const labelChips = () => {
       const ids = asArray(d.labelIds ?? d.labelId)
       const fallback = typeof d.labelName === "string" ? d.labelName : null
@@ -58,7 +59,19 @@ export function useEventText() {
     }
     switch (e.type) {
       case "assigned":
-        return { icon: UserPlus, actor, text: userIds.length === 1 && userIds[0] === e.actorId ? "self-assigned" : <>assigned {names(userIds) || (typeof d.userName === "string" ? d.userName : "someone")}</> }
+        return {
+          icon: UserPlus,
+          actor,
+          text:
+            userIds.length === 1 && userIds[0] === e.actorId ? (
+              "self-assigned"
+            ) : (
+              <>
+                assigned {names(userIds) || (typeof d.userName === "string" ? d.userName : "someone")}
+                {d.auto ? " automatically" : ""}
+              </>
+            ),
+        }
       case "unassigned":
         return { icon: UserMinus, actor, text: <>unassigned {names(userIds) || "someone"}</> }
       case "labeled":
@@ -68,11 +81,11 @@ export function useEventText() {
       case "closed":
         return { icon: CircleCheck, actor, text: "closed the conversation" }
       case "reopened":
-        return { icon: RotateCcw, actor, text: "reopened the conversation" }
+        return { icon: RotateCcw, actor, text: byReply ? "reopened the conversation after a new reply" : "reopened the conversation" }
       case "snoozed":
         return { icon: Clock, actor, text: `snoozed until ${untilLabel(typeof d.until === "string" ? d.until : null)}` }
       case "unsnoozed":
-        return { icon: Clock, actor, text: e.actorId ? "unsnoozed" : "Snooze ended" }
+        return { icon: Clock, actor, text: byReply ? "ended the snooze — the customer replied" : e.actorId ? "unsnoozed" : "ended the snooze" }
       case "moved": {
         const t = team(typeof d.teamId === "string" ? d.teamId : null)
         return { icon: Users, actor, text: t ? <>moved to {t.name}</> : "removed the team" }
@@ -92,7 +105,7 @@ export function useEventText() {
       case "trashed":
         return { icon: Trash2, actor, text: "moved to trash" }
       case "restored":
-        return { icon: ArchiveRestore, actor, text: "restored from trash" }
+        return { icon: ArchiveRestore, actor, text: byReply ? "restored from trash after a new reply" : "restored from trash" }
       case "scheduled":
         return { icon: CalendarClock, actor, text: `scheduled a message for ${untilLabel(typeof d.sendAt === "string" ? d.sendAt : null)}` }
       case "unscheduled":
@@ -100,7 +113,17 @@ export function useEventText() {
       case "rule_applied":
       case "rule": {
         const name = typeof d.ruleName === "string" ? d.ruleName : typeof d.name === "string" ? d.name : null
-        return { icon: Zap, actor: "Rule", text: name ? <>“{name}” applied</> : "applied" }
+        const actions = asArray(d.actions)
+        return {
+          icon: Zap,
+          actor: "Rule",
+          text: (
+            <>
+              {name ? <>“{name}” applied</> : "applied"}
+              {actions.length > 0 && <span className="text-muted-foreground/80"> · {actions.join(", ").replace(/_/g, " ")}</span>}
+            </>
+          ),
+        }
       }
       case "chat_created":
         return { icon: Hash, actor, text: "started the chat" }

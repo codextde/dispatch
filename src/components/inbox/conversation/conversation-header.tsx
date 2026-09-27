@@ -61,6 +61,8 @@ import { useNow } from "@/hooks/inbox/use-now"
 import { useViewers } from "@/hooks/inbox/use-realtime"
 import { useInbox } from "../inbox-provider"
 import { AssigneePicker, LabelPicker, SnoozePicker, TeamPicker } from "../pickers"
+import { useShortcutHint } from "../shortcut-hint"
+import type { ShortcutAction } from "@/lib/inbox/shortcuts"
 import { MergeDialog } from "./merge-dialog"
 import type { ConversationCommands } from "./use-conversation-commands"
 
@@ -132,9 +134,15 @@ function EditableSubject({ conv, onRename, readOnly }: { conv: ConversationDetai
   )
 }
 
+function Hint({ action }: { action: ShortcutAction }) {
+  const hint = useShortcutHint()(action)
+  return hint ? <DropdownMenuShortcut>{hint}</DropdownMenuShortcut> : null
+}
+
 export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: { conv: ConversationDetail; cmd: ConversationCommands; detailsOpen: boolean; onToggleDetails: () => void }) {
   const { account, team, label, member, meId, bootstrap } = useInbox()
   const { can } = useOrg()
+  const hint = useShortcutHint()
   const picker = useInboxUI((s) => s.picker)
   const setPicker = (p: PickerKind) => inboxUI.set({ picker: p })
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -188,7 +196,9 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
             >
               {conv.status === "closed" ? <RotateCcw /> : <CircleCheck />}
               {conv.status === "closed" ? "Reopen" : "Close"}
-              <Kbd className={cn("ml-0.5 max-lg:hidden", conv.status !== "closed" && "bg-primary-foreground/15 text-primary-foreground/80")}>E</Kbd>
+              {hint("close") && (
+                <Kbd className={cn("ml-0.5 max-lg:hidden", conv.status !== "closed" && "bg-primary-foreground/15 text-primary-foreground/80")}>{hint("close")}</Kbd>
+              )}
             </Button>
           )}
 
@@ -221,7 +231,7 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
               </Button>
             </SnoozePicker>
           )}
-          <HeaderButton label={conv.starred ? "Unstar" : "Star"} shortcut="S" onClick={cmd.toggleStar} active={conv.starred} className="max-sm:hidden">
+          <HeaderButton label={conv.starred ? "Unstar" : "Star"} shortcut={hint("star") ?? undefined} onClick={cmd.toggleStar} active={conv.starred} className="max-sm:hidden">
             <Star className={cn(conv.starred && "fill-amber-400 text-amber-400")} />
           </HeaderButton>
           {bootstrap.teams.length > 0 && writable && (
@@ -242,19 +252,19 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
               {writable && (
                 <DropdownMenuItem onSelect={cmd.toggleStatus} className="md:hidden">
                   {conv.status === "closed" ? <RotateCcw /> : <CircleCheck />} {conv.status === "closed" ? "Reopen" : "Close"}
-                  <DropdownMenuShortcut>E</DropdownMenuShortcut>
+                  <Hint action="close" />
                 </DropdownMenuItem>
               )}
               {writable && (
                 <>
                   <DropdownMenuItem className="md:hidden" onSelect={() => setTimeout(() => setPicker("assign"), 0)}>
-                    <UserPlus /> Assign…<DropdownMenuShortcut>I</DropdownMenuShortcut>
+                    <UserPlus /> Assign…<Hint action="assign" />
                   </DropdownMenuItem>
                   <DropdownMenuItem className="md:hidden" onSelect={() => setTimeout(() => setPicker("label"), 0)}>
-                    <Tag /> Labels…<DropdownMenuShortcut>L</DropdownMenuShortcut>
+                    <Tag /> Labels…<Hint action="label" />
                   </DropdownMenuItem>
                   <DropdownMenuItem className="md:hidden" onSelect={() => setTimeout(() => setPicker("snooze"), 0)}>
-                    <Clock /> Snooze…<DropdownMenuShortcut>H</DropdownMenuShortcut>
+                    <Clock /> Snooze…<Hint action="snooze" />
                   </DropdownMenuItem>
                 </>
               )}
@@ -264,7 +274,7 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
               {writable && (
                 <DropdownMenuItem onSelect={cmd.assignToMe}>
                   <UserPlus /> {conv.assigneeIds.includes(meId) ? "Unassign me" : "Assign to me"}
-                  <DropdownMenuShortcut>M</DropdownMenuShortcut>
+                  <Hint action="assignMe" />
                 </DropdownMenuItem>
               )}
               {writable && (
@@ -279,7 +289,7 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={cmd.markUnread}>
-                <Mail /> Mark as unread<DropdownMenuShortcut>U</DropdownMenuShortcut>
+                <Mail /> Mark as unread<Hint action="markUnread" />
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={cmd.togglePin}>
                 {conv.pinned ? <PinOff /> : <Pin />} {conv.pinned ? "Unpin" : "Pin to top"}
@@ -310,12 +320,12 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={cmd.toggleSpam}>
                     {conv.isSpam ? <ShieldCheck /> : <ShieldAlert />} {conv.isSpam ? "Not spam" : "Mark as spam"}
-                    <DropdownMenuShortcut>!</DropdownMenuShortcut>
+                    <Hint action="spam" />
                   </DropdownMenuItem>
                   {canDelete && (
                     <DropdownMenuItem variant={conv.isTrash ? "default" : "destructive"} onSelect={cmd.toggleTrash}>
                       {conv.isTrash ? <ArchiveRestore /> : <Trash2 />} {conv.isTrash ? "Restore" : "Move to trash"}
-                      <DropdownMenuShortcut>#</DropdownMenuShortcut>
+                      <Hint action="trash" />
                     </DropdownMenuItem>
                   )}
                   {canDelete && conv.isTrash && (

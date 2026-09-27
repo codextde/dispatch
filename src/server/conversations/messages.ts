@@ -544,6 +544,10 @@ export async function sendMessage(ctx: Ctx, scope: InboxScope, input: SendInput)
   })
 
   await deleteUnreferencedObjects(result.removedKeys)
+  if (status === "queued" && sendAt.getTime() <= Date.now() + 1000) {
+    // No undo window: wake the worker now instead of waiting for its next poll.
+    await db.execute(sql`select pg_notify('dispatch_jobs', 'message.send')`).catch(() => {})
+  }
   await publish({ orgId: ctx.org.id, type: "message.created", conversationId: result.convId, actorId: me, data: { messageId: result.message.id } })
   return {
     message: toThreadMessage(ctx.org.slug, result.message, result.atts),
@@ -602,6 +606,8 @@ export async function sendNow(ctx: Ctx, scope: InboxScope, messageId: string) {
     .where(and(eq(m.id, messageId), inArray(m.status, ["queued", "scheduled", "failed"])))
     .returning({ id: m.id })
   if (!updated) throw new ApiError(409, "The message is already being sent", "already_sending")
+  // Wake the worker right away instead of waiting for its next poll.
+  await db.execute(sql`select pg_notify('dispatch_jobs', 'message.send')`).catch(() => {})
   await publishConversations(ctx.org.id, [msg.conversationId], ctx.user.id)
 }
 

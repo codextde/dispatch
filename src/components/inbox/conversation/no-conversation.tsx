@@ -5,9 +5,17 @@ import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
 import { inboxUI } from "@/hooks/inbox/store"
 import { shortcutLabel } from "@/hooks/inbox/use-hotkeys"
+import { useShortcutHint } from "../shortcut-hint"
 
 /** Placeholder of the conversation pane when nothing is open (desktop). */
 export function NoConversation() {
+  const hint = useShortcutHint()
+  const rows = [
+    { keys: [hint("next"), hint("prev")], label: "Move between conversations" },
+    { keys: [shortcutLabel("mod+k")[0]!], label: "Search and commands" },
+    { keys: [hint("compose")], label: "New message" },
+    { keys: [hint("help")], label: "All shortcuts" },
+  ].filter((r) => r.keys.every(Boolean))
   return (
     <div className="dot-grid flex h-full flex-col items-center justify-center p-8 text-center">
       <div className="flex flex-col items-center rounded-2xl border bg-card/90 px-10 py-9 shadow-sm backdrop-blur">
@@ -19,23 +27,16 @@ export function NoConversation() {
         </h2>
         <p className="mt-1 max-w-xs text-[13px] text-muted-foreground">Use the keyboard to fly through your inbox.</p>
         <dl className="mt-5 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-left text-[13px]">
-          <dt className="flex gap-1">
-            <Kbd>J</Kbd>
-            <Kbd>K</Kbd>
-          </dt>
-          <dd className="text-muted-foreground">Move between conversations</dd>
-          <dt className="flex gap-1">
-            <Kbd>{shortcutLabel("mod+k")[0]}</Kbd>
-          </dt>
-          <dd className="text-muted-foreground">Search and commands</dd>
-          <dt>
-            <Kbd>N</Kbd>
-          </dt>
-          <dd className="text-muted-foreground">New message</dd>
-          <dt>
-            <Kbd>?</Kbd>
-          </dt>
-          <dd className="text-muted-foreground">All shortcuts</dd>
+          {rows.map((r) => (
+            <div key={r.label} className="contents">
+              <dt className="flex gap-1">
+                {r.keys.map((k) => (
+                  <Kbd key={k}>{k}</Kbd>
+                ))}
+              </dt>
+              <dd className="text-muted-foreground">{r.label}</dd>
+            </div>
+          ))}
         </dl>
         <div className="mt-6 flex gap-2">
           <Button size="sm" onClick={() => inboxUI.openCompose()}>

@@ -19,6 +19,7 @@ import { replyDefaults } from "@/lib/inbox/reply"
 import type { ComposingKind, ConversationThread, DraftInfo, DraftMode, SendResult } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import { useInbox } from "../inbox-provider"
+import { useShortcutHint } from "../shortcut-hint"
 import { CommentBox } from "./comment-box"
 import { EmailComposer } from "./email-composer"
 import { draftFromInfo, type EmailDraftState } from "./use-email-draft"
@@ -48,6 +49,7 @@ export function ConversationComposer({
 }) {
   const conv = thread.conversation
   const { bootstrap, meId, ownAddresses, member } = useInbox()
+  const hint = useShortcutHint()
   const isMobile = useIsMobile()
   const [email, setEmail] = useState<{ mode: ReplyMode; key: number; draft?: DraftInfo; messageId?: string; carry?: EmailDraftState } | null>(null)
   /** Latest state of the open email composer (to keep the draft when switching reply mode) */
@@ -277,7 +279,7 @@ export function ConversationComposer({
               </Button>
             ) : (
               <Button variant="outline" size="sm" onClick={() => openEmail("reply")}>
-                <Reply /> Reply <Kbd className="ml-0.5 max-lg:hidden">R</Kbd>
+                <Reply /> Reply {hint("reply") && <Kbd className="ml-0.5 max-lg:hidden">{hint("reply")}</Kbd>}
               </Button>
             )}
             <DropdownMenu>
@@ -288,10 +290,10 @@ export function ConversationComposer({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top">
                 <DropdownMenuItem onSelect={() => openEmail("reply_all")}>
-                  <ReplyAll /> Reply all <span className="ml-auto text-xs text-muted-foreground">A</span>
+                  <ReplyAll /> Reply all <span className="ml-auto text-xs text-muted-foreground">{hint("replyAll")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => openEmail("forward")}>
-                  <Forward /> Forward <span className="ml-auto text-xs text-muted-foreground">F</span>
+                  <Forward /> Forward <span className="ml-auto text-xs text-muted-foreground">{hint("forward")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
