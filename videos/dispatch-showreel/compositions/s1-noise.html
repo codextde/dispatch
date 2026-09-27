@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>01 — Noise</title>
+  </head>
+  <body>
+    <template id="s1-noise-template">
+      <style>
+        @font-face {
+          font-family: "Geist";
+          src: url("assets/fonts/geist-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        @font-face {
+          font-family: "Geist Mono";
+          src: url("assets/fonts/geist-mono-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        #s1-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #121210;
+          font-family: "Geist", sans-serif;
+          color: #f4f2ea;
+        }
+        #s1-root .s1-dots {
+          position: absolute;
+          inset: -72px;
+          background-image: radial-gradient(circle, rgba(244, 242, 234, 0.2) 1.6px, transparent 1.8px);
+          background-size: 36px 36px;
+        }
+        #s1-root .s1-glow {
+          position: absolute;
+          left: 960px;
+          top: 540px;
+          width: 1500px;
+          height: 1100px;
+          margin: -550px 0 0 -750px;
+          background: radial-gradient(closest-side, rgba(250, 249, 245, 0.1), rgba(250, 249, 245, 0) 70%);
+        }
+        /* The lens: static perspective. The world flies; nothing else moves it. */
+        #s1-root .s1-stage {
+          position: absolute;
+          inset: 0;
+          perspective: 1100px;
+          perspective-origin: 50% 50%;
+        }
+        #s1-root .s1-world {
+          position: absolute;
+          inset: 0;
+          transform-style: preserve-3d;
+          will-change: transform;
+        }
+        #s1-root .s1-chip {
+          position: absolute;
+          left: 960px;
+          top: 540px;
+          width: 600px;
+          height: 104px;
+          display: flex;
+          align-items: center;
+          gap: 22px;
+          padding: 0 30px 0 22px;
+          border-radius: 22px;
+          background: #1f1f1b;
+          border: 2px solid #34342d;
+          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+          --dof: 0px;
+          filter: blur(var(--dof));
+          will-change: transform, filter, opacity;
+        }
+        #s1-root .s1-av {
+          flex: 0 0 60px;
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          font: 700 22px "Geist", sans-serif;
+          color: #121210;
+        }
+        #s1-root .s1-txt {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+        #s1-root .s1-from {
+          font: 500 22px "Geist Mono", monospace;
+          color: #a09e93;
+          white-space: nowrap;
+        }
+        #s1-root .s1-subj {
+          font: 650 29px "Geist", sans-serif;
+          letter-spacing: -0.02em;
+          color: #f4f2ea;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        #s1-root .s1-badge {
+          margin-left: auto;
+          flex: 0 0 auto;
+          padding: 6px 12px;
+          border-radius: 999px;
+          background: #ef4444;
+          font: 700 20px "Geist Mono", monospace;
+          color: #fff;
+        }
+        #s1-root .s1-scrim {
+          position: absolute;
+          left: -500px;
+          top: -100px;
+          width: 2000px;
+          height: 1280px;
+          background: radial-gradient(closest-side, rgba(18, 18, 16, 0.94), rgba(18, 18, 16, 0.75) 45%, rgba(18, 18, 16, 0) 100%);
+        }
+        /* Kinetic type — two identical copies clipped at the slice line (y=540). */
+        #s1-root .s1-half {
+          position: absolute;
+          inset: 0;
+          will-change: transform, opacity;
+        }
+        #s1-root .s1-top {
+          clip-path: inset(0 0 540px 0);
+        }
+        #s1-root .s1-bot {
+          clip-path: inset(540px 0 0 0);
+        }
+        #s1-root .s1-type {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 0 140px;
+        }
+        #s1-root .s1-line {
+          display: block;
+          width: fit-content;
+          font-weight: 820;
+          font-size: 172px;
+          line-height: 162px;
+          letter-spacing: -0.055em;
+          white-space: nowrap;
+          will-change: transform, opacity, filter;
+        }
+        #s1-root .s1-l1,
+        #s1-root .s1-l2 {
+          color: #9a988d;
+        }
+        #s1-root .s1-l3 {
+          color: #f4f2ea;
+        }
+        /* Chrome */
+        #s1-root .s1-meta {
+          position: absolute;
+          left: 140px;
+          top: 72px;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          font: 500 22px "Geist Mono", monospace;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #a09e93;
+        }
+        #s1-root .s1-meta i {
+          display: block;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #ef4444;
+        }
+        #s1-root .s1-unread {
+          position: absolute;
+          right: 140px;
+          top: 58px;
+          display: flex;
+          align-items: center;
+          gap: 18px;
+          transform-origin: 100% 50%;
+        }
+        #s1-root .s1-unread-label {
+          font: 500 22px "Geist Mono", monospace;
+          letter-spacing: 0.08em;
+          color: #a09e93;
+        }
+        #s1-root .s1-unread-num {
+          min-width: 150px;
+          padding: 8px 20px;
+          border-radius: 999px;
+          background: #ef4444;
+          font: 700 40px "Geist Mono", monospace;
+          font-variant-numeric: tabular-nums;
+          text-align: center;
+          color: #fff;
+        }
+        #s1-root .s1-chapter {
+          position: absolute;
+          left: 140px;
+          bottom: 64px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          font: 500 22px "Geist Mono", monospace;
+          letter-spacing: 0.08em;
+          color: #a09e93;
+        }
+        #s1-root .s1-chapter b {
+          font-weight: 700;
+          color: #4ade80;
+        }
+        #s1-root .s1-rule {
+          display: block;
+          width: 180px;
+          height: 3px;
+          background: #34342d;
+          overflow: hidden;
+        }
+        #s1-root .s1-rule span {
+          display: block;
+          width: 100%;
+          height: 100%;
+          background: #4ade80;
+          transform-origin: 0 50%;
+        }
+        /* The dispatch line — the thread through the whole film. */
+        #s1-root .s1-line-wrap {
+          position: absolute;
+          left: 0;
+          top: 537px;
+          width: 1920px;
+          height: 6px;
+        }
+        #s1-root .s1-thread {
+          display: block;
+          width: 1920px;
+          height: 6px;
+          border-radius: 3px;
+          background: #4ade80;
+          box-shadow: 0 0 22px rgba(74, 222, 128, 0.7), 0 0 60px rgba(74, 222, 128, 0.35);
+          transform-origin: 0 50%;
+        }
+        #s1-root .s1-head {
+          position: absolute;
+          left: 0;
+          top: 540px;
+          width: 140px;
+          height: 140px;
+          margin: -70px 0 0 -70px;
+          border-radius: 50%;
+          background: radial-gradient(closest-side, rgba(220, 255, 232, 0.95), rgba(74, 222, 128, 0.55) 35%, rgba(74, 222, 128, 0) 70%);
+        }
+      </style>
+
+      <div data-hf-id="hf-4x2m" id="s1-root" data-composition-id="s1-noise" data-width="1920" data-height="1080" data-duration="2.5">
+        <div data-hf-id="hf-g5vg" class="s1-dots" data-layout-ignore=""></div>
+        <div data-hf-id="hf-4lxa" class="s1-glow"></div>
+
+        <div data-hf-id="hf-nfev" class="s1-stage" id="s1-stage" data-layout-allow-overflow="">
+          <div data-hf-id="hf-2spf" class="s1-world" id="s1-world" data-layout-allow-overflow=""></div>
+        </div>
+
+        <div data-hf-id="hf-vwpm" class="s1-scrim" id="s1-scrim"></div>
+        <div data-hf-id="hf-qero" class="s1-half s1-top" id="s1-top">
+          <div data-hf-id="hf-rwct" class="s1-type">
+            <div data-hf-id="hf-b3dp" class="s1-line s1-l1">Email</div>
+            <div data-hf-id="hf-3mc2" class="s1-line s1-l2">wasn't built</div>
+            <div data-hf-id="hf-fdlk" class="s1-line s1-l3">for teams.</div>
+          </div>
+        </div>
+        <div data-hf-id="hf-3a0c" class="s1-half s1-bot" id="s1-bot">
+          <div data-hf-id="hf-t1vl" class="s1-type">
+            <div data-hf-id="hf-anii" class="s1-line s1-l1" data-layout-ignore="">Email</div>
+            <div data-hf-id="hf-06k3" class="s1-line s1-l2" data-layout-ignore="">wasn't built</div>
+            <div data-hf-id="hf-2by9" class="s1-line s1-l3" data-layout-ignore="">for teams.</div>
+          </div>
+        </div>
+
+        <div data-hf-id="hf-t6wt" class="s1-meta" id="s1-meta"><i data-hf-id="hf-wt6k"></i>support@acme.com · shared password · 6 people</div>
+        <div data-hf-id="hf-39z2" class="s1-unread" id="s1-unread">
+          <span data-hf-id="hf-d1ah" class="s1-unread-label">UNREAD</span>
+          <span data-hf-id="hf-cqt6" class="s1-unread-num" id="s1-num">3</span>
+        </div>
+        <div data-hf-id="hf-ns2q" class="s1-chapter" id="s1-chapter"><b data-hf-id="hf-27a2">01</b><span data-hf-id="hf-4v94">/ NOISE</span><span data-hf-id="hf-mk14" class="s1-rule"><span data-hf-id="hf-rxi3" id="s1-prog"></span></span></div>
+
+        <div data-hf-id="hf-1b04" class="s1-line-wrap"><span data-hf-id="hf-9oop" class="s1-thread" id="s1-thread"></span></div>
+        <div data-hf-id="hf-9u3g" class="s1-head" id="s1-head"></div>
+      </div>
+
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          const world = document.getElementById("s1-world");
+
+          // ── Chaos inventory: real shared-mailbox pain, one chip each.
+          const MAIL = [
+            ["HL", "Hannah Lee", "Fwd: Fwd: Re: Invoice #4821", "#f59e0b", "3"],
+            ["RS", "Ravi Singh", "Re: Re: Who's handling this?", "#60a5fa", ""],
+            ["MJ", "Marcus J.", "URGENT: charged twice??", "#f87171", "!"],
+            ["SN", "Sara Nilsen", "Did anyone reply to Hannah?", "#a78bfa", ""],
+            ["AG", "Alpine Gear", "Re: what's the support@ password", "#34d399", "2"],
+            ["NW", "Northwind", "Fwd: contract_v7_FINAL(2).pdf", "#fbbf24", ""],
+            ["PK", "Priya K.", "Still waiting on a reply…", "#f472b6", "4"],
+            ["JW", "Jonas W.", "Re: Re: Re: Re: following up", "#38bdf8", ""],
+            ["DE", "Daniel E.", "Can someone take this one?", "#4ade80", ""],
+            ["LM", "Lena M.", "Two of us replied. Oops.", "#fb923c", "2"],
+            ["CB", "Brightpath", "Re: order #10497 is missing", "#c084fc", ""],
+            ["TO", "Tom O.", "Fwd: see thread below ↓↓", "#facc15", "7"],
+            ["EV", "Eva V.", "Who's on support today?", "#2dd4bf", ""],
+            ["RK", "Rita K.", "Re: (no subject)", "#f87171", ""],
+            ["BP", "Ben P.", "3rd follow-up — anyone?", "#818cf8", "3"],
+            ["MC", "Maya Chen", "Fwd: Fwd: Fwd: refund", "#4ade80", ""],
+            ["QA", "Mailer-Daemon", "Delivery failed: Re: Re:", "#a3a3a3", "!"],
+            ["IY", "Ines Y.", "Is this assigned to anyone?", "#fda4af", ""],
+          ];
+
+          const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+          const chips = MAIL.map((m, i) => {
+            const el = document.createElement("div");
+            el.className = "s1-chip";
+            // Depth-cloud texture: blurred, fading and overlapping by design — never a reading surface.
+            el.setAttribute("data-layout-ignore", "");
+            el.innerHTML =
+              `<span class="s1-av" style="background:${m[3]}">${m[0]}</span>` +
+              `<span class="s1-txt"><span class="s1-from">${m[1]}</span><span class="s1-subj">${m[2]}</span></span>` +
+              (m[4] ? `<span class="s1-badge">${m[4]}</span>` : "");
+            world.appendChild(el);
+            const a = i * GOLDEN + 0.6;
+            const rx = 430 + (i % 3) * 190;
+            const ry = 250 + (i % 4) * 70;
+            const pose = {
+              x: Math.cos(a) * rx + 300,
+              y: Math.sin(a) * ry,
+              z: -260 - i * 150,
+              rotationY: Math.cos(a * 1.7) * 26,
+              rotationX: Math.sin(a * 1.3) * 16,
+              rotation: Math.sin(a * 2.1) * 9,
+            };
+            gsap.set(el, { xPercent: -50, yPercent: -50, ...pose });
+            return { el, z: pose.z };
+          });
+
+          // ── Camera: one state object, one writer (3d-camera-flight).
+          const cam = { z: 0, rz: -3 };
+          function applyCamera() {
+            world.style.transform = `translate3d(0px, 0px, ${cam.z}px) rotateZ(${cam.rz}deg)`;
+            // Depth-derived fade + DoF per leaf chip — a pure function of cam.z.
+            for (const c of chips) {
+              const eff = c.z + cam.z;
+              const near = Math.min(1, Math.max(0, (900 - eff) / 380));
+              const far = Math.min(1, Math.max(0, (eff + 2500) / 900));
+              c.el.style.opacity = (near * far).toFixed(3);
+              c.el.style.setProperty("--dof", `${Math.min(14, Math.abs(eff + 150) / 110).toFixed(2)}px`);
+            }
+          }
+          applyCamera();
+          // Leg 1: slow drift in. Leg 2: the flood accelerates past the lens.
+          tl.to(cam, { z: 520, rz: 1, duration: 1.5, ease: "sine.inOut", onUpdate: applyCamera }, 0);
+          tl.to(cam, { z: 1650, rz: 7, duration: 0.85, ease: "power3.in", onUpdate: applyCamera }, 1.5);
+
+          // Ambient: dot field drift + glow breathe.
+          tl.fromTo(".s1-dots", { x: 0, y: 0 }, { x: -36, y: 18, duration: 2.5, ease: "none" }, 0);
+          tl.fromTo(".s1-glow", { scale: 0.9, opacity: 0.6 }, { scale: 1.15, opacity: 1, duration: 2.3, ease: "sine.inOut" }, 0);
+
+          // ── Kinetic beat slam: one shared onset grid, distinct entrances.
+          const BEATS = [0.25, 0.75, 1.25];
+          tl.fromTo(
+            ".s1-l1",
+            { scale: 1.7, filter: "blur(18px)", opacity: 0, transformOrigin: "0% 50%" },
+            { scale: 1, filter: "blur(0px)", opacity: 1, duration: 0.42, ease: "power4.out" },
+            BEATS[0],
+          );
+          tl.fromTo(
+            ".s1-l2",
+            { x: 420, skewX: -14, opacity: 0 },
+            { x: 0, skewX: 0, opacity: 1, duration: 0.38, ease: "expo.out" },
+            BEATS[1],
+          );
+          tl.fromTo(
+            ".s1-l3",
+            { y: 150, rotation: 6, opacity: 0, transformOrigin: "0% 100%" },
+            { y: 0, rotation: 0, opacity: 1, duration: 0.5, ease: "circ.out" },
+            BEATS[2],
+          );
+
+          // ── Chromatic glitch on the hook: RGB split jitters on QUANTIZED time.
+          const glitch = { t: 0 };
+          const lines = Array.from(document.querySelectorAll("#s1-root .s1-line"));
+          function writeGlitch() {
+            const q = Math.floor(glitch.t * 24);
+            const h = Math.sin(q * 12.9898) * 43758.5453;
+            const r = h - Math.floor(h);
+            const env = Math.sin(Math.min(1, glitch.t) * Math.PI);
+            const dx = ((r - 0.5) * 22 * env).toFixed(1);
+            lines.forEach((el) => {
+              el.style.textShadow = env > 0.02 ? `${dx}px 0 rgba(239,68,68,0.85), ${-dx}px 0 rgba(74,222,128,0.75)` : "none";
+            });
+          }
+          writeGlitch();
+          tl.to(glitch, { t: 1, duration: 0.5, ease: "none", onUpdate: writeGlitch }, 1.62);
+
+          // ── Unread counter escalates (counting-dynamic-scale).
+          const numEl = document.getElementById("s1-num");
+          const count = { v: 3 };
+          const writeCount = () => {
+            const v = Math.round(count.v);
+            numEl.textContent = v >= 999 ? "999+" : String(v);
+          };
+          writeCount();
+          tl.fromTo("#s1-unread", { y: -30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "back.out(2)" }, 0.12);
+          tl.to(count, { v: 999, duration: 1.95, ease: "power3.in", onUpdate: writeCount }, 0.2);
+          tl.fromTo("#s1-unread", { scale: 1 }, { scale: 1.3, duration: 1.95, ease: "power3.in", immediateRender: false }, 0.2);
+          tl.fromTo("#s1-meta", { x: -40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power3.out" }, 0.18);
+
+          // Chapter chrome.
+          tl.fromTo("#s1-chapter", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power2.out" }, 0.1);
+          tl.fromTo("#s1-prog", { scaleX: 0 }, { scaleX: 1, duration: 2.4, ease: "none" }, 0.1);
+
+          // ── The line: streaks in left→right, head flare riding its tip (motion-blur-streak).
+          tl.fromTo("#s1-thread", { scaleX: 0 }, { scaleX: 1, duration: 0.26, ease: "expo.out" }, 2.06);
+          tl.fromTo("#s1-head", { x: -80, opacity: 1, scale: 1.3 }, { x: 1990, opacity: 1, duration: 0.26, ease: "expo.out" }, 2.06);
+          tl.to("#s1-head", { opacity: 0, duration: 0.1, ease: "power1.out" }, 2.33);
+
+          // ── THE SLICE (transition): the line cuts the noise in two; everything else is cleared.
+          const SLICE = 2.3;
+          tl.to("#s1-top", { y: -150, rotation: -1.8, duration: 0.2, ease: "power4.out" }, SLICE);
+          tl.to("#s1-bot", { y: 150, rotation: 1.4, duration: 0.2, ease: "power4.out" }, SLICE);
+          tl.to(["#s1-top", "#s1-bot", "#s1-scrim"], { opacity: 0, duration: 0.18, ease: "power2.in" }, SLICE);
+          // Fade the lens wrapper, never the preserve-3d world (opacity would flatten it).
+          tl.to("#s1-stage", { opacity: 0, duration: 0.14, ease: "power2.in" }, SLICE);
+          tl.to(["#s1-unread", "#s1-meta", "#s1-chapter", ".s1-glow"], { opacity: 0, duration: 0.14, ease: "power2.in" }, SLICE);
+          tl.fromTo(
+            "#s1-thread",
+            { boxShadow: "0 0 22px rgba(74,222,128,0.7), 0 0 60px rgba(74,222,128,0.35)" },
+            { boxShadow: "0 0 34px rgba(74,222,128,1), 0 0 120px rgba(74,222,128,0.6)", duration: 0.2, ease: "power2.out", immediateRender: false },
+            SLICE,
+          );
+
+          window.__timelines["s1-noise"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

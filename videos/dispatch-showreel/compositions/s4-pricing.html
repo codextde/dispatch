@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>04 — Scale</title>
+  </head>
+  <body>
+    <template id="s4-pricing-template">
+      <style>
+        @font-face {
+          font-family: "Geist";
+          src: url("assets/fonts/geist-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        @font-face {
+          font-family: "Geist Mono";
+          src: url("assets/fonts/geist-mono-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        #s4-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #121210;
+          font-family: "Geist", sans-serif;
+          color: #f4f2ea;
+        }
+        #s4-root .s4-dots {
+          position: absolute;
+          inset: -72px;
+          background-image: radial-gradient(circle, rgba(244, 242, 234, 0.18) 1.6px, transparent 1.8px);
+          background-size: 36px 36px;
+        }
+        #s4-root .s4-cam {
+          position: absolute;
+          inset: 0;
+          will-change: transform, filter;
+        }
+        #s4-root .s4-glow {
+          position: absolute;
+          left: 960px;
+          top: 470px;
+          width: 1300px;
+          height: 1000px;
+          margin: -500px 0 0 -650px;
+          background: radial-gradient(closest-side, rgba(74, 222, 128, 0.14), rgba(74, 222, 128, 0) 72%);
+        }
+        #s4-root .s4-half {
+          position: absolute;
+          top: 170px;
+          width: 700px;
+          will-change: transform, opacity;
+        }
+        #s4-root .s4-left {
+          left: 170px;
+        }
+        #s4-root .s4-right {
+          left: 1060px;
+        }
+        #s4-root .s4-label {
+          font: 500 24px "Geist Mono", monospace;
+          letter-spacing: 0.12em;
+          color: #a09e93;
+        }
+        #s4-root .s4-label b {
+          color: #4ade80;
+          font-weight: 700;
+        }
+        #s4-root .s4-ticker {
+          margin-top: 46px;
+          width: 700px;
+          height: 280px;
+          overflow: hidden;
+        }
+        #s4-root .s4-stack {
+          display: flex;
+          flex-direction: column;
+          will-change: transform;
+        }
+        #s4-root .s4-item {
+          height: 280px;
+          display: flex;
+          align-items: center;
+          font-weight: 820;
+          font-size: 270px;
+          letter-spacing: -0.06em;
+          font-variant-numeric: tabular-nums;
+          line-height: 1;
+        }
+        #s4-root .s4-item.inf {
+          color: #4ade80;
+        }
+        #s4-root .s4-item.inf span {
+          display: inline-block;
+          transform: scale(1.75);
+          transform-origin: 0% 55%;
+        }
+        #s4-root .s4-price {
+          margin-top: 46px;
+          height: 280px;
+          display: flex;
+          align-items: center;
+          gap: 26px;
+        }
+        #s4-root .s4-amount {
+          display: block;
+          font-weight: 820;
+          font-size: 270px;
+          line-height: 1;
+          letter-spacing: -0.06em;
+          will-change: transform, filter;
+          transform-origin: 0% 60%;
+        }
+        #s4-root .s4-lock {
+          display: block;
+          width: 86px;
+          height: 104px;
+          margin-top: 40px;
+        }
+        #s4-root .s4-sub {
+          margin-top: 34px;
+          font: 500 26px "Geist Mono", monospace;
+          letter-spacing: 0.04em;
+          color: #a09e93;
+        }
+        #s4-root .s4-grid {
+          margin-top: 34px;
+          display: grid;
+          grid-template-columns: repeat(14, 34px);
+          gap: 12px;
+        }
+        #s4-root .s4-grid i {
+          display: block;
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: #26261f;
+          border: 2px solid #34342d;
+        }
+        #s4-root .s4-thread {
+          position: absolute;
+          left: 957px;
+          top: 150px;
+          width: 6px;
+          height: 650px;
+          border-radius: 3px;
+          background: #4ade80;
+          box-shadow: 0 0 26px rgba(74, 222, 128, 0.8), 0 0 90px rgba(74, 222, 128, 0.35);
+          transform-origin: 50% 0%;
+        }
+        #s4-root .s4-statement {
+          position: absolute;
+          left: 170px;
+          top: 852px;
+          display: flex;
+          gap: 22px;
+          font-weight: 760;
+          font-size: 72px;
+          letter-spacing: -0.04em;
+          white-space: nowrap;
+        }
+        #s4-root .s4-statement span {
+          display: inline-block;
+          will-change: transform, opacity;
+        }
+        #s4-root .s4-statement .g {
+          color: #4ade80;
+        }
+        #s4-root .s4-chapter {
+          position: absolute;
+          right: 140px;
+          bottom: 64px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          font: 500 22px "Geist Mono", monospace;
+          letter-spacing: 0.08em;
+          color: #a09e93;
+        }
+        #s4-root .s4-chapter b {
+          font-weight: 700;
+          color: #4ade80;
+        }
+        #s4-root .s4-rule {
+          display: block;
+          width: 180px;
+          height: 3px;
+          background: #34342d;
+          overflow: hidden;
+        }
+        #s4-root .s4-rule span {
+          display: block;
+          width: 100%;
+          height: 100%;
+          background: #4ade80;
+          transform-origin: 0 50%;
+        }
+      </style>
+
+      <div data-hf-id="hf-hb3u" id="s4-root" data-composition-id="s4-pricing" data-width="1920" data-height="1080" data-duration="3">
+        <svg data-hf-id="hf-p3r6" width="0" height="0" aria-hidden="true" style="position: absolute">
+          <filter data-hf-id="hf-2o3u" id="s4-whip" x="-50%" y="-50%" width="200%" height="200%">
+            <fegaussianblur data-hf-id="hf-nnv1" id="s4-whip-blur" in="SourceGraphic" stdDeviation="26 0" />
+          </filter>
+        </svg>
+        <div data-hf-id="hf-aiqb" class="s4-dots" data-layout-ignore=""></div>
+        <div data-hf-id="hf-en7i" class="s4-cam" id="s4-cam">
+          <div data-hf-id="hf-hsg8" class="s4-glow" id="s4-glow"></div>
+
+          <div data-hf-id="hf-gcp3" class="s4-half s4-left" id="s4-left">
+            <div data-hf-id="hf-dml8" class="s4-label" id="s4-l-label"><b data-hf-id="hf-y4v2">●</b> USERS ON YOUR TEAM</div>
+            <div data-hf-id="hf-w82o" class="s4-ticker">
+              <div data-hf-id="hf-8io2" class="s4-stack" id="s4-stack">
+                <div data-hf-id="hf-j3mu" class="s4-item" data-layout-allow-overlap="">1</div>
+                <div data-hf-id="hf-hieq" class="s4-item" data-layout-allow-overlap="">5</div>
+                <div data-hf-id="hf-epa4" class="s4-item" data-layout-allow-overlap="">12</div>
+                <div data-hf-id="hf-thxj" class="s4-item" data-layout-allow-overlap="">48</div>
+                <div data-hf-id="hf-qnt7" class="s4-item" data-layout-allow-overlap="">200</div>
+                <div data-hf-id="hf-z850" class="s4-item inf" data-layout-allow-overlap=""><span data-hf-id="hf-fbv4" data-layout-allow-overlap="">∞</span></div>
+              </div>
+            </div>
+            <div data-hf-id="hf-nxmq" class="s4-grid" id="s4-grid"></div>
+          </div>
+
+          <div data-hf-id="hf-u09d" class="s4-half s4-right" id="s4-right">
+            <div data-hf-id="hf-8d11" class="s4-label" id="s4-r-label"><b data-hf-id="hf-8ttu">●</b> PRICE PER MONTH</div>
+            <div data-hf-id="hf-0zf1" class="s4-price">
+              <span data-hf-id="hf-qx4c" class="s4-amount" id="s4-amount">$50</span>
+              <svg data-hf-id="hf-zzy2" class="s4-lock" id="s4-lock" viewBox="0 0 86 104" aria-hidden="true">
+                <path data-hf-id="hf-otff" id="s4-shackle" d="M20 46 V30 a23 23 0 0 1 46 0 V46" fill="none" stroke="#a09e93" stroke-width="9" stroke-linecap="round" />
+                <rect data-hf-id="hf-q86s" x="8" y="46" width="70" height="54" rx="12" fill="#a09e93" />
+                <circle data-hf-id="hf-d7qb" cx="43" cy="70" r="7" fill="#121210" />
+              </svg>
+            </div>
+            <div data-hf-id="hf-mbn2" class="s4-sub" id="s4-sub">flat · per workspace · no per-seat fees</div>
+          </div>
+
+          <div data-hf-id="hf-bm36" class="s4-statement" id="s4-statement">
+            <span data-hf-id="hf-pd7g">Unlimited</span><span data-hf-id="hf-8rqj">users.</span><span data-hf-id="hf-8ad8" class="g">One</span><span data-hf-id="hf-8nxj" class="g">flat</span><span data-hf-id="hf-1tr5" class="g">price.</span>
+          </div>
+        </div>
+
+        <div data-hf-id="hf-68lu" class="s4-thread" id="s4-thread"></div>
+        <div data-hf-id="hf-brjq" class="s4-chapter" id="s4-chapter"><b data-hf-id="hf-3e75">04</b><span data-hf-id="hf-nqu4">/ SCALE</span><span data-hf-id="hf-kaor" class="s4-rule"><span data-hf-id="hf-pf6s" id="s4-prog"></span></span></div>
+      </div>
+
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+
+          // Seat grid — lights up as the team grows.
+          const grid = document.getElementById("s4-grid");
+          const DOTS = 42;
+          const PALETTE = ["#4ade80", "#60a5fa", "#f59e0b", "#f472b6", "#a78bfa", "#34d399", "#fbbf24", "#38bdf8"];
+          const dots = Array.from({ length: DOTS }, (_, i) => {
+            const d = document.createElement("i");
+            grid.appendChild(d);
+            return d;
+          });
+
+          // ── WHIP-IN (continues 03's whip): land the frame, blur resolves with the same ease.
+          const cam = document.getElementById("s4-cam");
+          const blurNode = document.getElementById("s4-whip-blur");
+          const blur = { v: 26 };
+          const writeBlur = () => {
+            blurNode.setAttribute("stdDeviation", `${blur.v.toFixed(2)} 0`);
+            cam.style.filter = blur.v > 0.05 ? "url(#s4-whip)" : "none";
+          };
+          writeBlur();
+          tl.fromTo("#s4-cam", { x: 1500 }, { x: 0, duration: 0.42, ease: "power4.out" }, 0);
+          tl.to(blur, { v: 0, duration: 0.42, ease: "power4.out", onUpdate: writeBlur }, 0);
+          tl.fromTo(".s4-dots", { x: 300 }, { x: 0, duration: 0.42, ease: "power4.out" }, 0);
+
+          // ── The thread drops in as the divider between "more people" and "same price".
+          tl.fromTo("#s4-thread", { scaleY: 0 }, { scaleY: 1, duration: 0.45, ease: "power3.out" }, 0.24);
+          tl.fromTo("#s4-glow", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "sine.out" }, 0.2);
+
+          // Price slams in and then never moves (that's the point).
+          // Price lands with the whip, then a tiny overshoot settle — and never moves again.
+          tl.fromTo("#s4-amount", { scale: 1.06 }, { scale: 1, duration: 0.5, ease: "back.out(3)" }, 0.3);
+          tl.fromTo("#s4-sub", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out" }, 0.55);
+          tl.fromTo("#s4-lock", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, 0.5);
+
+
+          // ── Slot-machine ticker (vertical-spring-ticker): fast steps, a held breath, then ∞.
+          const ITEM_H = 280;
+          const stack = document.getElementById("s4-stack");
+          const STEP_T = [0.62, 0.8, 0.98, 1.16, 1.5];
+          const springs = STEP_T.map(() => ({ p: 0 }));
+          const lit = [1, 5, 12, 26, 42]; // seats lit after each step (grid of 42)
+          function applyTicker() {
+            const sum = springs.reduce((a, s) => a + s.p, 0);
+            stack.style.transform = `translateY(${(-sum * ITEM_H).toFixed(2)}px)`;
+            const step = Math.floor(sum + 0.35);
+            const n = step <= 0 ? 0 : lit[Math.min(step, lit.length) - 1];
+            dots.forEach((d, i) => {
+              const on = i < n;
+              d.style.background = on ? PALETTE[(i * 5) % PALETTE.length] : "#26261f";
+              d.style.borderColor = on ? "rgba(0,0,0,0)" : "#34342d";
+            });
+          }
+          applyTicker();
+          springs.forEach((s, i) => {
+            const last = i === springs.length - 1;
+            tl.to(s, { p: 1, duration: last ? 0.6 : 0.32, ease: last ? "back.out(3)" : "back.out(1.8)", onUpdate: applyTicker }, STEP_T[i]);
+          });
+
+          // ∞ lands → the lock clicks shut and $50 just… stays.
+          tl.fromTo("#s4-shackle", { y: -16 }, { y: 0, duration: 0.18, ease: "power4.in" }, 1.56);
+          tl.to("#s4-lock", { scale: 0.9, duration: 0.08, ease: "power2.in", yoyo: true, repeat: 1 }, 1.72);
+          tl.fromTo("#s4-shackle", { stroke: "#a09e93" }, { stroke: "#4ade80", duration: 0.2, ease: "none", immediateRender: false }, 1.72);
+
+          // ── The statement: words whip up from below, each before the last settles (waterfall-entry).
+          tl.fromTo(
+            "#s4-statement span",
+            { yPercent: 120, opacity: 0, rotation: 5 },
+            { yPercent: 0, opacity: 1, rotation: 0, duration: 0.5, ease: "power4.out", stagger: 0.07 },
+            1.78,
+          );
+
+          tl.fromTo("#s4-chapter", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power2.out" }, 0.3);
+          tl.fromTo("#s4-prog", { scaleX: 0 }, { scaleX: 1, duration: 2.6, ease: "none" }, 0.3);
+
+          // ── TRANSITION: the thread shoves both halves apart and collapses into a terminal cursor.
+          const T = 2.56;
+          tl.to("#s4-left", { x: -260, opacity: 0, duration: 0.32, ease: "power3.in" }, T);
+          tl.to("#s4-right", { x: 260, opacity: 0, duration: 0.32, ease: "power3.in" }, T);
+          tl.to(["#s4-statement", "#s4-chapter", "#s4-glow"], { y: 40, opacity: 0, duration: 0.28, ease: "power3.in" }, T);
+          tl.to("#s4-thread", { scaleY: 80 / 650, y: 285, duration: 0.3, ease: "expo.inOut" }, T);
+          tl.to("#s4-thread", { x: -380, scaleX: 8, duration: 0.2, ease: "expo.inOut" }, T + 0.22);
+
+          window.__timelines["s4-pricing"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

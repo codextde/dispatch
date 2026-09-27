@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>06 — Dispatch</title>
+  </head>
+  <body>
+    <template id="s6-logo-template">
+      <style>
+        @font-face {
+          font-family: "Geist";
+          src: url("assets/fonts/geist-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        @font-face {
+          font-family: "Geist Mono";
+          src: url("assets/fonts/geist-mono-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        #s6-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #121210;
+          font-family: "Geist", sans-serif;
+          color: #faf9f5;
+        }
+        #s6-root .s6-dots {
+          position: absolute;
+          inset: -72px;
+          background-image: radial-gradient(circle, rgba(244, 242, 234, 0.16) 1.6px, transparent 1.8px);
+          background-size: 36px 36px;
+        }
+        #s6-root .s6-all {
+          position: absolute;
+          inset: 0;
+          transform-origin: 50% 50%;
+          will-change: transform;
+        }
+        /* The mark: 64-unit brand geometry at 5.625× (360px), centered on frame. */
+        #s6-root .s6-mark {
+          position: absolute;
+          left: 780px;
+          top: 360px;
+          width: 360px;
+          height: 360px;
+          z-index: 2;
+          will-change: transform;
+        }
+        #s6-root .s6-bloom {
+          position: absolute;
+          left: -300px;
+          top: -300px;
+          width: 960px;
+          height: 960px;
+          background: radial-gradient(closest-side, rgba(74, 222, 128, 0.36), rgba(74, 222, 128, 0) 70%);
+        }
+        #s6-root .s6-ring {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 360px;
+          height: 360px;
+          border-radius: 90px;
+          border: 5px solid #4ade80;
+          opacity: 0;
+        }
+        #s6-root .s6-art,
+        #s6-root .s6-solid {
+          position: absolute;
+          inset: 0;
+          width: 360px;
+          height: 360px;
+        }
+        #s6-root .s6-solid {
+          clip-path: circle(0px at 180px 180px);
+        }
+        #s6-root .s6-bar {
+          position: absolute;
+          left: 57.7px;
+          top: 164.5px;
+          width: 137.8px;
+          height: 30.9px;
+          border-radius: 16px;
+          background: #4ade80;
+          box-shadow: 0 0 30px rgba(74, 222, 128, 0.85);
+          will-change: transform;
+        }
+        #s6-root .s6-word {
+          position: absolute;
+          left: 821px;
+          top: 344px;
+          height: 252px;
+          display: flex;
+          align-items: center;
+        }
+        #s6-root .s6-word span {
+          display: inline-block;
+          font-weight: 620;
+          font-size: 154px;
+          line-height: 1;
+          letter-spacing: -0.04em;
+          will-change: transform, opacity;
+        }
+        #s6-root .s6-tag {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 642px;
+          display: flex;
+          justify-content: center;
+          gap: 14px;
+          font-weight: 560;
+          font-size: 54px;
+          letter-spacing: -0.03em;
+        }
+        #s6-root .s6-tag span {
+          display: inline-block;
+          will-change: transform, opacity;
+        }
+        #s6-root .s6-tag .q {
+          color: #8c8a80;
+        }
+        #s6-root .s6-cta {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 752px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 16px;
+          font: 500 24px "Geist Mono", monospace;
+          letter-spacing: 0.1em;
+          color: #a09e93;
+        }
+        #s6-root .s6-cta b {
+          color: #4ade80;
+          font-weight: 600;
+        }
+      </style>
+
+      <div data-hf-id="hf-pbze" id="s6-root" data-composition-id="s6-logo" data-width="1920" data-height="1080" data-duration="2">
+        <svg data-hf-id="hf-p3r6" width="0" height="0" aria-hidden="true" style="position: absolute">
+          <filter data-hf-id="hf-adks" id="s6-streak" x="-50%" y="-50%" width="200%" height="200%">
+            <fegaussianblur data-hf-id="hf-2e0x" id="s6-streak-blur" in="SourceGraphic" stdDeviation="24 0" />
+          </filter>
+        </svg>
+        <div data-hf-id="hf-dl4t" class="s6-dots" data-layout-ignore=""></div>
+        <div data-hf-id="hf-j8vi" class="s6-all" id="s6-all">
+          <div data-hf-id="hf-7qxg" class="s6-mark" id="s6-mark">
+            <div data-hf-id="hf-wij6" class="s6-bloom" id="s6-bloom"></div>
+            <div data-hf-id="hf-lt96" class="s6-ring" id="s6-ring"></div>
+            <!-- Line-art pass: the D draws itself around the arriving line. -->
+            <svg data-hf-id="hf-a05g" class="s6-art" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+              <path data-hf-id="hf-6s7m" id="s6-d" d="M22 18h11.5C41.5 18 47 24.5 47 32s-5.5 14-13.5 14H22" stroke="#FAF9F5" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <div data-hf-id="hf-ty6m" class="s6-bar" id="s6-bar"></div>
+            <!-- Solid pass: the official mark (logo-dark), revealed by an iris from its center. -->
+            <svg data-hf-id="hf-i8e7" class="s6-solid" id="s6-solid" viewBox="0 0 64 64" fill="none" role="img" aria-label="Dispatch">
+              <rect data-hf-id="hf-yk34" width="64" height="64" rx="15" fill="#FAF9F5" />
+              <path data-hf-id="hf-mlng" d="M22 18h11.5C41.5 18 47 24.5 47 32s-5.5 14-13.5 14H22" stroke="#141414" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+              <path data-hf-id="hf-wg3a" d="M13 32h19" stroke="#16A34A" stroke-width="5.5" stroke-linecap="round" />
+            </svg>
+          </div>
+
+          <div data-hf-id="hf-a592" class="s6-word" id="s6-word"></div>
+
+          <div data-hf-id="hf-mk96" class="s6-tag" id="s6-tag">
+            <span data-hf-id="hf-sxk0">The</span><span data-hf-id="hf-yzpb">inbox</span><span data-hf-id="hf-ziue">your</span><span data-hf-id="hf-fsw8">whole</span><span data-hf-id="hf-lvk0">team</span><span data-hf-id="hf-jqi4" class="q">can</span><span data-hf-id="hf-2ozf" class="q">work</span><span data-hf-id="hf-kol0" class="q">from.</span>
+          </div>
+          <div data-hf-id="hf-hmxk" class="s6-cta" id="s6-cta"><b data-hf-id="hf-rjj4">★</b>OPEN SOURCE · SELF-HOST OR CLOUD · GITHUB.COM/CODEXTDE/DISPATCH</div>
+        </div>
+      </div>
+
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+
+          const word = document.getElementById("s6-word");
+          const letters = "Dispatch".split("").map((ch) => {
+            const s = document.createElement("span");
+            s.textContent = ch;
+            word.appendChild(s);
+            return s;
+          });
+
+          // ── 1. The line arrives (motion-blur-streak, entering from the left like 05's caret left right).
+          const barBlur = document.getElementById("s6-streak-blur");
+          const bar = document.getElementById("s6-bar");
+          const bb = { v: 24 };
+          const writeBar = () => {
+            barBlur.setAttribute("stdDeviation", `${bb.v.toFixed(2)} 0`);
+            bar.style.filter = bb.v > 0.05 ? "url(#s6-streak)" : "none";
+          };
+          writeBar();
+          tl.fromTo("#s6-bar", { x: -1100, scaleX: 3.2 }, { x: 0, scaleX: 1, duration: 0.34, ease: "expo.out" }, 0);
+          tl.to(bb, { v: 0, duration: 0.34, ease: "expo.out", onUpdate: writeBar }, 0);
+
+          // ── 2. The D draws itself around it (svg-path-draw, measured length).
+          const d = document.getElementById("s6-d");
+          const len = d.getTotalLength();
+          d.style.strokeDasharray = `${len}`;
+          // Baseline before any tween: undrawn and hidden (a zero-length dash still paints its round cap).
+          gsap.set(d, { strokeDashoffset: len, opacity: 0 });
+          tl.to(d, { opacity: 1, duration: 0.02, ease: "none" }, 0.1);
+          tl.to(d, { strokeDashoffset: 0, duration: 0.42, ease: "power2.inOut" }, 0.1);
+
+          // ── 3. Iris-fill into the solid brand mark + ring pulse + glow bloom.
+          const solid = document.getElementById("s6-solid");
+          const ir = { r: 0 };
+          const writeIr = () => (solid.style.clipPath = `circle(${ir.r.toFixed(1)}px at 180px 180px)`);
+          writeIr();
+          tl.to(ir, { r: 260, duration: 0.34, ease: "power3.out", onUpdate: writeIr }, 0.5);
+          tl.fromTo("#s6-mark", { scale: 1 }, { scale: 1.07, duration: 0.14, ease: "power2.out" }, 0.5);
+          tl.to("#s6-mark", { scale: 1, duration: 0.22, ease: "back.out(2.4)" }, 0.64);
+          tl.fromTo("#s6-ring", { scale: 1, opacity: 0.9 }, { scale: 1.9, opacity: 0, duration: 0.6, ease: "power2.out", immediateRender: false }, 0.52);
+          tl.fromTo("#s6-bloom", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 0.5);
+          tl.to("#s6-bloom", { opacity: 0.45, duration: 0.8, ease: "sine.inOut" }, 1.0);
+
+          // ── 4. Lockup: the mark slides left and shrinks; the wordmark cascades out from behind it.
+          tl.to("#s6-mark", { x: -328, y: -70, scale: 0.7, duration: 0.46, ease: "power3.inOut" }, 0.86);
+          tl.fromTo(
+            letters,
+            { x: -70, opacity: 0 },
+            { x: 0, opacity: 1, duration: 0.42, ease: "power4.out", stagger: 0.035 },
+            1.1,
+          );
+
+          // ── 5. Tagline + CTA.
+          tl.fromTo(
+            "#s6-tag span",
+            { yPercent: 90, opacity: 0 },
+            { yPercent: 0, opacity: 1, duration: 0.4, ease: "power3.out", stagger: 0.03 },
+            1.2,
+          );
+          tl.fromTo("#s6-cta", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 1.42);
+
+          // Hold: a slow, settling push — stillness after motion.
+          tl.fromTo("#s6-all", { scale: 1 }, { scale: 1.025, duration: 1.1, ease: "sine.out" }, 0.9);
+          tl.fromTo(".s6-dots", { x: 0 }, { x: -24, duration: 2, ease: "none" }, 0);
+
+          window.__timelines["s6-logo"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

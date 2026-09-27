@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>05 — Open</title>
+  </head>
+  <body>
+    <template id="s5-terminal-template">
+      <style>
+        @font-face {
+          font-family: "Geist";
+          src: url("assets/fonts/geist-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        @font-face {
+          font-family: "Geist Mono";
+          src: url("assets/fonts/geist-mono-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        #s5-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #121210;
+          font-family: "Geist Mono", monospace;
+          color: #f4f2ea;
+        }
+        #s5-root .s5-dots {
+          position: absolute;
+          inset: -72px;
+          background-image: radial-gradient(circle, rgba(244, 242, 234, 0.18) 1.6px, transparent 1.8px);
+          background-size: 36px 36px;
+        }
+        #s5-root .s5-glow {
+          position: absolute;
+          left: 916px;
+          top: 520px;
+          width: 1400px;
+          height: 900px;
+          margin: -450px 0 0 -700px;
+          background: radial-gradient(closest-side, rgba(74, 222, 128, 0.12), rgba(74, 222, 128, 0) 72%);
+        }
+        #s5-root .s5-body {
+          position: absolute;
+          inset: 0;
+          will-change: transform, filter, opacity;
+        }
+        #s5-root .s5-kicker {
+          position: absolute;
+          left: 460px;
+          top: 356px;
+          font: 500 24px "Geist Mono", monospace;
+          letter-spacing: 0.12em;
+          color: #a09e93;
+        }
+        #s5-root .s5-kicker b {
+          color: #4ade80;
+        }
+        /* Fixed 48px cells: the caret's position is exact arithmetic, never measured. */
+        #s5-root .s5-cmd {
+          position: absolute;
+          left: 460px;
+          top: 435px;
+          height: 80px;
+          display: flex;
+        }
+        #s5-root .s5-cmd span {
+          display: block;
+          width: 48px;
+          height: 80px;
+          font: 600 80px/80px "Geist Mono", monospace;
+          text-align: center;
+          color: #f4f2ea;
+        }
+        #s5-root .s5-cmd .p {
+          color: #4ade80;
+        }
+        #s5-root .s5-caret {
+          position: absolute;
+          left: 556px;
+          top: 435px;
+          width: 48px;
+          height: 80px;
+          background: #4ade80;
+          box-shadow: 0 0 26px rgba(74, 222, 128, 0.8), 0 0 90px rgba(74, 222, 128, 0.35);
+          will-change: transform;
+        }
+        #s5-root .s5-out {
+          position: absolute;
+          left: 460px;
+          top: 556px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          font: 500 32px "Geist Mono", monospace;
+          color: #b4b2a7;
+        }
+        #s5-root .s5-out div {
+          white-space: pre;
+        }
+        #s5-root .s5-out .ok {
+          color: #4ade80;
+        }
+        #s5-root .s5-out .ready {
+          margin-top: 6px;
+          color: #f4f2ea;
+          font-weight: 700;
+        }
+        #s5-root .s5-badges {
+          position: absolute;
+          left: 460px;
+          top: 806px;
+          display: flex;
+          gap: 14px;
+        }
+        #s5-root .s5-badge {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          height: 56px;
+          padding: 0 22px;
+          border-radius: 999px;
+          border: 2px solid #3a3a33;
+          background: #1b1b18;
+          font: 600 24px "Geist Mono", monospace;
+          letter-spacing: 0.06em;
+          color: #f4f2ea;
+        }
+        #s5-root .s5-badge i {
+          display: block;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #4ade80;
+        }
+        #s5-root .s5-chapter {
+          position: absolute;
+          left: 140px;
+          bottom: 64px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          font: 500 22px "Geist Mono", monospace;
+          letter-spacing: 0.08em;
+          color: #a09e93;
+        }
+        #s5-root .s5-chapter b {
+          font-weight: 700;
+          color: #4ade80;
+        }
+        #s5-root .s5-rule {
+          display: block;
+          width: 180px;
+          height: 3px;
+          background: #34342d;
+          overflow: hidden;
+        }
+        #s5-root .s5-rule span {
+          display: block;
+          width: 100%;
+          height: 100%;
+          background: #4ade80;
+          transform-origin: 0 50%;
+        }
+      </style>
+
+      <div data-hf-id="hf-jyb3" id="s5-root" data-composition-id="s5-terminal" data-width="1920" data-height="1080" data-duration="1.5">
+        <svg data-hf-id="hf-p3r6" width="0" height="0" aria-hidden="true" style="position: absolute">
+          <filter data-hf-id="hf-3nrp" id="s5-smear" x="-50%" y="-50%" width="200%" height="200%">
+            <fegaussianblur data-hf-id="hf-22r8" id="s5-smear-blur" in="SourceGraphic" stdDeviation="0 0" />
+          </filter>
+        </svg>
+        <div data-hf-id="hf-j320" class="s5-dots" data-layout-ignore=""></div>
+        <div data-hf-id="hf-alr6" class="s5-glow" id="s5-glow"></div>
+
+        <div data-hf-id="hf-qc6o" class="s5-body" id="s5-body">
+          <div data-hf-id="hf-yydl" class="s5-kicker" id="s5-kicker"><b data-hf-id="hf-y4v2">●</b> SELF-HOST IN ONE COMMAND</div>
+          <div data-hf-id="hf-iuza" class="s5-cmd" id="s5-cmd"></div>
+          <div data-hf-id="hf-nu1q" class="s5-out" id="s5-out">
+            <div data-hf-id="hf-tqoe" class="s5-o"><span data-hf-id="hf-kl0d" class="ok">✔</span> Container dispatch-db-1      <span data-hf-id="hf-vez4" class="ok">Started</span></div>
+            <div data-hf-id="hf-vzzm" class="s5-o"><span data-hf-id="hf-ctpt" class="ok">✔</span> Container dispatch-worker-1  <span data-hf-id="hf-a73c" class="ok">Started</span></div>
+            <div data-hf-id="hf-gzln" class="s5-o"><span data-hf-id="hf-e0mw" class="ok">✔</span> Container dispatch-app-1     <span data-hf-id="hf-9069" class="ok">Started</span></div>
+            <div data-hf-id="hf-zabw" class="s5-o ready"><span data-hf-id="hf-8w91" class="ok">➜</span> Your inbox. Your server.</div>
+          </div>
+          <div data-hf-id="hf-a3ks" class="s5-badges" id="s5-badges">
+            <span data-hf-id="hf-k1h4" class="s5-badge"><i data-hf-id="hf-wt6k"></i>OPEN SOURCE</span>
+            <span data-hf-id="hf-cwdd" class="s5-badge">AGPL-3.0</span>
+            <span data-hf-id="hf-8pv1" class="s5-badge">FREE TO SELF-HOST</span>
+          </div>
+          <div data-hf-id="hf-n1vm" class="s5-chapter" id="s5-chapter"><b data-hf-id="hf-3si6">05</b><span data-hf-id="hf-vgji">/ OPEN</span><span data-hf-id="hf-o7gc" class="s5-rule"><span data-hf-id="hf-zwcv" id="s5-prog"></span></span></div>
+        </div>
+
+        <div data-hf-id="hf-a40i" class="s5-caret" id="s5-caret"></div>
+      </div>
+
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+          const CMD = "$ docker compose up";
+          const CELL = 48;
+          const cmdEl = document.getElementById("s5-cmd");
+          const cells = CMD.split("").map((ch, i) => {
+            const s = document.createElement("span");
+            s.textContent = ch === " " ? " " : ch;
+            if (i === 0) s.className = "p";
+            cmdEl.appendChild(s);
+            return s;
+          });
+
+          // ── Typing is a pure function of time: n visible chars → caret at cell n.
+          const TYPE_AT = 0.1;
+          const TYPE_DUR = 0.44;
+          const typed = { n: 2 };
+          const caret = document.getElementById("s5-caret");
+          function writeType() {
+            const n = Math.floor(typed.n);
+            cells.forEach((c, i) => (c.style.opacity = i < n ? "1" : "0"));
+            caret.style.left = `${460 + Math.min(n, CMD.length) * CELL}px`;
+          }
+          writeType();
+          tl.fromTo(cells.slice(0, 2), { opacity: 0 }, { opacity: 1, duration: 0.08, ease: "none" }, 0.02);
+          tl.to(typed, { n: CMD.length, duration: TYPE_DUR, ease: "none", onUpdate: writeType }, TYPE_AT);
+          tl.fromTo("#s5-kicker", { opacity: 0, x: -30, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, x: 0, clipPath: "inset(0 0% 0 0)", duration: 0.45, ease: "power3.out" }, 0.04);
+          tl.fromTo("#s5-glow", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.8, ease: "sine.out" }, 0);
+
+          // Enter: output streams in, then the badges pop.
+          tl.fromTo("#s5-out .s5-o", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.2, ease: "power2.out", stagger: 0.07 }, 0.6);
+          tl.fromTo(
+            "#s5-badges .s5-badge",
+            { scale: 0.5, opacity: 0 },
+            { scale: 1, opacity: 1, duration: 0.34, ease: "back.out(2.4)", stagger: 0.07 },
+            0.86,
+          );
+          tl.fromTo("#s5-chapter", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "power2.out" }, 0.08);
+          tl.fromTo("#s5-prog", { scaleX: 0 }, { scaleX: 1, duration: 1.4, ease: "none" }, 0.08);
+
+          // Caret blink while the output lands (finite, steps).
+          tl.fromTo("#s5-caret", { opacity: 1 }, { opacity: 0.25, duration: 0.1, ease: "steps(1)", yoyo: true, repeat: 3 }, 0.58);
+
+          // ── TRANSITION: the caret becomes the logo's line and bolts right, smearing the terminal with it.
+          const T = 1.14;
+          tl.to("#s5-caret", { scaleY: 31 / 80, y: 65, duration: 0.14, ease: "power3.inOut" }, T);
+          tl.to("#s5-caret", { x: 1200, scaleX: 6, duration: 0.24, ease: "power3.in" }, T + 0.12);
+          const smear = document.getElementById("s5-smear-blur");
+          const body = document.getElementById("s5-body");
+          const sm = { v: 0 };
+          const writeSmear = () => {
+            smear.setAttribute("stdDeviation", `${sm.v.toFixed(2)} 0`);
+            body.style.filter = sm.v > 0.05 ? "url(#s5-smear)" : "none";
+          };
+          writeSmear();
+          tl.to(sm, { v: 22, duration: 0.26, ease: "power3.in", onUpdate: writeSmear }, T + 0.1);
+          tl.to("#s5-body", { x: 220, opacity: 0, duration: 0.26, ease: "power3.in" }, T + 0.1);
+          tl.to("#s5-glow", { opacity: 0, duration: 0.26, ease: "power2.in" }, T + 0.1);
+
+          window.__timelines["s5-terminal"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

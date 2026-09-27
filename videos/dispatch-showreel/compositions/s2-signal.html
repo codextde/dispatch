@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>02 — Signal</title>
+  </head>
+  <body>
+    <template id="s2-signal-template">
+      <style>
+        @font-face {
+          font-family: "Geist";
+          src: url("assets/fonts/geist-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        @font-face {
+          font-family: "Geist Mono";
+          src: url("assets/fonts/geist-mono-var.woff2") format("woff2");
+          font-weight: 100 900;
+        }
+        #s2-root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #121210;
+          font-family: "Geist", sans-serif;
+          color: #f4f2ea;
+        }
+        #s2-root .s2-dots {
+          position: absolute;
+          inset: -72px;
+          background-image: radial-gradient(circle, rgba(244, 242, 234, 0.2) 1.6px, transparent 1.8px);
+          background-size: 36px 36px;
+        }
+        #s2-root .s2-cam {
+          position: absolute;
+          inset: 0;
+          transform-origin: 1720px 518px;
+          will-change: transform;
+        }
+        #s2-root .s2-glow {
+          position: absolute;
+          left: 1395px;
+          top: 540px;
+          width: 1200px;
+          height: 900px;
+          margin: -450px 0 0 -600px;
+          background: radial-gradient(closest-side, rgba(74, 222, 128, 0.16), rgba(74, 222, 128, 0) 75%);
+        }
+        /* Headline */
+        #s2-root .s2-head {
+          position: absolute;
+          left: 140px;
+          top: 0;
+          bottom: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 4px;
+        }
+        #s2-root .s2-kicker {
+          font: 500 22px "Geist Mono", monospace;
+          letter-spacing: 0.1em;
+          color: #a09e93;
+          margin-bottom: 26px;
+        }
+        #s2-root .s2-mask {
+          display: block;
+          overflow: hidden;
+          padding: 0 0 14px;
+        }
+        #s2-root .s2-h {
+          display: block;
+          font-weight: 820;
+          font-size: 138px;
+          line-height: 136px;
+          letter-spacing: -0.055em;
+          white-space: nowrap;
+          will-change: transform;
+        }
+        #s2-root .s2-h2 {
+          color: #4ade80;
+        }
+        #s2-root .s2-word {
+          display: inline-block;
+          will-change: transform;
+        }
+        /* The list */
+        #s2-root .s2-list-head {
+          position: absolute;
+          left: 1010px;
+          top: 206px;
+          width: 770px;
+          display: flex;
+          justify-content: space-between;
+          font: 500 22px "Geist Mono", monospace;
+          letter-spacing: 0.08em;
+          color: #a09e93;
+        }
+        #s2-root .s2-unassigned b {
+          display: inline-block;
+          min-width: 30px;
+          margin-left: 8px;
+          color: #f4f2ea;
+          font-weight: 700;
+          font-variant-numeric: tabular-nums;
+        }
+        #s2-root .s2-row {
+          position: absolute;
+          left: 1010px;
+          width: 770px;
+          height: 100px;
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          padding: 0 24px 0 22px;
+          border-radius: 18px;
+          background: #1c1c19;
+          border: 2px solid #2d2d27;
+          overflow: hidden;
+          will-change: transform, opacity;
+        }
+        #s2-root .s2-row.is-sel {
+          background: #1f2520;
+          border-color: #2f4a37;
+        }
+        #s2-root .s2-bar {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 7px;
+          height: 100%;
+          background: #4ade80;
+          transform-origin: 50% 50%;
+        }
+        #s2-root .s2-av {
+          flex: 0 0 52px;
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          font: 700 20px "Geist", sans-serif;
+          color: #121210;
+        }
+        #s2-root .s2-txt {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        #s2-root .s2-from {
+          font: 650 25px "Geist", sans-serif;
+          letter-spacing: -0.015em;
+          color: #f4f2ea;
+        }
+        #s2-root .s2-subj {
+          font: 450 23px "Geist", sans-serif;
+          color: #b4b2a7;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        #s2-root .s2-side {
+          flex: 0 0 auto;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 10px;
+        }
+        #s2-root .s2-time {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font: 500 20px "Geist Mono", monospace;
+          color: #a09e93;
+        }
+        #s2-root .s2-time i {
+          display: block;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #4ade80;
+        }
+        #s2-root .s2-now {
+          color: #4ade80;
+        }
+        #s2-root .s2-meta {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        #s2-root .s2-lab {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 3px 11px;
+          border-radius: 999px;
+          border: 2px solid #34342d;
+          font: 500 19px "Geist", sans-serif;
+          color: #d8d6cc;
+        }
+        #s2-root .s2-lab i {
+          display: block;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+        }
+        #s2-root .s2-who {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          display: grid;
+          place-items: center;
+          font: 700 15px "Geist", sans-serif;
+          color: #121210;
+          box-shadow: 0 0 0 3px #1c1c19;
+        }
+        /* Thread + iris */
+        #s2-root .s2-thread {
+          position: absolute;
+          left: 0;
+          top: 537px;
+          width: 1920px;
+          height: 6px;
+          border-radius: 3px;
+          background: #4ade80;
+          box-shadow: 0 0 34px rgba(74, 222, 128, 1), 0 0 120px rgba(74, 222, 128, 0.6);
+          transform-origin: 0 50%;
+        }
+        #s2-root .s2-iris {
+          position: absolute;
+          inset: 0;
+          background: #4ade80;
+          clip-path: circle(0px at 1722px 518px);
+        }
+        #s2-root .s2-chapter {
+          position: absolute;
+          left: 140px;
+          bottom: 64px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          font: 500 22px "Geist Mono", monospace;
+          letter-spacing: 0.08em;
+          color: #a09e93;
+        }
+        #s2-root .s2-chapter b {
+          font-weight: 700;
+          color: #4ade80;
+        }
+        #s2-root .s2-rule {
+          display: block;
+          width: 180px;
+          height: 3px;
+          background: #34342d;
+          overflow: hidden;
+        }
+        #s2-root .s2-rule span {
+          display: block;
+          width: 100%;
+          height: 100%;
+          background: #4ade80;
+          transform-origin: 0 50%;
+        }
+      </style>
+
+      <div data-hf-id="hf-27bj" id="s2-root" data-composition-id="s2-signal" data-width="1920" data-height="1080" data-duration="2">
+        <div data-hf-id="hf-id29" class="s2-dots" data-layout-ignore=""></div>
+        <div data-hf-id="hf-bmva" class="s2-cam" id="s2-cam">
+          <div data-hf-id="hf-dx1c" class="s2-glow" id="s2-glow"></div>
+
+          <div data-hf-id="hf-3rfe" class="s2-head">
+            <div data-hf-id="hf-v41k" class="s2-kicker" id="s2-kicker">SHARED INBOXES FOR TEAMS</div>
+            <span data-hf-id="hf-6tor" class="s2-mask"><span data-hf-id="hf-6nzg" class="s2-h s2-h1"><span data-hf-id="hf-avwd" class="s2-word">One</span> <span data-hf-id="hf-voq1" class="s2-word">inbox.</span></span></span>
+            <span data-hf-id="hf-yqln" class="s2-mask"><span data-hf-id="hf-2wpx" class="s2-h s2-h2" id="s2-h2">Whole team.</span></span>
+          </div>
+
+          <div data-hf-id="hf-mdui" class="s2-list-head" id="s2-list-head">
+            <span data-hf-id="hf-tld2">SUPPORT · 5 OPEN</span>
+            <span data-hf-id="hf-9nbp" class="s2-unassigned">UNASSIGNED<b data-hf-id="hf-wpsu" id="s2-un">5</b></span>
+          </div>
+          <div data-hf-id="hf-ycwo" id="s2-rows"></div>
+
+          <div data-hf-id="hf-69v2" class="s2-thread" id="s2-thread"></div>
+        </div>
+
+        <div data-hf-id="hf-we4u" class="s2-chapter" id="s2-chapter"><b data-hf-id="hf-2ll3">02</b><span data-hf-id="hf-a0l2">/ SIGNAL</span><span data-hf-id="hf-z28p" class="s2-rule"><span data-hf-id="hf-vwly" id="s2-prog"></span></span></div>
+        <div data-hf-id="hf-ylno" class="s2-iris" id="s2-iris"></div>
+      </div>
+
+      <script>
+        (function () {
+          const tl = gsap.timeline({ paused: true });
+
+          // Order restored: the same kinds of mail from the noise, now owned.
+          const ROWS = [
+            ["RS", "#60a5fa", "Ravi Singh", "Can we move our renewal date?", "09:12", "Sales", "#f59e0b", "DE", "#4ade80"],
+            ["BP", "#c084fc", "Brightpath", "Order #10497 is missing", "09:30", "Support", "#38bdf8", "SN", "#a78bfa"],
+            ["HL", "#f59e0b", "Hannah Lee", "Invoice #4821 was charged twice", "now", "Billing", "#4ade80", "MC", "#f472b6"],
+            ["AG", "#34d399", "Alpine Gear", "Shopify orders stopped syncing", "08:47", "Bug", "#a78bfa", "JW", "#38bdf8"],
+            ["PK", "#f472b6", "Priya K.", "Quick question about SSO", "08:21", "Support", "#38bdf8", "SN", "#a78bfa"],
+          ];
+          const ROW_H = 100;
+          const GAP = 14;
+          const TOP = 540 - (ROWS.length * ROW_H + (ROWS.length - 1) * GAP) / 2;
+          const host = document.getElementById("s2-rows");
+          const rows = ROWS.map((r, i) => {
+            const el = document.createElement("div");
+            el.className = "s2-row" + (i === 2 ? " is-sel" : "");
+            el.style.top = `${TOP + i * (ROW_H + GAP)}px`;
+            const time =
+              r[4] === "now"
+                ? `<span class="s2-time s2-now"><i id="s2-dot"></i>now</span>`
+                : `<span class="s2-time">${r[4]}</span>`;
+            el.innerHTML =
+              (i === 2 ? `<span class="s2-bar" id="s2-bar"></span>` : "") +
+              `<span class="s2-av" style="background:${r[1]}">${r[0]}</span>` +
+              `<span class="s2-txt"><span class="s2-from">${r[2]}</span><span class="s2-subj">${r[3]}</span></span>` +
+              `<span class="s2-side">${time}<span class="s2-meta"><span class="s2-lab"><i style="background:${r[6]}"></i>${r[5]}</span>` +
+              `<span class="s2-who" style="background:${r[8]}">${r[7]}</span></span></span>`;
+            host.appendChild(el);
+            return el;
+          });
+
+          // Ambient continuity with 01: dots pick up exactly where they stopped.
+          tl.fromTo(".s2-dots", { x: -36, y: 18 }, { x: -62, y: 31, duration: 2, ease: "none" }, 0);
+          tl.fromTo("#s2-glow", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 1.2, ease: "sine.out" }, 0.2);
+
+          // ── The line tightens onto the list's footprint (x 1010 → 1780).
+          tl.fromTo(
+            "#s2-thread",
+            { x: 0, scaleX: 1 },
+            { x: 1010, scaleX: 770 / 1920, duration: 0.34, ease: "expo.inOut" },
+            0,
+          );
+
+          // ── Rows unfold out of the line: center-outward vertical expansion.
+          rows.forEach((el, i) => {
+            const rowCenter = TOP + i * (ROW_H + GAP) + ROW_H / 2;
+            const d = Math.abs(i - 2);
+            tl.fromTo(
+              el,
+              { y: 540 - rowCenter, scaleY: 0.04, opacity: 0 },
+              { y: 0, scaleY: 1, opacity: 1, duration: 0.5, ease: "expo.out" },
+              0.3 + d * 0.07,
+            );
+          });
+          tl.to("#s2-thread", { opacity: 0, duration: 0.12, ease: "power1.in" }, 0.36);
+          tl.fromTo("#s2-bar", { scaleY: 0 }, { scaleY: 1, duration: 0.3, ease: "power3.out" }, 0.42);
+
+          // Row internals: assignees + labels spring on, the unassigned counter drains to zero.
+          tl.fromTo(
+            "#s2-root .s2-who",
+            { scale: 0, rotation: -30 },
+            { scale: 1, rotation: 0, duration: 0.42, ease: "back.out(2.6)", stagger: 0.08 },
+            0.86,
+          );
+          tl.fromTo(
+            "#s2-root .s2-lab",
+            { x: 26, opacity: 0 },
+            { x: 0, opacity: 1, duration: 0.3, ease: "power2.out", stagger: 0.06 },
+            0.74,
+          );
+          const unEl = document.getElementById("s2-un");
+          const un = { v: 5 };
+          const writeUn = () => {
+            const v = Math.round(un.v);
+            unEl.textContent = String(v);
+            unEl.style.color = v === 0 ? "#4ade80" : "#f4f2ea";
+          };
+          writeUn();
+          tl.to(un, { v: 0, duration: 0.44, ease: "steps(5)", onUpdate: writeUn }, 0.9);
+          tl.fromTo("#s2-list-head", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power2.out" }, 0.5);
+
+          // ── Headline: waterfall rise per word, then the green line sets "Whole team." in from the left.
+          tl.fromTo("#s2-kicker", { opacity: 0, x: -30, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, x: 0, clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "power3.out" }, 0.22);
+          tl.fromTo(
+            "#s2-root .s2-h1 .s2-word",
+            { yPercent: 110, rotation: 4 },
+            { yPercent: 0, rotation: 0, duration: 0.55, ease: "power4.out", stagger: 0.09 },
+            0.28,
+          );
+          tl.fromTo("#s2-h2", { xPercent: -104 }, { xPercent: 0, duration: 0.55, ease: "expo.out" }, 0.56);
+
+          tl.fromTo("#s2-chapter", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power2.out" }, 0.1);
+          tl.fromTo("#s2-prog", { scaleX: 0 }, { scaleX: 1, duration: 1.9, ease: "none" }, 0.1);
+
+          // "now" dot: two heartbeats, then it becomes the doorway.
+          tl.fromTo("#s2-dot", { scale: 1 }, { scale: 1.9, duration: 0.18, ease: "power2.out", yoyo: true, repeat: 3 }, 0.9);
+
+          // ── TRANSITION: push toward the dot while a green iris floods the frame from it.
+          tl.to("#s2-cam", { scale: 1.18, duration: 0.42, ease: "power3.in" }, 1.58);
+          const iris = { r: 0 };
+          const irisEl = document.getElementById("s2-iris");
+          const writeIris = () => (irisEl.style.clipPath = `circle(${iris.r.toFixed(1)}px at 1722px 518px)`);
+          writeIris();
+          tl.to(iris, { r: 1900, duration: 0.4, ease: "power3.in", onUpdate: writeIris }, 1.6);
+
+          window.__timelines["s2-signal"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>
