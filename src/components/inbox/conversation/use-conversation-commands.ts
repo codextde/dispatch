@@ -78,6 +78,7 @@ export function useConversationCommands(conv: ConversationDetail | undefined, bo
         run([conv.id], { read: false })
         router.push(listHref)
       },
+      markRead: () => run([conv.id], { read: true }),
       toggleSpam: () => apply({ spam: !conv.isSpam }, conv.isSpam ? "Marked as not spam" : "Marked as spam"),
       toggleTrash: () => apply({ trash: !conv.isTrash }, conv.isTrash ? "Restored from trash" : "Moved to trash"),
       deleteForever: () => del.mutate(),

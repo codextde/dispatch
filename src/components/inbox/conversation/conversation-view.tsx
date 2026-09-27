@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AiSummary } from "@/components/ai/ai-summary"
 import { ApiClientError } from "@/lib/api-client"
 import { firstName } from "@/lib/inbox/format"
+import { keysFor, type ShortcutAction } from "@/lib/inbox/shortcuts"
 import type { ComposingKind, ConversationDetail } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import { useThread } from "@/hooks/inbox/queries"
@@ -72,7 +73,7 @@ function TypingIndicator({ conversationId }: { conversationId: string }) {
 }
 
 export function ConversationView({ id, box }: { id: string; box: string }) {
-  const { slug, shortcutsEnabled } = useInbox()
+  const { slug, shortcutsEnabled, shortcutScheme } = useInbox()
   const router = useRouter()
   const { find, run } = useConversationActions()
   const { data: thread, error, isPending } = useThread(slug, id)
@@ -104,23 +105,27 @@ export function ConversationView({ id, box }: { id: string; box: string }) {
   }, [title])
 
   const writable = !!conv && conv.level !== "read" && conv.kind === "email"
+  const k = (action: ShortcutAction) => keysFor(shortcutScheme, action)
   useHotkeys(
     [
-      { keys: ["Escape"], when: () => !inboxUI.get().selected.size, handler: () => cmd?.back() },
-      { keys: ["e"], when: () => writable, handler: () => cmd?.toggleStatus() },
-      { keys: ["s"], handler: () => cmd?.toggleStar() },
-      { keys: ["h"], when: () => writable, handler: () => inboxUI.set({ picker: "snooze" }) },
-      { keys: ["l"], when: () => writable, handler: () => inboxUI.set({ picker: "label" }) },
-      { keys: ["i"], when: () => writable, handler: () => inboxUI.set({ picker: "assign" }) },
-      { keys: ["m"], when: () => writable, handler: () => cmd?.assignToMe() },
-      { keys: ["u"], handler: () => cmd?.markUnread() },
-      { keys: ["#", "shift+#"], when: () => writable, handler: () => cmd?.toggleTrash() },
-      { keys: ["!", "shift+!"], when: () => writable, handler: () => cmd?.toggleSpam() },
-      { keys: ["r"], when: () => writable, handler: () => inboxUI.openComposer(id, "reply") },
-      { keys: ["a"], when: () => writable, handler: () => inboxUI.openComposer(id, "reply_all") },
-      { keys: ["f"], when: () => writable, handler: () => inboxUI.openComposer(id, "forward") },
-      { keys: ["c"], handler: () => inboxUI.openComposer(id, "comment") },
-      { keys: ["shift+p"], when: () => writable, handler: () => cmd?.togglePriority() },
+      { keys: k("back"), when: () => !inboxUI.get().selected.size, handler: () => cmd?.back() },
+      { keys: k("close"), when: () => writable, handler: () => cmd?.toggleStatus() },
+      { keys: k("star"), handler: () => cmd?.toggleStar() },
+      { keys: k("snooze"), when: () => writable, handler: () => inboxUI.set({ picker: "snooze" }) },
+      { keys: k("label"), when: () => writable, handler: () => inboxUI.set({ picker: "label" }) },
+      { keys: k("assign"), when: () => writable, handler: () => inboxUI.set({ picker: "assign" }) },
+      { keys: k("moveTeam"), when: () => writable, handler: () => inboxUI.set({ picker: "team" }) },
+      { keys: k("assignMe"), when: () => writable, handler: () => cmd?.assignToMe() },
+      { keys: k("mute"), handler: () => cmd?.toggleMute() },
+      { keys: k("markRead"), handler: () => cmd?.markRead() },
+      { keys: k("markUnread"), handler: () => cmd?.markUnread() },
+      { keys: k("trash"), when: () => writable, handler: () => cmd?.toggleTrash() },
+      { keys: k("spam"), when: () => writable, handler: () => cmd?.toggleSpam() },
+      { keys: k("reply"), when: () => writable, handler: () => inboxUI.openComposer(id, "reply") },
+      { keys: k("replyAll"), when: () => writable, handler: () => inboxUI.openComposer(id, "reply_all") },
+      { keys: k("forward"), when: () => writable, handler: () => inboxUI.openComposer(id, "forward") },
+      { keys: k("comment"), handler: () => inboxUI.openComposer(id, "comment") },
+      { keys: k("priority"), when: () => writable, handler: () => cmd?.togglePriority() },
     ],
     shortcutsEnabled && !!conv
   )

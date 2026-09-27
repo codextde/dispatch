@@ -1,5 +1,5 @@
 import "server-only"
-import { and, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm"
+import { and, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm"
 import { db, schema } from "@/server/db"
 import type { OrgContext } from "@/server/authz"
 
@@ -69,12 +69,19 @@ export async function getAccountAccess(ctx: Ctx): Promise<Map<string, AccessLeve
 }
 
 /**
- * SQL condition selecting the conversations visible to the user:
- *  - in an accessible account, or
- *  - an internal chat the user is a member of, or
+ * SQL condition selecting the conversations visible to the user.
+ *
+ * Internal chats: only their *current* members (leaving a chat revokes access,
+ * also for its creator).
+ *
+ * Email conversations:
+ *  - in an inbox the user can access, or
  *  - assigned to the user, or
- *  - explicitly shared with / followed by the user, or
- *  - created by the user without an account (new internal thread)
+ *  - the user was explicitly @mentioned in a comment (sharing a conversation
+ *    from an inbox the user can't otherwise see), or
+ *  - created by the user without an inbox (internal thread).
+ * Following alone does NOT grant access, so removing someone's inbox access
+ * really removes it (except for conversations explicitly shared with them).
  */
 export function visibleConversationsWhere(ctx: Ctx, accountIds: string[]): SQL {
   const c = schema.conversations
@@ -83,11 +90,16 @@ export function visibleConversationsWhere(ctx: Ctx, accountIds: string[]): SQL {
     eq(c.orgId, ctx.org.id),
     isNull(c.mergedIntoId),
     or(
-      accountIds.length ? inArray(c.accountId, accountIds) : sql`false`,
-      sql`${userId}::uuid = any(${c.chatMemberIds})`,
-      sql`exists (select 1 from conversation_assignees ca where ca.conversation_id = ${c.id} and ca.user_id = ${userId})`,
-      sql`exists (select 1 from conversation_user_state cus where cus.conversation_id = ${c.id} and cus.user_id = ${userId} and cus.following = true)`,
-      and(isNull(c.accountId), eq(c.createdBy, userId))
+      and(eq(c.kind, "chat"), sql`${userId}::uuid = any(${c.chatMemberIds})`),
+      and(
+        ne(c.kind, "chat"),
+        or(
+          accountIds.length ? inArray(c.accountId, accountIds) : sql`false`,
+          sql`exists (select 1 from conversation_assignees ca where ca.conversation_id = ${c.id} and ca.user_id = ${userId})`,
+          sql`exists (select 1 from comments cm where cm.conversation_id = ${c.id} and cm.deleted_at is null and ${userId}::uuid = any(cm.mentions))`,
+          and(isNull(c.accountId), eq(c.createdBy, userId))
+        )
+      )
     )
   )!
 }

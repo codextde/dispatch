@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect } from "react"
+import { Suspense, useEffect } from "react"
 import dynamic from "next/dynamic"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { PanelLeft } from "lucide-react"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,8 @@ import { inboxUI, useInboxUI } from "@/hooks/inbox/store"
 import { useHotkeys } from "@/hooks/inbox/use-hotkeys"
 import { usePersistentState } from "@/hooks/inbox/use-persistent-state"
 import { useRealtime } from "@/hooks/inbox/use-realtime"
+import { parseAddresses } from "@/lib/inbox/format"
+import { keysFor, type ShortcutAction } from "@/lib/inbox/shortcuts"
 import type { Bootstrap } from "@/lib/inbox/types"
 import { InboxProvider, useInbox } from "./inbox-provider"
 import { ResizeHandle } from "./resize-handle"
@@ -37,7 +39,7 @@ export function MailShell({ slug, bootstrap, children }: { slug: string; bootstr
 }
 
 function ShellInner({ children }: { children: React.ReactNode }) {
-  const { slug, meId, bootstrap, shortcutsEnabled } = useInbox()
+  const { slug, meId, bootstrap, shortcutsEnabled, shortcutScheme } = useInbox()
   const router = useRouter()
   const [width, setWidth] = usePersistentState("dispatch:sidebar:width", SIDEBAR.default)
   const [collapsed, setCollapsed] = usePersistentState("dispatch:sidebar:collapsed", false)
@@ -72,28 +74,29 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   const go = (box: string) => router.push(`/w/${slug}/${box}`)
   const firstTeam = bootstrap.teams.find((t) => t.isMember) ?? bootstrap.teams[0]
+  const k = (action: ShortcutAction) => keysFor(shortcutScheme, action)
+  const togglePalette = () => inboxUI.set((s) => ({ paletteOpen: !s.paletteOpen, paletteQuery: "" }))
   useHotkeys(
     [
-      { keys: ["mod+k"], allowInInput: true, handler: () => inboxUI.set((s) => ({ paletteOpen: !s.paletteOpen, paletteQuery: "" })) },
-      { keys: ["/"], handler: () => inboxUI.set({ paletteOpen: true, paletteQuery: "" }) },
-      { keys: ["n"], handler: () => inboxUI.openCompose() },
-      { keys: ["?", "shift+?"], handler: () => inboxUI.set({ shortcutsOpen: true }) },
-      { keys: ["g i"], handler: () => go("inbox") },
-      { keys: ["g a"], handler: () => go("assigned") },
-      { keys: ["g s"], handler: () => go("starred") },
-      { keys: ["g d"], handler: () => go("drafts") },
-      { keys: ["g m"], handler: () => go("mentions") },
-      { keys: ["g c"], handler: () => go("chats") },
-      { keys: ["g t"], handler: () => (firstTeam ? go(`team.${firstTeam.id}`) : go("unassigned")) },
-      { keys: ["mod+shift+n"], allowInInput: true, handler: () => inboxUI.set({ newChatOpen: true }) },
+      { keys: ["mod+k"], allowInInput: true, handler: togglePalette },
+      { keys: k("search").filter((key) => key !== "mod+k"), handler: () => inboxUI.set({ paletteOpen: true, paletteQuery: "" }) },
+      { keys: k("compose"), handler: () => inboxUI.openCompose() },
+      { keys: [...k("help"), "shift+?"], handler: () => inboxUI.set({ shortcutsOpen: true }) },
+      { keys: k("goInbox"), handler: () => go("inbox") },
+      { keys: k("goAssigned"), handler: () => go("assigned") },
+      { keys: k("goStarred"), handler: () => go("starred") },
+      { keys: k("goDrafts"), handler: () => go("drafts") },
+      { keys: k("goMentions"), handler: () => go("mentions") },
+      { keys: k("goChats"), handler: () => go("chats") },
+      { keys: k("goSent"), handler: () => go("sent") },
+      { keys: k("goAll"), handler: () => go("all") },
+      { keys: k("goTeam"), handler: () => (firstTeam ? go(`team.${firstTeam.id}`) : go("unassigned")) },
+      { keys: k("newChat"), allowInInput: true, handler: () => inboxUI.set({ newChatOpen: true }) },
     ],
     shortcutsEnabled
   )
   // ⌘K must work even with shortcuts turned off.
-  useHotkeys(
-    [{ keys: ["mod+k"], allowInInput: true, handler: () => inboxUI.set((s) => ({ paletteOpen: !s.paletteOpen, paletteQuery: "" })) }],
-    !shortcutsEnabled
-  )
+  useHotkeys([{ keys: ["mod+k"], allowInInput: true, handler: togglePalette }], !shortcutsEnabled)
 
   return (
     <div className="flex h-full min-h-0 bg-background">
@@ -135,6 +138,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       <main className="flex h-full min-w-0 flex-1 flex-col">{children}</main>
+      <Suspense>
+        <ComposeFromUrl />
+      </Suspense>
 
       {paletteOpen && <CommandPalette />}
       {composeOpen && <ComposeDialog />}
@@ -142,6 +148,24 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       {newChatOpen && <NewChatDialog />}
     </div>
   )
+}
+
+/** `?compose=<email>` (links from contacts etc.) opens a new message to that address. */
+function ComposeFromUrl() {
+  const params = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const to = params.get("compose")
+  useEffect(() => {
+    if (!to) return
+    const emails = parseAddresses(to)
+    inboxUI.openCompose(emails.length ? { to: emails } : undefined)
+    const next = new URLSearchParams(params.toString())
+    next.delete("compose")
+    const qs = next.toString()
+    router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false })
+  }, [to, params, pathname, router])
+  return null
 }
 
 /** Hamburger that opens the sidebar sheet below `lg` (also when the desktop sidebar is collapsed). */

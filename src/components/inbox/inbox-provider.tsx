@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { useOrg } from "@/components/app/org-provider"
 import { inboxKeys } from "@/hooks/inbox/queries"
+import { schemeFromPreference, type ShortcutScheme } from "@/lib/inbox/shortcuts"
 import type { AccountSummary, Bootstrap, LabelSummary, MemberSummary, SignatureSummary, TeamSummary } from "@/lib/inbox/types"
 
 /**
@@ -26,6 +27,7 @@ export type InboxContextValue = {
   /** Addresses of accounts I can see (to tell "me" apart from customers) */
   ownAddresses: Set<string>
   shortcutsEnabled: boolean
+  shortcutScheme: ShortcutScheme
 }
 
 const Ctx = createContext<InboxContextValue | null>(null)
@@ -50,7 +52,7 @@ export function InboxProvider({ slug, initialBootstrap, children }: { slug: stri
       own.add(a.email.toLowerCase())
       for (const al of a.aliases) own.add(al.toLowerCase())
     }
-    const prefs = bootstrap.me.preferences as { shortcuts?: string }
+    const shortcuts = schemeFromPreference((bootstrap.me.preferences as { shortcuts?: string }).shortcuts)
     return {
       slug,
       meId: user.id,
@@ -62,7 +64,8 @@ export function InboxProvider({ slug, initialBootstrap, children }: { slug: stri
       team: byId(bootstrap.teams),
       signature: byId(bootstrap.signatures),
       ownAddresses: own,
-      shortcutsEnabled: prefs.shortcuts !== "off",
+      shortcutsEnabled: shortcuts.enabled,
+      shortcutScheme: shortcuts.scheme,
     }
   }, [bootstrap, slug, user.id])
 

@@ -19,6 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOrg } from "@/components/app/org-provider"
 import { defaultStatus, parseBox, supportsStatusFilter, type ListFilters, type StatusFilter } from "@/lib/inbox/boxes"
+import { keysFor } from "@/lib/inbox/shortcuts"
 import type { ConversationListItem } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import { inboxKeys, useConversationList } from "@/hooks/inbox/queries"
@@ -52,7 +53,7 @@ function RowSkeleton() {
 }
 
 export function ConversationList({ box }: { box: string }) {
-  const { slug, shortcutsEnabled } = useInbox()
+  const { slug, shortcutsEnabled, shortcutScheme } = useInbox()
   const { can } = useOrg()
   const router = useRouter()
   const qc = useQueryClient()
@@ -189,22 +190,22 @@ export function ConversationList({ box }: { box: string }) {
   }
   useHotkeys(
     [
-      { keys: ["j", "ArrowDown"], handler: () => move(1) },
-      { keys: ["k", "ArrowUp"], handler: () => move(-1) },
+      { keys: keysFor(shortcutScheme, "next"), handler: () => move(1) },
+      { keys: keysFor(shortcutScheme, "prev"), handler: () => move(-1) },
       {
-        keys: ["Enter", "o"],
+        keys: keysFor(shortcutScheme, "open"),
         when: () => !openId && !!inboxUI.get().cursorId,
         handler: () => router.push(hrefFor(inboxUI.get().cursorId!)),
       },
       {
-        keys: ["x"],
+        keys: keysFor(shortcutScheme, "select"),
         handler: () => {
           const id = openId ?? inboxUI.get().cursorId ?? ids[0]
           const item = items.find((i) => i.id === id)
           if (item) toggleSelect(item, false)
         },
       },
-      { keys: ["mod+a"], when: () => !openId, handler: () => inboxUI.set({ selected: new Set(ids) }) },
+      { keys: keysFor(shortcutScheme, "selectAll"), when: () => !openId, handler: () => inboxUI.set({ selected: new Set(ids) }) },
       { keys: ["Escape"], when: () => inboxUI.get().selected.size > 0, handler: () => inboxUI.clearSelection() },
     ],
     shortcutsEnabled
