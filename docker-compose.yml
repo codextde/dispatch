@@ -1,0 +1,100 @@
+# Dispatch — production stack (Docker Compose & Coolify)
+#
+#   echo "DOMAIN=mail.example.com" > .env
+#   docker compose up -d
+#
+# The only setting is DOMAIN. Database password, encryption key and all other
+# secrets are generated on first boot; everything else is configured in the
+# browser (first-run wizard at https://<DOMAIN>/setup, then /admin).
+#
+# Nothing is published on the host. Put a reverse proxy with TLS in front of
+# app:3000 — Coolify does this for you; for plain Docker see
+# docker-compose.override.example.yml (bundled Caddy) and docs/self-hosting.md.
+#
+# Coolify: deploy this file as-is. Set the domain of the `app` service to
+# https://<your-domain>:3000 and the environment variable DOMAIN=<your-domain>.
+# Step by step: docs/coolify.md
+
+services:
+  app:
+    image: ghcr.io/codextde/dispatch:${DISPATCH_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      # Public hostname, e.g. mail.example.com. On Coolify it falls back to the
+      # domain assigned to this service (magic variable SERVICE_FQDN_APP_3000).
+      DOMAIN: ${DOMAIN:-${SERVICE_FQDN_APP_3000}}
+    volumes:
+      - dispatch-data:/data
+      - dispatch-secrets:/secrets:ro
+    expose:
+      - "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "dispatch-healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  worker:
+    image: ghcr.io/codextde/dispatch:${DISPATCH_VERSION:-latest}
+    command: worker
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-${SERVICE_FQDN_APP_3000}}
+      # let in-flight sends finish on shutdown (must stay below stop_grace_period)
+      WORKER_SHUTDOWN_TIMEOUT_MS: "25000"
+    volumes:
+      - dispatch-data:/data
+      - dispatch-secrets:/secrets:ro
+    depends_on:
+      # the app applies database migrations on start
+      app:
+        condition: service_healthy
+    stop_grace_period: 30s
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dispatch
+      POSTGRES_DB: dispatch
+      POSTGRES_PASSWORD_FILE: /secrets/db_password
+    # On first boot, generate a random password into the shared secrets volume.
+    # On every boot, set the role's password from that file (so it's the single
+    # source of truth), then hand over to the official Postgres entrypoint.
+    entrypoint:
+      - /bin/sh
+      - -euc
+      - |
+        f=/secrets/db_password
+        if [ ! -s "$$f" ]; then
+          (umask 077; head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$$f.tmp")
+          mv "$$f.tmp" "$$f"
+          echo "dispatch: generated a new database password in $$f"
+        fi
+        chown postgres:1001 "$$f"
+        chmod 0440 "$$f"
+        if [ -s "$$PGDATA/PG_VERSION" ]; then
+          echo "ALTER ROLE \"$$POSTGRES_USER\" WITH PASSWORD '$$(cat "$$f")';" \
+            | gosu postgres postgres --single -D "$$PGDATA" postgres > /dev/null \
+            || echo "dispatch: warning: could not sync the database password" >&2
+        fi
+        exec docker-entrypoint.sh postgres
+    volumes:
+      - dispatch-db:/var/lib/postgresql/data
+      - dispatch-secrets:/secrets
+    healthcheck:
+      # TCP check: only passes once the real server is up (not the init-time socket-only server)
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "dispatch", "-d", "dispatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  dispatch-db:
+  dispatch-data:
+  dispatch-secrets:

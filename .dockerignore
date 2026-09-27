@@ -1,0 +1,35 @@
+# Keep the build context small and free of local state and secrets.
+
+# dependencies & build output (rebuilt inside the image)
+node_modules
+.pnpm-store
+.next
+out
+build
+dist
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# local data, secrets & tooling state
+.data
+.dev
+.omc
+.env
+.env.*
+!.env.example
+*.pem
+*.log
+
+# VCS, CI & editor files
+.git
+.github
+.vscode
+.idea
+.DS_Store
+
+# not needed in the image
+docs
+docker-compose*.yml
+Dockerfile
+.dockerignore

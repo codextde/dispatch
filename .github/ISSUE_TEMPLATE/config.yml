@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/codextde/dispatch/discussions
+    about: Ask questions, share setups and discuss ideas with the community.
+  - name: Report a security vulnerability
+    url: https://github.com/codextde/dispatch/security/advisories/new
+    about: Please report security issues privately, never in a public issue.
+  - name: Documentation
+    url: https://github.com/codextde/dispatch/tree/main/docs
+    about: Self-hosting, Coolify, configuration and API guides.

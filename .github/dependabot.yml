@@ -1,0 +1,41 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      next-react:
+        patterns: ["next", "eslint-config-next", "react", "react-dom", "@types/react", "@types/react-dom"]
+      tiptap:
+        patterns: ["@tiptap/*"]
+      aws-sdk:
+        patterns: ["@aws-sdk/*"]
+      production:
+        dependency-type: production
+        update-types: ["minor", "patch"]
+      development:
+        dependency-type: development
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Base images in the Dockerfile. Node majors are chosen deliberately (LTS),
+  # so only minor/patch updates are proposed.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]

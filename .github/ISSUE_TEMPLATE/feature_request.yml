@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest an idea or improvement for Dispatch
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a request, please check the [roadmap](https://github.com/codextde/dispatch#roadmap) and
+        [existing issues](https://github.com/codextde/dispatch/issues?q=is%3Aissue). Open-ended ideas fit well in
+        [Discussions](https://github.com/codextde/dispatch/discussions).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the situation and why the current behavior falls short.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and workarounds
+      description: Anything you've tried, or how other tools handle it.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd be willing to open a pull request for this

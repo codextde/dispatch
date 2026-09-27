@@ -1,0 +1,30 @@
+Return-Path: <anna@example.org>
+Received: from mx.example.org by mail.acme.test; Mon, 21 Sep 2026 10:00:02 +0200
+Message-ID: <reply-2@example.org>
+In-Reply-To: <orig-1@acme.test>
+References: <thread-0@example.org>
+ <orig-1@acme.test>
+Date: Mon, 21 Sep 2026 10:00:00 +0200
+From: "Anna Schmidt" <Anna@Example.org>
+To: Acme Support <support@acme.test>, sales@acme.test
+Cc: Team: bob@example.org, carol@example.org;
+Reply-To: anna.private@example.org
+Subject: AW: Re: Order #1234 delayed
+X-Customer-Tier: gold
+List-Unsubscribe: <mailto:unsub@example.org>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="alt"
+
+--alt
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Thanks, the new date works for us.
+
+Am 20.09.2026 um 18:00 schrieb Acme Support <support@acme.test>:
+> Your order ships on Friday.
+--alt
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Thanks, the new date works for us.</p><blockquote>Your order ships on Friday.</blockquote></body></html>
+--alt--

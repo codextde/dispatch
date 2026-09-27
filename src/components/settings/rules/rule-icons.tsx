@@ -1,0 +1,50 @@
+import {
+  AlarmClock,
+  CircleCheck,
+  Crown,
+  Eraser,
+  Flag,
+  Forward,
+  MailOpen,
+  MessageSquare,
+  MoonStar,
+  Newspaper,
+  Receipt,
+  Reply,
+  ShieldAlert,
+  Shuffle,
+  Star,
+  Tag,
+  Trash2,
+  UserCheck,
+  UsersRound,
+  Webhook,
+  type LucideIcon,
+} from "lucide-react"
+import type { ActionType } from "@/components/settings/rules/definitions"
+
+export const ACTION_ICONS: Record<ActionType, LucideIcon> = {
+  add_label: Tag,
+  remove_label: Eraser,
+  assign: UserCheck,
+  assign_team: UsersRound,
+  close: CircleCheck,
+  snooze: AlarmClock,
+  star: Star,
+  priority: Flag,
+  mark_read: MailOpen,
+  mark_spam: ShieldAlert,
+  trash: Trash2,
+  auto_reply: Reply,
+  forward: Forward,
+  comment: MessageSquare,
+  webhook: Webhook,
+}
+
+export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
+  "billing-to-finance": Receipt,
+  "support-round-robin": Shuffle,
+  "vip-customers": Crown,
+  "after-hours-reply": MoonStar,
+  "newsletters-read": Newspaper,
+}
