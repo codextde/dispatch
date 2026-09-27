@@ -1,6 +1,13 @@
 {
   "name": "dispatch",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "The open-source collaborative inbox for teams — shared Gmail & IMAP inboxes, internal comments, assignments and automation.",
+  "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/codextde/dispatch",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codextde/dispatch.git"
+  },
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -40,7 +47,6 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.3",
-    "embla-carousel-react": "^8.6.0",
     "frimousse": "^0.4.0",
     "geist": "^1.7.2",
     "html-to-text": "^10.0.1",

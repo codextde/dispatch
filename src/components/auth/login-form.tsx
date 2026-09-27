@@ -42,6 +42,7 @@ export function LoginForm({
   const [redirecting, setRedirecting] = useState(false)
   const [pending, startTransition] = useTransition()
   const emailRef = useRef<HTMLInputElement>(null)
+  const codeRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -81,6 +82,13 @@ export function LoginForm({
     })
   }
 
+  // The code field is disabled while the send transition settles, so `autoFocus`
+  // alone misses it: focus it as soon as it becomes interactive (and after errors).
+  const codeInteractive = step === "code" && !pending && !redirecting
+  useEffect(() => {
+    if (codeInteractive) codeRef.current?.focus()
+  }, [codeInteractive, error])
+
   if (step === "code") {
     return (
       <div>
@@ -116,6 +124,7 @@ export function LoginForm({
             6-digit code
           </Label>
           <InputOTP
+            ref={codeRef}
             id="login-code"
             maxLength={6}
             value={code}

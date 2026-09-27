@@ -26,6 +26,8 @@ async function request<T>(method: string, url: string, body?: unknown, init?: Re
   const data = text ? JSON.parse(text) : undefined
   if (!res.ok) {
     if (res.status === 401 && typeof window !== "undefined") {
+      // Full reload on purpose: drops all client state of the expired session
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`
     }
     throw new ApiClientError(res.status, data?.error?.message ?? res.statusText, data?.error?.code, data?.error?.details)

@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element -- workspace logos are user-provided URLs/uploads, not optimizable assets */
+
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { ArrowRight } from "lucide-react"

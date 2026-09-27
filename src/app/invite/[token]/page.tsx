@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- workspace logos are user-provided URLs/uploads, not optimizable assets */
 import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"

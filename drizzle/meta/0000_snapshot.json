@@ -1,5 +1,5 @@
 {
-  "id": "58a2de31-22fc-45ec-bce1-d2a688e1e3ec",
+  "id": "e8e4e8f4-bf63-4ce3-9218-3fd54ca069e1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1117,6 +1117,13 @@
           "notNull": true,
           "default": "'{}'::jsonb"
         },
+        "alternate_emails": {
+          "name": "alternate_emails",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
         "last_contacted_at": {
           "name": "last_contacted_at",
           "type": "timestamp with time zone",
@@ -1178,8 +1185,52 @@
             }
           ],
           "isUnique": true,
+          "where": "\"contacts\".\"owner_user_id\" is null",
           "concurrently": false,
           "method": "btree",
+          "with": {}
+        },
+        "contacts_owner_email_idx": {
+          "name": "contacts_owner_email_idx",
+          "columns": [
+            {
+              "expression": "org_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "owner_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lower(\"email\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"contacts\".\"owner_user_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "contacts_alternate_emails_idx": {
+          "name": "contacts_alternate_emails_idx",
+          "columns": [
+            {
+              "expression": "alternate_emails",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
           "with": {}
         }
       },
@@ -3094,6 +3145,27 @@
           "method": "btree",
           "with": {}
         },
+        "messages_account_reply_idx": {
+          "name": "messages_account_reply_idx",
+          "columns": [
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "in_reply_to",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "messages_status_send_idx": {
           "name": "messages_status_send_idx",
           "columns": [
@@ -3128,6 +3200,21 @@
           "isUnique": false,
           "concurrently": false,
           "method": "btree",
+          "with": {}
+        },
+        "messages_search_idx": {
+          "name": "messages_search_idx",
+          "columns": [
+            {
+              "expression": "to_tsvector('simple', coalesce(\"subject\", '') || ' ' || coalesce(\"text_body\", ''))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
           "with": {}
         }
       },

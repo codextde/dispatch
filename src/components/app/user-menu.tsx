@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element -- workspace logos are user-provided URLs/uploads, not optimizable assets */
+
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import { Check, ChevronsUpDown, LogOut, Monitor, Moon, Plus, Settings, Shield, Sun, User } from "lucide-react"

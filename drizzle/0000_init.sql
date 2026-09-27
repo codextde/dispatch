@@ -127,6 +127,7 @@ CREATE TABLE "contacts" (
 	"avatar_url" text,
 	"tags" text[] DEFAULT '{}'::text[] NOT NULL,
 	"custom_fields" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"alternate_emails" text[] DEFAULT '{}'::text[] NOT NULL,
 	"last_contacted_at" timestamp with time zone,
 	"message_count" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -601,7 +602,9 @@ CREATE INDEX "audit_logs_created_idx" ON "audit_logs" USING btree ("created_at")
 CREATE INDEX "canned_responses_org_idx" ON "canned_responses" USING btree ("org_id");--> statement-breakpoint
 CREATE INDEX "comments_conversation_idx" ON "comments" USING btree ("conversation_id","created_at");--> statement-breakpoint
 CREATE INDEX "contacts_org_idx" ON "contacts" USING btree ("org_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "contacts_org_email_idx" ON "contacts" USING btree ("org_id",lower("email"));--> statement-breakpoint
+CREATE UNIQUE INDEX "contacts_org_email_idx" ON "contacts" USING btree ("org_id",lower("email")) WHERE "contacts"."owner_user_id" is null;--> statement-breakpoint
+CREATE UNIQUE INDEX "contacts_owner_email_idx" ON "contacts" USING btree ("org_id","owner_user_id",lower("email")) WHERE "contacts"."owner_user_id" is not null;--> statement-breakpoint
+CREATE INDEX "contacts_alternate_emails_idx" ON "contacts" USING gin ("alternate_emails");--> statement-breakpoint
 CREATE INDEX "conv_assignees_user_idx" ON "conversation_assignees" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "conversation_events_conv_idx" ON "conversation_events" USING btree ("conversation_id","created_at");--> statement-breakpoint
 CREATE INDEX "conv_labels_label_idx" ON "conversation_labels" USING btree ("label_id");--> statement-breakpoint
@@ -624,8 +627,10 @@ CREATE INDEX "memberships_user_idx" ON "memberships" USING btree ("user_id");-->
 CREATE INDEX "messages_conversation_idx" ON "messages" USING btree ("conversation_id","created_at");--> statement-breakpoint
 CREATE INDEX "messages_org_msgid_idx" ON "messages" USING btree ("org_id","message_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "messages_account_msgid_idx" ON "messages" USING btree ("account_id","message_id");--> statement-breakpoint
+CREATE INDEX "messages_account_reply_idx" ON "messages" USING btree ("account_id","in_reply_to");--> statement-breakpoint
 CREATE INDEX "messages_status_send_idx" ON "messages" USING btree ("status","send_at");--> statement-breakpoint
 CREATE INDEX "messages_author_idx" ON "messages" USING btree ("author_id");--> statement-breakpoint
+CREATE INDEX "messages_search_idx" ON "messages" USING gin (to_tsvector('simple', coalesce("subject", '') || ' ' || coalesce("text_body", '')));--> statement-breakpoint
 CREATE INDEX "notifications_user_idx" ON "notifications" USING btree ("user_id","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "organizations_slug_idx" ON "organizations" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX "roles_org_idx" ON "roles" USING btree ("org_id");--> statement-breakpoint
