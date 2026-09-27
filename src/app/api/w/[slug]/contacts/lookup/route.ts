@@ -15,7 +15,9 @@ export const GET = route<P>(async (req, { params }) => {
   const { email: raw, limit } = parseQuery(req, query)
   const email = normalizeEmail(raw)
   if (!isValidEmail(email)) throw new ApiError(400, "Invalid email address", "validation_error")
-  const [contact, recent] = await Promise.all([getContactByEmail(ctx, email), recentConversationsFor(ctx, email, limit ?? 5)])
+  // The address may be a contact's alternate email: show the contact and all of its conversations
+  const contact = await getContactByEmail(ctx, email)
+  const recent = await recentConversationsFor(ctx, contact ? [email, contact.email, ...contact.alternateEmails] : email, limit ?? 5)
   return json({
     email,
     contact: contact ? contactDto(contact, ctx) : null,

@@ -38,7 +38,7 @@ export default async function UseCasesPage() {
                 >
                   <div className="relative flex h-[210px] items-center justify-center overflow-hidden border-b border-border bg-background px-4">
                     <div aria-hidden className="mk-dots absolute inset-0 opacity-60 mk-fade-bottom" />
-                    <FeatureVisual kind={u.workflow[0]?.visual ?? "inbox"} className="relative origin-center scale-[0.82]" />
+                    <FeatureVisual kind={u.workflow[0]?.visual ?? "inbox"} className="relative origin-center scale-[0.82]" decorative />
                   </div>
                   <div className="flex flex-1 flex-col p-5">
                     <span className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">

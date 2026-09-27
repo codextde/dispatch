@@ -36,14 +36,14 @@ const visuals: Record<VisualKind, { C: () => React.ReactElement; alt: string }> 
   inbox: { C: InboxVisual, alt: "A shared team inbox with Support, Sales and Billing inboxes and assigned conversations" },
   comments: { C: CommentsVisual, alt: "An internal comment thread under an email, with an @mention" },
   assign: { C: AssignVisual, alt: "Assigning a conversation to a teammate, showing everyone's open workload" },
-  drafts: { C: DraftsVisual, alt: "Two teammates editing the same reply draft with live cursors" },
+  drafts: { C: DraftsVisual, alt: "A shared reply draft that a teammate just edited" },
   presence: { C: PresenceVisual, alt: "Presence avatars and a warning that a teammate is already replying" },
   rules: { C: RulesVisual, alt: "A rule: when an email arrives in billing@ and the subject contains invoice, label it and assign it" },
-  canned: { C: CannedVisual, alt: "Inserting a canned response with template variables by typing a slash command" },
+  canned: { C: CannedVisual, alt: "Picking a canned response with template variables from the composer" },
   labels: { C: LabelsVisual, alt: "Colored labels on a conversation and the label list with counts" },
   snooze: { C: SnoozeVisual, alt: "The snooze menu with later today, tomorrow and next Monday options" },
   sendlater: { C: SendLaterVisual, alt: "Scheduling a reply for tomorrow morning and an undo send toast" },
-  chat: { C: ChatVisual, alt: "A team chat channel with a linked email conversation" },
+  chat: { C: ChatVisual, alt: "A team group chat with a link to an email conversation" },
   tasks: { C: TasksVisual, alt: "A task list with assignees, due dates and a task linked to an email" },
   analytics: { C: AnalyticsVisual, alt: "An analytics card showing median first reply time and team workload" },
   ai: { C: AiVisual, alt: "The AI assistant summarizing a thread and suggesting a reply using your own API key" },
@@ -53,9 +53,9 @@ const visuals: Record<VisualKind, { C: () => React.ReactElement; alt: string }> 
   security: { C: SecurityVisual, alt: "A custom role with individual permission toggles" },
   audit: { C: AuditVisual, alt: "An audit log of workspace changes" },
   mobile: { C: MobileVisual, alt: "Dispatch's inbox on a phone" },
-  shortcuts: { C: ShortcutsVisual, alt: "Keyboard shortcuts for archive, reply, assign, snooze, comment and the command palette" },
+  shortcuts: { C: ShortcutsVisual, alt: "Keyboard shortcuts for close, reply, assign, snooze, comment and the command palette" },
   signatures: { C: SignaturesVisual, alt: "An email signature chosen per team inbox" },
-  search: { C: SearchVisual, alt: "Searching conversations with filters like from: and label:" },
+  search: { C: SearchVisual, alt: "Searching conversations with label and status filters" },
   selfhost: { C: SelfHostVisual, alt: "A terminal starting Dispatch with Docker Compose" },
   providers: { C: ProvidersVisual, alt: "Connecting Google, Microsoft or any IMAP/SMTP mailbox" },
 }
@@ -68,10 +68,22 @@ export function visualAlt(kind: VisualKind) {
  * Renders a coded product mock. The mock itself is hidden from assistive
  * tech; a short description is exposed instead.
  */
-export function FeatureVisual({ kind, className }: { kind: VisualKind; className?: string }) {
+export function FeatureVisual({
+  kind,
+  className,
+  decorative,
+}: {
+  kind: VisualKind
+  className?: string
+  /** Hide from assistive tech entirely, e.g. inside a link that already has a name */
+  decorative?: boolean
+}) {
   const { C, alt } = visuals[kind]
   return (
-    <div role="img" aria-label={alt} className={cn("flex w-full items-center justify-center", className)}>
+    <div
+      {...(decorative ? { "aria-hidden": true } : { role: "img", "aria-label": alt })}
+      className={cn("flex w-full items-center justify-center", className)}
+    >
       <div aria-hidden className="contents">
         <C />
       </div>

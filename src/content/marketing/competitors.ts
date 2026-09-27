@@ -26,8 +26,8 @@ export const competitors: Competitor[] = [
     positioning: "A team collaboration inbox that brings email, SMS and social or chat channels into one app.",
     pricingBasis: "Per user / month, billed annually (monthly billing costs more)",
     plans: [
-      { name: "Starter", price: 14, note: "Up to 5 users" },
-      { name: "Productive", price: 24, note: "Up to 50 users" },
+      { name: "Starter", price: 14, note: "Up to 5 users", maxUsers: 5 },
+      { name: "Productive", price: 24, note: "Up to 50 users", maxUsers: 50 },
       { name: "Business", price: 36, note: "Unlimited users" },
     ],
     referencePlan: "Productive",
@@ -62,7 +62,7 @@ export const competitors: Competitor[] = [
     ],
     table: [
       { label: "Pricing model", dispatch: "{{cloudPrice}} per workspace, flat", them: "Per user / month" },
-      { label: "Cost for 10 users (mid tier)", dispatch: "{{cloudPrice}} / month", them: "$240 / month (Productive)" },
+      { label: "Cost for 10 users", dispatch: "{{cloudPrice}} / month", them: "$240 / month (Productive)" },
       sharedRows.unlimitedUsers,
       sharedRows.allFeatures,
       { label: "Free option", dispatch: "Self-hosted, free forever", them: false },
@@ -87,8 +87,8 @@ export const competitors: Competitor[] = [
     positioning: "An AI customer operations platform that unifies communication channels and automates customer-facing work.",
     pricingBasis: "Per seat / month, billed annually",
     plans: [
-      { name: "Starter", price: 25, note: "Up to 10 seats" },
-      { name: "Professional", price: 65, note: "Up to 50 seats" },
+      { name: "Starter", price: 25, note: "Up to 10 seats", maxUsers: 10 },
+      { name: "Professional", price: 65, note: "Up to 50 seats", maxUsers: 50 },
       { name: "Enterprise", price: 105, note: "Unlimited seats" },
     ],
     referencePlan: "Professional",
@@ -123,7 +123,7 @@ export const competitors: Competitor[] = [
     ],
     table: [
       { label: "Pricing model", dispatch: "{{cloudPrice}} per workspace, flat", them: "Per seat / month" },
-      { label: "Cost for 10 users (mid tier)", dispatch: "{{cloudPrice}} / month", them: "$650 / month (Professional)" },
+      { label: "Cost for 10 users", dispatch: "{{cloudPrice}} / month", them: "$650 / month (Professional)" },
       sharedRows.unlimitedUsers,
       sharedRows.allFeatures,
       { label: "Free option", dispatch: "Self-hosted, free forever", them: false },
@@ -184,7 +184,7 @@ export const competitors: Competitor[] = [
     ],
     table: [
       { label: "Pricing model", dispatch: "{{cloudPrice}} per workspace, flat", them: "Per user / month" },
-      { label: "Cost for 10 users (mid tier)", dispatch: "{{cloudPrice}} / month", them: "$550 / month (Pro)" },
+      { label: "Cost for 10 users", dispatch: "{{cloudPrice}} / month", them: "$550 / month (Pro)" },
       sharedRows.unlimitedUsers,
       sharedRows.allFeatures,
       { label: "Free option", dispatch: "Self-hosted, free forever", them: false },
@@ -209,7 +209,7 @@ export const competitors: Competitor[] = [
     positioning: "A customer support platform with a shared inbox, a built-in knowledge base and live chat.",
     pricingBasis: "Per user / month, billed annually (monthly billing costs more)",
     plans: [
-      { name: "Free", price: 0, note: "Up to 5 users, 1 inbox" },
+      { name: "Free", price: 0, note: "Up to 5 users, 1 inbox", maxUsers: 5 },
       { name: "Standard", price: 25, note: "$30 billed monthly" },
       { name: "Plus", price: 45, note: "$54 billed monthly" },
       { name: "Pro", price: 75, note: "$90 billed monthly" },
@@ -246,7 +246,7 @@ export const competitors: Competitor[] = [
     ],
     table: [
       { label: "Pricing model", dispatch: "{{cloudPrice}} per workspace, flat", them: "Per user / month" },
-      { label: "Cost for 10 users (mid tier)", dispatch: "{{cloudPrice}} / month", them: "$250 / month (Standard)" },
+      { label: "Cost for 10 users", dispatch: "{{cloudPrice}} / month", them: "$250 / month (Standard)" },
       sharedRows.unlimitedUsers,
       sharedRows.allFeatures,
       { label: "Free option", dispatch: "Self-hosted, free forever", them: "Free plan, up to 5 users" },
@@ -307,7 +307,7 @@ export const competitors: Competitor[] = [
     ],
     table: [
       { label: "Pricing model", dispatch: "{{cloudPrice}} per workspace, flat", them: "Per user / month" },
-      { label: "Cost for 10 users (mid tier)", dispatch: "{{cloudPrice}} / month", them: "$250 / month (Growth)" },
+      { label: "Cost for 10 users", dispatch: "{{cloudPrice}} / month", them: "$250 / month (Growth)" },
       sharedRows.unlimitedUsers,
       sharedRows.allFeatures,
       { label: "Free option", dispatch: "Self-hosted, free forever", them: false },

@@ -12,6 +12,7 @@ import {
   isUniqueViolation,
   isUuid,
   isValidEmail,
+  normalizeAlternateEmails,
   normalizeCustomFields,
   normalizeEmail,
   normalizeTags,
@@ -31,7 +32,7 @@ async function load(req: Parameters<typeof requireApiOrg>[0], params: Promise<P>
 /** GET /api/w/[slug]/contacts/[contactId] → { contact, conversations, conversationTotal } */
 export const GET = route<P>(async (req, { params }) => {
   const { ctx, contact } = await load(req, params)
-  const { conversations, total } = await recentConversationsFor(ctx, contact.email, 30)
+  const { conversations, total } = await recentConversationsFor(ctx, [contact.email, ...contact.alternateEmails], 30)
   return json({ contact: contactDto(contact, ctx), conversations, conversationTotal: total })
 })
 
@@ -49,10 +50,16 @@ export const PATCH = route<P>(async (req, { params }) => {
     if (!isValidEmail(email)) throw new ApiError(400, "Enter a valid email address", "validation_error")
     patch.email = email
   }
-  // Emails are unique among shared contacts and among each member's private contacts
-  if (input.email !== undefined || input.isPrivate !== undefined) {
-    const conflict = await findEmailConflict(ctx, patch.email ?? contact.email, { isPrivate: willBePrivate, excludeId: contact.id })
-    if (conflict) throw new ApiError(409, "Another contact already uses this email", "conflict")
+  if (input.alternateEmails !== undefined || patch.email) {
+    const alternates = normalizeAlternateEmails(input.alternateEmails ?? contact.alternateEmails, patch.email ?? contact.email)
+    if (alternates.invalid.length) throw new ApiError(400, `Not a valid email address: ${alternates.invalid[0]}`, "validation_error")
+    patch.alternateEmails = alternates.emails
+  }
+  // Addresses (primary and alternates) are unique among shared contacts and among each member's private contacts
+  if (input.email !== undefined || input.alternateEmails !== undefined || input.isPrivate !== undefined) {
+    const addresses = [patch.email ?? contact.email, ...(patch.alternateEmails ?? contact.alternateEmails)]
+    const conflict = await findEmailConflict(ctx, addresses, { isPrivate: willBePrivate, excludeId: contact.id })
+    if (conflict) throw new ApiError(409, `${conflict.email} already belongs to another contact`, "conflict", { id: conflict.id })
   }
   if (input.name !== undefined) patch.name = input.name || null
   if (input.company !== undefined) patch.company = input.company || null

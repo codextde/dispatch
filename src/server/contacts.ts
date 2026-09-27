@@ -66,16 +66,59 @@ export function canEditContact(ctx: Ctx, contact: Pick<Contact, "ownerUserId">) 
 /*                         Sync from mail participants                        */
 /* -------------------------------------------------------------------------- */
 
+/** Lower-case SQL text[] literal built from bound parameters. */
+function textArray(values: string[]) {
+  return sql`array[${sql.join(
+    values.map((v) => sql`${v}`),
+    sql`, `
+  )}]::text[]`
+}
+
+export type UpsertCandidate = { id: string; email: string; alternateEmails: string[]; ownerUserId: string | null }
+
+/**
+ * Decide what happens to each address of a message (pure; unit tested):
+ *  - `insert`: create or bump by primary email (the insert's ON CONFLICT)
+ *  - `bump`: ids of contacts that list the address as an alternate email
+ *  - `skipped`: owner mode only, addresses the shared address book already knows
+ * Primary emails win over alternates; only contacts in the upsert's scope
+ * (shared, or the owner's private contacts) are touched.
+ */
+export function planContactUpsert(emails: string[], candidates: UpsertCandidate[], owner: string | null) {
+  const inScope = (c: UpsertCandidate) => (owner ? c.ownerUserId === owner : c.ownerUserId === null)
+  const sharedKnown = new Set<string>()
+  const primary = new Set<string>()
+  const alias = new Map<string, string>()
+  for (const c of candidates) {
+    const addresses = [c.email.toLowerCase(), ...c.alternateEmails.map((e) => e.toLowerCase())]
+    if (owner && c.ownerUserId === null) for (const a of addresses) sharedKnown.add(a)
+    if (!inScope(c)) continue
+    primary.add(c.email.toLowerCase())
+    for (const a of c.alternateEmails) if (!alias.has(a.toLowerCase())) alias.set(a.toLowerCase(), c.id)
+  }
+  const insert: string[] = []
+  const bump = new Set<string>()
+  const skipped: string[] = []
+  for (const e of emails) {
+    if (sharedKnown.has(e)) skipped.push(e)
+    else if (primary.has(e)) insert.push(e)
+    else if (alias.has(e)) bump.add(alias.get(e)!)
+    else insert.push(e)
+  }
+  return { insert, bump: [...bump], skipped }
+}
+
 /**
  * Create or update contacts for the external participants of a message.
  * Increments `messageCount`, advances `lastContactedAt` and fills in missing
- * names. Skips invalid and system addresses, the workspace's own inboxes and
+ * names. Addresses listed as a contact's alternate email count towards that
+ * contact. Skips invalid and system addresses, the workspace's own inboxes and
  * workspace members. Safe to call for every synced or sent message.
  *
  * `ownerUserId` (personal inboxes): correspondents become the owner's private
  * contacts, never shared ones. Addresses already in the shared address book
- * are left untouched, so personal mail neither duplicates nor reveals activity
- * on shared contacts.
+ * (primary or alternate) are left untouched, so personal mail neither
+ * duplicates nor reveals activity on shared contacts.
  */
 export async function upsertContactsFromParticipants(
   orgId: string,
@@ -97,7 +140,8 @@ export async function upsertContactsFromParticipants(
 
   // Never add our own inboxes (and aliases) or teammates to the address book
   const emails = [...unique.keys()]
-  const [inboxes, members, shared] = await Promise.all([
+  const c = schema.contacts
+  const [inboxes, members, candidates] = await Promise.all([
     tx
       .select({ email: schema.accounts.email, aliases: schema.accounts.aliases })
       .from(schema.accounts)
@@ -107,91 +151,120 @@ export async function upsertContactsFromParticipants(
       .from(schema.memberships)
       .innerJoin(schema.users, eq(schema.users.id, schema.memberships.userId))
       .where(and(eq(schema.memberships.orgId, orgId), inArray(sql`lower(${schema.users.email})`, emails))),
-    owner
-      ? tx
-          .select({ email: schema.contacts.email })
-          .from(schema.contacts)
-          .where(
-            and(
-              eq(schema.contacts.orgId, orgId),
-              isNull(schema.contacts.ownerUserId),
-              inArray(sql`lower(${schema.contacts.email})`, emails)
-            )
-          )
-      : Promise.resolve([]),
+    // Shared contacts (and the owner's private ones) that know any of these addresses
+    tx
+      .select({ id: c.id, email: c.email, alternateEmails: c.alternateEmails, ownerUserId: c.ownerUserId })
+      .from(c)
+      .where(
+        and(
+          eq(c.orgId, orgId),
+          owner ? or(isNull(c.ownerUserId), eq(c.ownerUserId, owner)) : isNull(c.ownerUserId),
+          or(inArray(sql`lower(${c.email})`, emails), sql`${c.alternateEmails} && ${textArray(emails)}`)
+        )
+      ),
   ])
-  const skip = new Set<string>()
+  const internal = new Set<string>()
   for (const a of inboxes) {
-    skip.add(a.email.toLowerCase())
-    for (const alias of a.aliases) skip.add(alias.toLowerCase())
+    internal.add(a.email.toLowerCase())
+    for (const alias of a.aliases) internal.add(alias.toLowerCase())
   }
-  for (const m of members) skip.add(m.email.toLowerCase())
-  for (const c of shared) skip.add(c.email.toLowerCase())
+  for (const m of members) internal.add(m.email.toLowerCase())
 
-  const rows = emails.filter((e) => !skip.has(e)).map((email) => ({ email, name: unique.get(email) ?? null }))
-  if (!rows.length) return 0
-
-  const values = sql.join(
-    rows.map((r) => sql`(${orgId}::uuid, ${owner}::uuid, ${r.email}, ${r.name}, ${at.toISOString()}::timestamptz, 1)`),
-    sql`, `
+  const plan = planContactUpsert(
+    emails.filter((e) => !internal.has(e)),
+    candidates,
+    owner
   )
-  // Arbiter: the shared index (owner null) or the owner's private index
-  const target = owner
-    ? sql`(org_id, owner_user_id, lower(email)) where owner_user_id is not null`
-    : sql`(org_id, lower(email)) where owner_user_id is null`
-  await tx.execute(sql`
-    insert into contacts (org_id, owner_user_id, email, name, last_contacted_at, message_count)
-    values ${values}
-    on conflict ${target} do update set
-      message_count = contacts.message_count + 1,
-      last_contacted_at = greatest(contacts.last_contacted_at, excluded.last_contacted_at),
-      name = coalesce(nullif(contacts.name, ''), excluded.name),
-      updated_at = now()
-  `)
-  return rows.length
+
+  if (plan.bump.length) {
+    await tx
+      .update(c)
+      .set({
+        messageCount: sql`${c.messageCount} + 1`,
+        lastContactedAt: sql`greatest(${c.lastContactedAt}, ${at.toISOString()}::timestamptz)`,
+      })
+      .where(and(eq(c.orgId, orgId), inArray(c.id, plan.bump)))
+  }
+  if (plan.insert.length) {
+    const values = sql.join(
+      plan.insert.map((email) => sql`(${orgId}::uuid, ${owner}::uuid, ${email}, ${unique.get(email) ?? null}, ${at.toISOString()}::timestamptz, 1)`),
+      sql`, `
+    )
+    // Arbiter: the shared index (owner null) or the owner's private index
+    const target = owner
+      ? sql`(org_id, owner_user_id, lower(email)) where owner_user_id is not null`
+      : sql`(org_id, lower(email)) where owner_user_id is null`
+    await tx.execute(sql`
+      insert into contacts (org_id, owner_user_id, email, name, last_contacted_at, message_count)
+      values ${values}
+      on conflict ${target} do update set
+        message_count = contacts.message_count + 1,
+        last_contacted_at = greatest(contacts.last_contacted_at, excluded.last_contacted_at),
+        name = coalesce(nullif(contacts.name, ''), excluded.name),
+        updated_at = now()
+    `)
+  }
+  return plan.insert.length + plan.bump.length
 }
 
 /* -------------------------------------------------------------------------- */
 /*                                   Queries                                  */
 /* -------------------------------------------------------------------------- */
 
-/** The contact for an address as the member sees it: the shared one if it exists, else their private one. */
+/** Matches a contact whose primary or alternate email is `email` (already normalized). */
+function hasAddress(email: string) {
+  const c = schema.contacts
+  return sql`(lower(${c.email}) = ${email} or ${email} = any(${c.alternateEmails}))`
+}
+
+/**
+ * The contact for an address as the member sees it (primary or alternate
+ * email): the shared one if it exists, else their private one; a primary
+ * match wins over an alternate one.
+ */
 export async function getContactByEmail(ctx: Pick<Ctx, "org" | "user">, email: string) {
+  const e = normalizeEmail(email)
   const [row] = await db
     .select()
     .from(schema.contacts)
-    .where(and(visibleContactsWhere(ctx), sql`lower(${schema.contacts.email}) = ${normalizeEmail(email)}`))
-    .orderBy(sql`${schema.contacts.ownerUserId} is not null`)
+    .where(and(visibleContactsWhere(ctx), hasAddress(e)))
+    .orderBy(sql`${schema.contacts.ownerUserId} is not null`, sql`lower(${schema.contacts.email}) <> ${e}`)
     .limit(1)
   return row ?? null
 }
 
 /**
- * Existing contact that a new/changed contact with `email` would collide with:
- * shared contacts are unique per workspace, private ones per owner. A private
- * copy of an address that is already in the shared book is also refused.
+ * Existing contact that a new/changed contact with these addresses would
+ * collide with (primary or alternate emails): shared contacts are unique per
+ * workspace, private ones per owner. A private copy of an address that is
+ * already in the shared book is also refused.
  */
 export async function findEmailConflict(
   ctx: Pick<Ctx, "org" | "user">,
-  email: string,
+  emails: string | string[],
   opts: { isPrivate: boolean; excludeId?: string }
 ) {
   const c = schema.contacts
+  const list = [...new Set((Array.isArray(emails) ? emails : [emails]).map(normalizeEmail).filter(Boolean))]
+  if (!list.length) return null
   const scope = opts.isPrivate ? or(isNull(c.ownerUserId), eq(c.ownerUserId, ctx.user.id))! : isNull(c.ownerUserId)
   const [row] = await db
-    .select({ id: c.id, ownerUserId: c.ownerUserId })
+    .select({ id: c.id, ownerUserId: c.ownerUserId, email: c.email, alternateEmails: c.alternateEmails })
     .from(c)
     .where(
       and(
         eq(c.orgId, ctx.org.id),
-        sql`lower(${c.email}) = ${normalizeEmail(email)}`,
+        or(inArray(sql`lower(${c.email})`, list), sql`${c.alternateEmails} && ${textArray(list)}`),
         scope,
         opts.excludeId ? sql`${c.id} <> ${opts.excludeId}` : undefined
       )
     )
     .orderBy(sql`${c.ownerUserId} is not null`)
     .limit(1)
-  return row ?? null
+  if (!row) return null
+  const conflictingEmail =
+    list.find((e) => e === row.email.toLowerCase()) ?? list.find((e) => row.alternateEmails.includes(e)) ?? list[0]!
+  return { id: row.id, ownerUserId: row.ownerUserId, email: conflictingEmail }
 }
 
 export async function getContact(ctx: Pick<Ctx, "org" | "user">, id: string) {
@@ -228,7 +301,8 @@ export async function searchContacts(ctx: Pick<Ctx, "org" | "user">, opts: Conta
         ilike(c.company, like),
         ilike(c.title, like),
         ilike(c.phone, like),
-        sql`exists (select 1 from unnest(${c.tags}) t where t ilike ${like})`
+        sql`exists (select 1 from unnest(${c.tags}) t where t ilike ${like})`,
+        sql`exists (select 1 from unnest(${c.alternateEmails}) a where a ilike ${like})`
       )!
     )
   }
@@ -307,15 +381,16 @@ export type ContactConversation = {
   account: { id: string; name: string; color: string } | null
 }
 
-/** Recent conversations involving `email` that the member is allowed to see. */
+/** Recent conversations involving any of the addresses that the member is allowed to see. */
 export async function recentConversationsFor(
   ctx: Ctx,
-  email: string,
+  emails: string | string[],
   limit = 20
 ): Promise<{ conversations: ContactConversation[]; total: number }> {
   const access = await getAccountAccess(ctx)
   const conv = schema.conversations
-  const involves = sql`exists (select 1 from jsonb_array_elements(${conv.participants}) p where lower(p->>'email') = ${normalizeEmail(email)})`
+  const list = [...new Set((Array.isArray(emails) ? emails : [emails]).map(normalizeEmail).filter(Boolean))]
+  const involves = sql`exists (select 1 from jsonb_array_elements(${conv.participants}) p where lower(p->>'email') = any(${textArray(list)}))`
   const where = and(visibleConversationsWhere(ctx, [...access.keys()]), eq(conv.kind, "email"), eq(conv.isTrash, false), involves)
   const [rows, [{ total } = { total: 0 }]] = await Promise.all([
     db
@@ -359,6 +434,7 @@ export function contactDto(c: Contact, ctx: Ctx) {
   return {
     id: c.id,
     email: c.email,
+    alternateEmails: c.alternateEmails,
     name: c.name,
     company: c.company,
     title: c.title,
@@ -391,6 +467,50 @@ export function normalizeTags(tags: string[] | undefined) {
   return out
 }
 
+export const MAX_ALTERNATE_EMAILS = 20
+
+/**
+ * Normalize alternate emails: lower-case, valid, unique, without the primary
+ * address. Returns the cleaned list and any entries that aren't valid emails.
+ */
+export function normalizeAlternateEmails(list: string[] | undefined, primary: string, max = MAX_ALTERNATE_EMAILS) {
+  const out: string[] = []
+  const invalid: string[] = []
+  const main = normalizeEmail(primary)
+  for (const raw of list ?? []) {
+    const e = normalizeEmail(raw)
+    if (!e || e === main || out.includes(e)) continue
+    if (!isValidEmail(e)) invalid.push(raw)
+    else out.push(e)
+  }
+  return { emails: out.slice(0, max), invalid }
+}
+
+/**
+ * Alternate emails of a merge result: the target's own alternates plus every
+ * merged-away address and its alternates (and legacy "Other emails" values),
+ * so mail from any of them keeps landing on the merged contact.
+ */
+export function mergedAlternateEmails(
+  target: Pick<Contact, "email" | "alternateEmails" | "customFields">,
+  sources: Pick<Contact, "email" | "alternateEmails" | "customFields">[]
+) {
+  const all = [
+    ...target.alternateEmails,
+    ...legacyOtherEmails(target.customFields),
+    ...sources.flatMap((s) => [s.email, ...s.alternateEmails, ...legacyOtherEmails(s.customFields)]),
+  ]
+  return normalizeAlternateEmails(all, target.email, 100).emails
+}
+
+/** Addresses from the legacy "Other emails" custom field (written by older merges). */
+export function legacyOtherEmails(customFields: Record<string, string>) {
+  return (customFields["Other emails"] ?? "")
+    .split(/[,;\s]+/)
+    .map((e) => normalizeEmail(e))
+    .filter((e) => isValidEmail(e))
+}
+
 /** Clean custom fields (string values, max 30 keys). Empty values are dropped. */
 export function normalizeCustomFields(fields: Record<string, string> | undefined) {
   const out: Record<string, string> = {}
@@ -416,6 +536,7 @@ export function isUuid(value: string | null | undefined): value is string {
 /** Body for creating/updating a contact (all fields optional on update). */
 export const contactInput = z.object({
   email: z.string().trim().max(254),
+  alternateEmails: z.array(z.string().trim().max(254)).max(50).optional(),
   name: z.string().trim().max(200).nullish(),
   company: z.string().trim().max(200).nullish(),
   title: z.string().trim().max(200).nullish(),

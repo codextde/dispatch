@@ -39,23 +39,22 @@ const c = {
 export function ApiVisual() {
   return (
     <CodeCard title="api.sh">
-      <span className={c.m}>$</span> curl <span className={c.s}>https://mail.acme.example/api/v1/conversations</span> \{"\n"}
+      <span className={c.m}>$</span> curl <span className={c.s}>https://mail.acme.example/api/w/acme/conversations</span> \{"\n"}
       {"  "}-H <span className={c.s}>&quot;Authorization: Bearer dsp_…&quot;</span>
       {"\n\n"}
-      {"{"}
+      {"{ "}
+      <span className={c.p}>&quot;items&quot;</span>: [{"{"}
       {"\n"}
-      {"  "}
-      <span className={c.p}>&quot;id&quot;</span>: <span className={c.s}>&quot;cnv_8Hq2&quot;</span>,{"\n"}
-      {"  "}
+      {"    "}
+      <span className={c.p}>&quot;id&quot;</span>: <span className={c.s}>&quot;5f0c6b8e-…&quot;</span>,{"\n"}
+      {"    "}
       <span className={c.p}>&quot;subject&quot;</span>: <span className={c.s}>&quot;Refund for order #1042&quot;</span>,{"\n"}
-      {"  "}
-      <span className={c.p}>&quot;assignee&quot;</span>: <span className={c.s}>&quot;maya@acme.example&quot;</span>,{"\n"}
-      {"  "}
-      <span className={c.p}>&quot;labels&quot;</span>: [<span className={c.s}>&quot;billing&quot;</span>],{"\n"}
-      {"  "}
-      <span className={c.p}>&quot;status&quot;</span>: <span className={c.k}>&quot;open&quot;</span>
-      {"\n"}
-      {"}"}
+      {"    "}
+      <span className={c.p}>&quot;status&quot;</span>: <span className={c.k}>&quot;open&quot;</span>,{"\n"}
+      {"    "}
+      <span className={c.p}>&quot;labels&quot;</span>: [<span className={c.s}>&quot;Billing&quot;</span>]{"\n"}
+      {"  }], "}
+      <span className={c.p}>&quot;nextCursor&quot;</span>: <span className={c.m}>null</span> {"}"}
     </CodeCard>
   )
 }
@@ -154,16 +153,18 @@ export function AuditVisual() {
 
 export function SelfHostVisual() {
   return (
-    <CodeCard title="~/dispatch">
+    <CodeCard title="/opt/dispatch">
+      <span className={c.m}>$</span> curl -fsSLO <span className={c.s}>…/dispatch/main/docker-compose.yml</span>
+      {"\n"}
       <span className={c.m}>$</span> echo <span className={c.s}>&quot;DOMAIN=mail.acme.example&quot;</span> &gt; .env{"\n"}
       <span className={c.m}>$</span> docker compose up -d{"\n"}
-      <span className={c.k}>✔</span> Container dispatch-db{"      "}
+      <span className={c.k}>✔</span> Container dispatch-db-1{"      "}
+      <span className={c.m}>Healthy</span>
+      {"\n"}
+      <span className={c.k}>✔</span> Container dispatch-app-1{"     "}
       <span className={c.m}>Started</span>
       {"\n"}
-      <span className={c.k}>✔</span> Container dispatch-app{"     "}
-      <span className={c.m}>Started</span>
-      {"\n"}
-      <span className={c.k}>✔</span> Container dispatch-worker{"  "}
+      <span className={c.k}>✔</span> Container dispatch-worker-1{"  "}
       <span className={c.m}>Started</span>
       {"\n\n"}
       <span className={c.p}>→</span> Open https://mail.acme.example/setup

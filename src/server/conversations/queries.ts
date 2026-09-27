@@ -133,7 +133,8 @@ function encodeCursor(row: ListRow) {
 function decodeCursor(cursor: string): { ts: string; id: string } {
   try {
     const [ts, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|")
-    if (!ts || !id || !/^[0-9a-f-]{36}$/i.test(id) || Number.isNaN(Date.parse(ts.replace(" ", "T")))) throw new Error()
+    // Postgres timestamptz text, e.g. "2026-09-27 10:00:00.123456+00" (parsed by Postgres itself).
+    if (!ts || !id || !/^[0-9a-f-]{36}$/i.test(id) || !/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(\.\d{1,6})?([+-]\d\d(:?\d\d)?|Z)?$/.test(ts)) throw new Error()
     return { ts, id }
   } catch {
     throw new ApiError(400, "Invalid cursor", "invalid_cursor")
@@ -290,8 +291,9 @@ export async function getThread(ctx: Ctx, scope: InboxScope, id: string): Promis
       .select()
       .from(schema.conversationEvents)
       .where(eq(schema.conversationEvents.conversationId, id))
-      .orderBy(asc(schema.conversationEvents.createdAt))
-      .limit(500),
+      .orderBy(desc(schema.conversationEvents.createdAt))
+      .limit(500)
+      .then((rows) => rows.reverse()),
   ])
 
   const messageIds = msgs.map((m) => m.id)

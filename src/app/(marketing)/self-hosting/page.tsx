@@ -11,7 +11,7 @@ import { GITHUB_URL } from "@/content/marketing/site"
 export const metadata: Metadata = {
   title: "Self-hosting guide",
   description:
-    "Run Dispatch on your own server with Docker Compose or Coolify. The only setting is DOMAIN: set up email delivery, Gmail and Outlook, updates and backups in the browser.",
+    "Run Dispatch on your own server with Docker Compose or Coolify. The only setting is DOMAIN; email delivery, Gmail and Outlook and your workspaces are configured in the browser.",
   alternates: { canonical: "/self-hosting" },
 }
 

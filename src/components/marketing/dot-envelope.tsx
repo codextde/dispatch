@@ -111,10 +111,7 @@ export function DotEnvelope({ className }: { className?: string }) {
           />
         ))}
         {/* unread badge on the envelope corner */}
-        <circle cx={rect.x1 * GAP + GAP / 2} cy={rect.y0 * GAP + GAP / 2} r="9" fill="#4ade80" opacity="0.18">
-          <animate attributeName="r" values="7;14;7" dur="2.4s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.3;0;0.3" dur="2.4s" repeatCount="indefinite" />
-        </circle>
+        <circle className="mk-ping" cx={rect.x1 * GAP + GAP / 2} cy={rect.y0 * GAP + GAP / 2} r="7" fill="#4ade80" opacity="0.3" />
         <circle cx={rect.x1 * GAP + GAP / 2} cy={rect.y0 * GAP + GAP / 2} r="5" fill="#4ade80" />
       </svg>
     </div>

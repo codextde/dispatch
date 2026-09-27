@@ -1,5 +1,5 @@
 import "server-only"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, ne, or, sql } from "drizzle-orm"
 import { db, schema } from "@/server/db"
 import type { OrgContext } from "@/server/authz"
 import { getAccountAccess, visibleConversationsWhere, type AccessLevel } from "@/server/access"
@@ -38,8 +38,17 @@ export async function loadScope(ctx: Ctx): Promise<InboxScope> {
   }
 }
 
+/**
+ * Visibility of conversations for inbox queries: the foundation rules plus
+ * "internal chats are only visible to their current members" (leaving or
+ * being removed from a chat revokes access even for its creator/followers).
+ */
 export function visibleWhere(ctx: Ctx, scope: InboxScope) {
-  return visibleConversationsWhere(ctx, scope.accountIds)
+  const c = schema.conversations
+  return and(
+    visibleConversationsWhere(ctx, scope.accountIds),
+    or(ne(c.kind, "chat"), sql`${ctx.user.id}::uuid = any(${c.chatMemberIds})`)
+  )!
 }
 
 const rank: Record<AccessLevel, number> = { read: 1, reply: 2, manage: 3 }

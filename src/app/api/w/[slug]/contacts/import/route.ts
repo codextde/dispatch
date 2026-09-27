@@ -64,7 +64,13 @@ export const POST = route<P>(async (req, { params }) => {
           .where(
             and(
               eq(schema.contacts.orgId, ctx.org.id),
-              inArray(sql`lower(${schema.contacts.email})`, emails),
+              or(
+                inArray(sql`lower(${schema.contacts.email})`, emails),
+                sql`${schema.contacts.alternateEmails} && array[${sql.join(
+                  emails.map((e) => sql`${e}`),
+                  sql`, `
+                )}]::text[]`
+              ),
               input.isPrivate
                 ? or(isNull(schema.contacts.ownerUserId), eq(schema.contacts.ownerUserId, ctx.user.id))
                 : isNull(schema.contacts.ownerUserId)
@@ -72,8 +78,10 @@ export const POST = route<P>(async (req, { params }) => {
           )
           .orderBy(sql`${schema.contacts.ownerUserId} is null`)
       : []
-    // Shared rows sort last, so they win when both exist
-    const existingByEmail = new Map(existing.map((c) => [c.email.toLowerCase(), c]))
+    // Shared rows sort last, so they win when both exist; primary emails win over alternates
+    const existingByEmail = new Map<string, (typeof existing)[number]>()
+    for (const c of existing) for (const a of c.alternateEmails) existingByEmail.set(a, c)
+    for (const c of existing) existingByEmail.set(c.email.toLowerCase(), c)
 
     const inserts: (typeof schema.contacts.$inferInsert)[] = []
     for (const [email, r] of byEmail) {

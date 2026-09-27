@@ -32,16 +32,16 @@ export const changelog: ChangelogEntry[] = [
       {
         name: "Workflow & automation",
         items: [
-          "Rules with conditions and actions: label, assign, move, archive, notify or call a webhook",
-          "Canned responses with variables such as {{first_name}}",
+          "Rules with conditions and actions: label, assign, snooze, close, auto-reply, forward or call a webhook",
+          "Canned responses with variables such as {{contact.first_name}}",
           "Keyboard shortcuts and a command palette",
-          "Analytics for volume, first-reply time, resolution time and workload per teammate",
+          "Analytics for volume, first-reply time, resolution time and busiest hours, per inbox, team and teammate",
         ],
       },
       {
         name: "Team chat & tasks",
         items: [
-          "Team chat with channels and direct messages",
+          "Team chat with group chats and direct messages",
           "Tasks with assignees and due dates, standalone or linked to a conversation",
           "Contacts built automatically from your mail, with conversation history",
         ],
@@ -57,7 +57,7 @@ export const changelog: ChangelogEntry[] = [
       {
         name: "Admin & security",
         items: [
-          "Passwordless magic-link login; sessions last up to a year",
+          "Passwordless magic-link login; sessions stay valid for a year and renew while in use",
           "Stay signed in on multiple devices and revoke any of them",
           "Roles with custom permissions and inbox-level access",
           "Audit log for important actions",

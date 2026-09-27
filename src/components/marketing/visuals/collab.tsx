@@ -1,4 +1,4 @@
-import { AtSign, Bold, Check, CircleCheck, Hash, Italic, Link2, Lock, Mail, Search, Send } from "lucide-react"
+import { AtSign, Bold, Check, CircleCheck, Italic, Link2, Lock, Mail, Search, Send, Users } from "lucide-react"
 import { Avatar, Contact, Label, Line, Mention, Panel, TypingDots, labelColors, people } from "./ui"
 
 export function CommentsVisual() {
@@ -99,38 +99,28 @@ export function DraftsVisual() {
   return (
     <Panel className="w-full max-w-[340px] overflow-hidden text-[11.5px]">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          <Users className="size-3.5 text-(--brand-ink)" /> Shared draft
+        </span>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Bold className="size-3" />
           <Italic className="size-3" />
           <Link2 className="size-3" />
         </div>
-        <div className="flex -space-x-1.5">
-          <Avatar who="maya" size={18} ring />
-          <Avatar who="jonas" size={18} ring />
-        </div>
       </div>
       <div className="space-y-2 p-3 leading-relaxed">
         <p>Hi Hannah,</p>
         <p>
-          Thanks for flagging this. We&apos;ve refunded the duplicate charge
-          <span className="relative mx-px inline-block h-3.5 w-px translate-y-0.5 bg-[#2563eb]">
-            <span className="absolute -top-4 left-0 rounded-[3px] bg-[#2563eb] px-1 text-[9px] leading-3.5 font-medium whitespace-nowrap text-white">
-              Jonas
-            </span>
-          </span>{" "}
-          and it should appear within 5 business days.
+          Thanks for flagging this. We&apos;ve refunded the duplicate charge and it should appear within{" "}
+          <span className="rounded-[2px] bg-[#2563eb]/15 px-px">5 business days</span>.
         </p>
-        <p>
-          <span className="bg-[#16a34a]/15">Your invoice has been updated</span>
-          <span className="relative mx-px inline-block h-3.5 w-px translate-y-0.5 bg-[#16a34a]">
-            <span className="absolute -top-4 left-0 rounded-[3px] bg-[#16a34a] px-1 text-[9px] leading-3.5 font-medium whitespace-nowrap text-white">
-              Maya
-            </span>
-          </span>
-        </p>
+        <p className="text-muted-foreground">Best, Maya</p>
       </div>
-      <div className="flex items-center justify-between border-t border-border px-3 py-2">
-        <span className="text-[10px] text-muted-foreground">2 editing · saved</span>
+      <div className="flex items-center gap-2 border-t border-border px-3 py-2">
+        <Avatar who="jonas" size={16} />
+        <span className="flex-1 truncate text-[10.5px] text-muted-foreground">
+          Jonas edited just now · <span className="text-foreground">Maya is viewing</span>
+        </span>
         <span className="inline-flex items-center gap-1 rounded-[4px] bg-primary px-2 py-1 text-[10.5px] font-medium text-primary-foreground">
           <Send className="size-3" /> Send
         </span>
@@ -170,7 +160,7 @@ export function PresenceVisual() {
       </div>
       <Panel className="flex items-center gap-2 px-3 py-2 text-muted-foreground">
         <CircleCheck className="size-3.5 text-(--brand-ink)" />
-        <span>Seen by Priya · 1m ago</span>
+        <span>Priya assigned this to Jonas · 1m ago</span>
       </Panel>
     </div>
   )
@@ -180,8 +170,12 @@ export function ChatVisual() {
   return (
     <Panel className="w-full max-w-[340px] overflow-hidden text-[11.5px]">
       <div className="flex items-center gap-1.5 border-b border-border px-3 py-2 font-semibold">
-        <Hash className="size-3.5 text-muted-foreground" /> support-team
-        <span className="ml-auto font-mono text-[9.5px] font-normal text-muted-foreground">6 members</span>
+        <Users className="size-3.5 text-muted-foreground" /> Support team
+        <span className="ml-auto flex -space-x-1">
+          <Avatar who="leo" size={14} ring />
+          <Avatar who="priya" size={14} ring />
+          <Avatar who="maya" size={14} ring />
+        </span>
       </div>
       <div className="space-y-3 p-3">
         <div className="flex gap-2">
@@ -199,14 +193,12 @@ export function ChatVisual() {
             <div className="text-[10.5px] font-semibold">
               Priya <span className="font-normal text-muted-foreground">10:03</span>
             </div>
-            <p>Yes, linking it here:</p>
-            <div className="mt-1.5 flex items-center gap-2 rounded-[6px] border border-border bg-surface px-2 py-1.5">
-              <Mail className="size-3.5 text-muted-foreground" />
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-medium">Scheduled maintenance, Oct 4</div>
-                <div className="text-[10px] text-muted-foreground">ops@ · assigned to Leo</div>
-              </div>
-            </div>
+            <p>
+              Yes, it&apos;s assigned to you:{" "}
+              <span className="inline-flex items-center gap-1 font-medium text-(--brand-ink) underline underline-offset-2">
+                <Mail className="size-3" /> Scheduled maintenance, Oct 4
+              </span>
+            </p>
             <div className="mt-1.5 flex gap-1">
               <span className="rounded-full border border-border bg-card px-1.5 text-[10px]">
                 <Check className="mr-0.5 inline size-2.5" />2
@@ -215,7 +207,7 @@ export function ChatVisual() {
           </div>
         </div>
       </div>
-      <div className="border-t border-border px-3 py-2 text-muted-foreground">Message #support-team</div>
+      <div className="border-t border-border px-3 py-2 text-muted-foreground">Message Support team</div>
     </Panel>
   )
 }
@@ -276,7 +268,7 @@ export function ContactsVisual() {
         {[
           ["12", "conversations"],
           ["2d", "last contact"],
-          ["Maya", "usually helps"],
+          ["Northwind", "company"],
         ].map(([v, l]) => (
           <div key={l} className="border-r border-border py-2 last:border-r-0">
             <div className="text-[12px] font-semibold">{v}</div>

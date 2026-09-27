@@ -43,7 +43,7 @@ const practices = [
   {
     icon: MonitorSmartphone,
     t: "Sessions per device",
-    d: "256-bit random tokens stored as SHA-256 hashes in httpOnly, Secure, SameSite cookies. Every user sees their devices and can revoke any of them.",
+    d: "Sessions use 256-bit random tokens and only their SHA-256 hash is stored. Cookies are httpOnly, SameSite=Lax and Secure over HTTPS, and every user can see and revoke their devices.",
   },
   {
     icon: ShieldCheck,
@@ -83,12 +83,12 @@ const practices = [
   {
     icon: Network,
     t: "SSRF protection",
-    d: "An instance setting refuses IMAP, SMTP and webhook hosts that resolve to private, loopback or link-local addresses.",
+    d: "Recommended for shared instances: one setting refuses IMAP, SMTP and webhook hosts that resolve to private, loopback or link-local addresses.",
   },
   {
     icon: Webhook,
     t: "Signed webhooks",
-    d: "Every webhook carries an HMAC-SHA256 signature over a timestamp and the raw body, so receivers can verify it came from you.",
+    d: "Workspace webhooks carry an HMAC-SHA256 signature over a timestamp and the raw body, so receivers can verify each delivery came from your instance.",
   },
 ]
 
@@ -118,7 +118,7 @@ export default async function SecurityPage() {
         <SectionHeading
           id="practices-title"
           eyebrow={<StepLabel label="Architecture & practices" />}
-          title="Secure defaults,"
+          title="Security,"
           quiet="all the way down."
         />
         <ul className="mt-12 grid overflow-hidden rounded-[6px] border border-border bg-card sm:grid-cols-2 lg:grid-cols-3">

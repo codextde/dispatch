@@ -746,6 +746,8 @@ export const contacts = pgTable(
     avatarUrl: text("avatar_url"),
     tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
     customFields: jsonb("custom_fields").$type<Record<string, string>>().notNull().default({}),
+    /** Additional addresses of this person (lower-case), e.g. after merging duplicates */
+    alternateEmails: text("alternate_emails").array().notNull().default(sql`'{}'::text[]`),
     lastContactedAt: ts("last_contacted_at"),
     messageCount: integer("message_count").notNull().default(0),
     createdAt: createdAt(),
@@ -758,6 +760,7 @@ export const contacts = pgTable(
     uniqueIndex("contacts_owner_email_idx")
       .on(t.orgId, t.ownerUserId, sql`lower(${t.email})`)
       .where(sql`${t.ownerUserId} is not null`),
+    index("contacts_alternate_emails_idx").using("gin", t.alternateEmails),
   ]
 )
 

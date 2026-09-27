@@ -70,6 +70,14 @@
   color: var(--foreground);
 }
 
+/* The quiet half of two-tone headings: a touch darker than the app's, for AA large-text contrast on paper */
+.mk-light .text-quiet {
+  color: color-mix(in srgb, var(--foreground) 52%, transparent);
+}
+.mk-dark .text-quiet {
+  color: color-mix(in srgb, var(--foreground) 45%, transparent);
+}
+
 /* "● Step 1 · Share" labels */
 .mk-dotted {
   background-image: linear-gradient(to right, currentColor 45%, transparent 0);
@@ -158,9 +166,27 @@
   animation: mk-twinkle 3.2s ease-in-out infinite;
 }
 
+@keyframes mk-ping {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.35;
+  }
+  80%,
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+.mk-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mk-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mk-typing-dot,
   .mk-caret,
+  .mk-ping,
   .mk-twinkle {
     animation: none;
   }
@@ -168,6 +194,7 @@
 
 /* Long-form content (legal pages, guides) */
 .mk-prose {
+  overflow-wrap: anywhere;
   font-size: 15px;
   line-height: 1.75;
   color: color-mix(in srgb, var(--foreground) 82%, transparent);
@@ -265,6 +292,8 @@
   margin: 2em 0;
 }
 .mk-prose table {
+  display: block;
+  overflow-x: auto;
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;

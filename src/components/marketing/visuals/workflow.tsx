@@ -1,6 +1,7 @@
 import { useId } from "react"
 import {
   AlarmClock,
+  MessageSquareText,
   ArrowDown,
   CalendarClock,
   ChevronDown,
@@ -64,19 +65,25 @@ export function RulesVisual() {
 
 export function CannedVisual() {
   const items = [
-    { name: "Refund approved", hint: "/refund", active: true },
-    { name: "Refund policy", hint: "/policy" },
-    { name: "Shipping delay", hint: "/delay" },
+    { name: "Refund approved", hint: "Billing", active: true },
+    { name: "Refund policy", hint: "Billing" },
+    { name: "Shipping delay", hint: "Orders" },
   ]
   return (
     <div className="w-full max-w-[340px] text-[11.5px]">
-      <Panel className="p-3">
-        <div className="text-muted-foreground">
-          Hi Hannah, <span className="text-foreground">/ref</span>
-          <span className="mk-caret ml-px inline-block h-3 w-px translate-y-0.5 bg-foreground" />
-        </div>
+      <Panel className="flex items-center gap-2 px-3 py-2">
+        <span className="text-muted-foreground">Hi Hannah,</span>
+        <span className="mk-caret inline-block h-3 w-px bg-foreground" />
+        <span className="ml-auto inline-flex size-6 items-center justify-center rounded-[5px] bg-accent">
+          <MessageSquareText className="size-3.5" />
+        </span>
       </Panel>
-      <Panel className="mt-1.5 w-[88%] overflow-hidden">
+      <Panel className="mt-1.5 ml-auto w-[90%] overflow-hidden">
+        <div className="flex items-center gap-1.5 border-b border-border px-2.5 py-2 text-muted-foreground">
+          <Search className="size-3" />
+          <span className="text-foreground">refund</span>
+          <span className="mk-caret inline-block h-3 w-px bg-foreground" />
+        </div>
         <ul className="p-1">
           {items.map((it) => (
             <li
@@ -89,8 +96,8 @@ export function CannedVisual() {
           ))}
         </ul>
         <div className="border-t border-border bg-surface/60 px-3 py-2 leading-relaxed text-muted-foreground">
-          Hi <Var>first_name</Var>, your refund of <Var>amount</Var> is on its way and should arrive within 5 business
-          days.
+          Hi <Var>contact.first_name</Var>, we&apos;ve refunded your order and the money should arrive within 5 business
+          days. <Var>user.first_name</Var>
         </div>
       </Panel>
     </div>
@@ -248,9 +255,9 @@ export function AnalyticsVisual() {
 
 export function ShortcutsVisual() {
   const keys = [
-    { k: "E", l: "Archive" },
+    { k: "E", l: "Close" },
     { k: "R", l: "Reply" },
-    { k: "A", l: "Assign" },
+    { k: "I", l: "Assign" },
     { k: "H", l: "Snooze" },
     { k: "C", l: "Comment" },
     { k: "⌘K", l: "Command" },
@@ -301,9 +308,12 @@ export function SearchVisual() {
     <Panel className="w-full max-w-[340px] overflow-hidden text-[11.5px]">
       <div className="flex flex-wrap items-center gap-1 border-b border-border px-2.5 py-2">
         <Search className="size-3.5 text-muted-foreground" />
-        <Token>from:hannah</Token>
-        <Token>label:billing</Token>
         <span>invoice</span>
+        <span className="mk-caret inline-block h-3 w-px bg-foreground" />
+        <span className="ml-auto flex gap-1">
+          <Token>Billing</Token>
+          <Token>Open</Token>
+        </span>
       </div>
       <ul className="p-1">
         {results.map((r) => (

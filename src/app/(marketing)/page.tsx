@@ -235,7 +235,7 @@ function Collaborate() {
         <BentoCard
           className="lg:col-span-2"
           title="Collaborative drafts."
-          quiet="Write the tricky reply together, live."
+          quiet="Share a draft and finish the tricky reply together."
           visual="drafts"
           href="/features/collaborative-drafts"
         />
@@ -250,7 +250,7 @@ function Collaborate() {
           className="md:col-span-2 lg:col-span-4"
           layout="row"
           title="Team chat, built in."
-          quiet="Channels and DMs, with emails one click away."
+          quiet="Group chats and DMs, with emails one link away."
           visual="chat"
           href="/features/team-chat"
         />
@@ -331,7 +331,7 @@ function Automate() {
         <BentoCard
           className="lg:col-span-2"
           title="Canned responses."
-          quiet="Type / and insert a reply with variables filled in."
+          quiet="Pick a saved reply with the customer's name filled in."
           visual="canned"
           href="/features/canned-responses"
         />
@@ -403,7 +403,7 @@ function RealtimeAi() {
           >
             <div className="relative flex min-h-[300px] items-center justify-center border-b border-border bg-background p-6">
               <div aria-hidden className="mk-dots absolute inset-0 opacity-60 mk-fade-bottom" />
-              <FeatureVisual kind={c.k} className="relative" />
+              <FeatureVisual kind={c.k} className="relative" decorative />
             </div>
             <div className="p-6">
               <MonoLabel>{c.label}</MonoLabel>

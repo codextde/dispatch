@@ -9,6 +9,7 @@ import {
   findEmailConflict,
   isUniqueViolation,
   isValidEmail,
+  normalizeAlternateEmails,
   normalizeCustomFields,
   normalizeEmail,
   normalizeTags,
@@ -53,15 +54,14 @@ export const POST = route<P>(async (req, { params }) => {
   if (!input.isPrivate && !ctx.permissions.has("contacts.manage")) {
     throw new ApiError(403, "You can only add private contacts. Ask an admin for the “Manage shared contacts” permission.", "forbidden")
   }
-  // Uniqueness is per scope: one shared contact per address, one private contact per address per owner
-  const existing = await findEmailConflict(ctx, email, { isPrivate: Boolean(input.isPrivate) })
+  const alternates = normalizeAlternateEmails(input.alternateEmails, email)
+  if (alternates.invalid.length) throw new ApiError(400, `Not a valid email address: ${alternates.invalid[0]}`, "validation_error")
+  // Uniqueness is per scope (one shared contact per address, one private contact per address per owner),
+  // across primary and alternate emails
+  const existing = await findEmailConflict(ctx, [email, ...alternates.emails], { isPrivate: Boolean(input.isPrivate) })
   if (existing) {
-    throw new ApiError(
-      409,
-      existing.ownerUserId ? "This email is already in your private contacts" : "This email is already in the shared address book",
-      "conflict",
-      { id: existing.id }
-    )
+    const where = existing.ownerUserId ? "your private contacts" : "the shared address book"
+    throw new ApiError(409, `${existing.email} is already in ${where}`, "conflict", { id: existing.id })
   }
   const [row] = await db
     .insert(schema.contacts)
@@ -69,6 +69,7 @@ export const POST = route<P>(async (req, { params }) => {
       orgId: ctx.org.id,
       ownerUserId: input.isPrivate ? ctx.user.id : null,
       email,
+      alternateEmails: alternates.emails,
       name: input.name || null,
       company: input.company || null,
       title: input.title || null,

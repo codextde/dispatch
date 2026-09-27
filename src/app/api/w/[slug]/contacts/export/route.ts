@@ -35,13 +35,14 @@ export const GET = route<P>(async (req, { params }) => {
   }
 
   const customKeys = [...new Set(all.flatMap((c) => Object.keys(c.customFields ?? {})))].sort()
-  const header = ["name", "email", "company", "title", "phone", "tags", "notes", "visibility", "last_contacted_at", "message_count", ...customKeys]
+  const header = ["name", "email", "alternate_emails", "company", "title", "phone", "tags", "notes", "visibility", "last_contacted_at", "message_count", ...customKeys]
   const lines = [header.map(csvCell).join(",")]
   for (const c of all) {
     lines.push(
       [
         c.name,
         c.email,
+        c.alternateEmails.join("; "),
         c.company,
         c.title,
         c.phone,

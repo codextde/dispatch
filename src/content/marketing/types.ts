@@ -117,7 +117,8 @@ export type Competitor = {
   positioning: string
   /** e.g. "Per user / month, billed annually" */
   pricingBasis: string
-  plans: { name: string; price: number; note?: string }[]
+  /** List price per user / month; `maxUsers` is the plan's seat cap, if any */
+  plans: { name: string; price: number; note?: string; maxUsers?: number }[]
   /** Plan used for the "team of N" cost example */
   referencePlan: string
   trial: string

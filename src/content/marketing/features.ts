@@ -193,9 +193,9 @@ export const features: Feature[] = [
       {
         title: "See the workload at a glance.",
         body:
-          "Analytics show open conversations and reply times per teammate, so you can rebalance before anyone is overwhelmed and nothing waits too long.",
+          "Analytics show volume and reply times per teammate, so you can rebalance before anyone is overwhelmed and nothing waits too long.",
         visual: "analytics",
-        points: ["Open conversations per person", "Median first reply time", "Resolution time"],
+        points: ["Volume per teammate", "Median first reply time", "Resolution time"],
       },
     ],
     related: ["rules-automation", "shared-inbox", "analytics"],
@@ -205,20 +205,20 @@ export const features: Feature[] = [
     name: "Collaborative drafts",
     category: "collaboration",
     icon: PenLine,
-    tagline: "Write a reply together in real time, then send it from the shared address.",
-    headline: ["Write the reply together.", "See every cursor, live."],
+    tagline: "Share a draft with the team, edit it together, then send it from the shared address.",
+    headline: ["Write the tricky reply together.", "Then send it as one."],
     description:
-      "Open a draft and invite a teammate to edit it with you, live. Presence and collision detection make sure two people never answer the same customer twice.",
+      "Share a draft with your team and anyone who can reply in that inbox can review and edit it. Changes sync in real time, and version checks make sure nobody overwrites someone else's work.",
     metaDescription:
-      "Collaborative email drafts with live cursors, presence and collision detection. Write and review replies together before they go out.",
+      "Shared email drafts for teams: review and edit replies together with realtime sync, presence and collision warnings before they go out.",
     visual: "drafts",
     benefits: [
       {
-        title: "Edit the same draft at the same time.",
+        title: "One draft, the whole team.",
         body:
-          "Drafts sync in real time with named cursors, so a colleague can fix a number or soften a sentence while you are still writing. No copy-paste, no version confusion.",
+          "Mark a draft as shared and it shows up for everyone who can reply in that inbox. A colleague can fix a number or soften a sentence and you see the change right away. No copy-paste, no version confusion.",
         visual: "drafts",
-        points: ["Live cursors", "Shared or private drafts", "Rich-text composer"],
+        points: ["Shared or private drafts", "Realtime sync", "Conflict protection"],
       },
       {
         title: "Never reply twice.",
@@ -242,12 +242,12 @@ export const features: Feature[] = [
     name: "Rules & automation",
     category: "workflow",
     icon: Workflow,
-    tagline: "When an email matches, label, assign, move or notify. Automatically.",
+    tagline: "When an email matches, label, assign, close or forward it. Automatically.",
     headline: ["Set it up once.", "Let the inbox sort itself."],
     description:
-      "Rules watch incoming and outgoing mail and act on it: add labels, assign a teammate, move to a team inbox, archive or call a webhook. The busywork is done before anyone looks.",
+      "Rules watch incoming mail and act on it: add labels, assign a teammate or a team, snooze, close, auto-reply, forward or call a webhook. The busywork is done before anyone looks.",
     metaDescription:
-      "Email rules and automation for teams: label, assign, move, archive, notify or trigger webhooks based on sender, subject, content and more.",
+      "Email rules and automation for teams: label, assign, snooze, close, auto-reply or trigger webhooks based on sender, subject, content and more.",
     visual: "rules",
     benefits: [
       {
@@ -256,25 +256,25 @@ export const features: Feature[] = [
         body:
           "Build rules from plain conditions like sender, domain, recipient, subject or body text, then chain actions. Anyone on the team can understand what a rule does by reading it.",
         visual: "rules",
-        points: ["Sender, domain, subject, body", "Combine with AND / OR", "Multiple actions per rule"],
+        points: ["Sender, domain, subject, body", "Business hours", "Multiple actions per rule"],
       },
       {
         title: "Route to the right person.",
         body:
-          "Assign conversations by topic or customer, move them into the right team inbox, and label them on arrival. Your triage queue shrinks to the few emails that really need judgment.",
+          "Assign conversations by topic or customer, hand them to a team with round-robin or least-busy assignment, and label them on arrival. Your triage queue shrinks to the few emails that really need judgment.",
         visual: "assign",
       },
       {
         title: "Keep noise out of the inbox.",
         body:
-          "Archive newsletters and notifications automatically, or label them for later. The shared inbox stays focused on conversations that need a human.",
+          "Close newsletters and notifications automatically, or label them for later. The shared inbox stays focused on conversations that need a human.",
         visual: "labels",
-        points: ["Auto-archive", "Auto-label", "Skip the inbox"],
+        points: ["Auto-close", "Auto-label", "Mark as read"],
       },
       {
         title: "Reach beyond the inbox.",
         body:
-          "Notify a teammate or fire a signed webhook when a rule matches, so your CRM, ticket tracker or internal tools stay in sync without polling.",
+          "Leave an internal comment, forward the email or call a webhook when a rule matches, so your CRM, ticket tracker or internal tools stay in sync without polling.",
         visual: "webhooks",
       },
     ],
@@ -285,26 +285,26 @@ export const features: Feature[] = [
     name: "Canned responses",
     category: "workflow",
     icon: Reply,
-    tagline: "Reusable replies with variables like {{first_name}}. Consistent answers in seconds.",
-    headline: ["Answer the common questions", "in two keystrokes."],
+    tagline: "Reusable replies with variables like {{contact.first_name}}. Consistent answers in seconds.",
+    headline: ["Answer the common questions", "in a few clicks."],
     description:
-      "Save the replies your team writes every day and insert them with a slash command. Variables fill in names and details, so every answer still feels personal.",
+      "Save the replies your team writes every day and insert them straight from the composer. Variables fill in names and details, so every answer still feels personal.",
     metaDescription:
-      "Canned responses and email templates for teams, with variables like {{first_name}}. Insert saved replies in seconds and keep answers consistent.",
+      "Canned responses and email templates for teams, with variables like {{contact.first_name}}. Insert saved replies in seconds and keep answers consistent.",
     visual: "canned",
     benefits: [
       {
-        title: "Type /, pick a reply, done.",
+        title: "Search, pick, send.",
         body:
           "Search your team's saved replies right from the composer. Insert, adjust a sentence if needed, and send. Your best answers become everyone's best answers.",
         visual: "canned",
-        points: ["Slash-command picker", "Searchable library", "Shared or personal"],
+        points: ["Picker in the composer", "Searchable library", "Shared across the workspace"],
       },
       {
         title: "Personal, not robotic.",
         quiet: "Variables fill in the details.",
         body:
-          "Use variables like {{first_name}} and {{company}} to personalize every reply automatically, pulled from the contact you are writing to.",
+          "Use variables like {{contact.first_name}} and {{user.first_name}} to personalize every reply automatically, filled in from the contact and the teammate who sends it.",
         visual: "contacts",
       },
       {
@@ -374,7 +374,7 @@ export const features: Feature[] = [
       },
       {
         title: "Send at the right time.",
-        quiet: "In their time zone, not yours.",
+        quiet: "Not whenever you happen to finish.",
         body:
           "Write the reply now and schedule it for tomorrow at 8:00. Scheduled messages are visible to the team and can be edited or canceled until they go out.",
         visual: "sendlater",
@@ -394,31 +394,31 @@ export const features: Feature[] = [
     name: "Team chat",
     category: "chat-tasks",
     icon: MessagesSquare,
-    tagline: "Channels and direct messages for your team, right next to your inbox.",
+    tagline: "Group chats and direct messages for your team, right next to your inbox.",
     headline: ["Chat where the work is.", "Not in another app."],
     description:
-      "Team channels and direct messages live inside Dispatch, next to the conversations they are about. Share a thread into chat with one click and keep the context attached.",
+      "Direct messages and group chats live inside Dispatch, next to the conversations they are about. Paste a link to any conversation and your teammates are one click away from the thread.",
     metaDescription:
-      "Built-in team chat with channels and direct messages, next to your shared inbox. Discuss emails and share conversations without switching apps.",
+      "Built-in team chat with group chats and direct messages, next to your shared inbox. Discuss emails and share conversations without switching apps.",
     visual: "chat",
     benefits: [
       {
-        title: "Channels and DMs, built in.",
+        title: "Group chats and DMs, built in.",
         body:
-          "Create channels for teams or projects and message colleagues directly. Everyone who works the inbox is already there, so there's nothing extra to invite them to.",
+          "Start group chats for teams or projects and message colleagues directly. Everyone who works the inbox is already there, so there's nothing extra to invite them to.",
         visual: "chat",
-        points: ["Public channels", "Direct messages", "@mentions and notifications"],
+        points: ["Group chats", "Direct messages", "@mentions and notifications"],
       },
       {
-        title: "Share an email in one click.",
+        title: "Link any email.",
         body:
-          "Post a conversation into a channel to ask for help or give a heads-up. Teammates can jump straight from the chat message to the email thread.",
+          "Drop a link to a conversation into a chat to ask for help or give a heads-up. Teammates jump straight from the message to the email thread.",
         visual: "comments",
       },
       {
-        title: "Know who's around.",
+        title: "See who's on it.",
         body:
-          "Presence shows who is online and what they are looking at, so you know whether to wait for an answer or pick it up yourself.",
+          "Presence shows who is looking at a conversation right now, so you know whether to wait for an answer or pick it up yourself.",
         visual: "presence",
       },
     ],
@@ -438,7 +438,7 @@ export const features: Feature[] = [
     visual: "tasks",
     benefits: [
       {
-        title: "From email to task in a click.",
+        title: "Tasks that remember the email.",
         body:
           "Turn \"we'll send the updated contract\" into a task linked to the conversation. Whoever picks it up has the full thread for context.",
         visual: "tasks",
@@ -477,7 +477,7 @@ export const features: Feature[] = [
       {
         title: "The numbers that matter.",
         body:
-          "Median first-reply time, resolution time and conversation volume, over any date range. Filter by inbox, teammate or label to see what is driving the trend.",
+          "Median first-reply time, resolution time and conversation volume, over any date range. Filter by inbox, team or teammate to see what is driving the trend.",
         visual: "analytics",
         points: ["First-reply time", "Resolution time", "Volume over time"],
       },
@@ -485,13 +485,13 @@ export const features: Feature[] = [
         title: "Fair workload.",
         quiet: "Visible to the whole team.",
         body:
-          "See open and resolved conversations per teammate. Rebalance assignments before someone burns out or a queue quietly grows.",
+          "Compare volume and reply times per teammate and per inbox, and see your busiest hours. Rebalance before someone burns out or a queue quietly grows.",
         visual: "assign",
       },
       {
         title: "Your data, queryable.",
         body:
-          "Everything behind the charts is available through the REST API, and self-hosted instances keep it in your own Postgres database.",
+          "The numbers come straight from your own data. Self-hosted instances keep everything in your own Postgres database, ready for the BI tool you already use.",
         visual: "api",
       },
     ],
@@ -552,9 +552,9 @@ export const features: Feature[] = [
         title: "Built from your mail.",
         quiet: "No data entry.",
         body:
-          "Contacts are created automatically from senders and recipients. Names, email addresses and companies stay up to date without anyone maintaining a spreadsheet.",
+          "Contacts are created automatically from senders and recipients, so names and addresses are captured without anyone maintaining a spreadsheet. Add company, title and phone when you need them.",
         visual: "contacts",
-        points: ["Automatic contact creation", "Grouped by company domain", "Shared across the workspace"],
+        points: ["Automatic contact creation", "Filter by company", "Shared across the workspace"],
       },
       {
         title: "Full history, one click away.",
@@ -565,7 +565,7 @@ export const features: Feature[] = [
       {
         title: "Personalize every reply.",
         body:
-          "Contact details power variables in canned responses, so {{first_name}} is always right, even when a colleague wrote the template.",
+          "Contact details power variables in canned responses, so {{contact.first_name}} is always right, even when a colleague wrote the template.",
         visual: "canned",
       },
     ],
@@ -718,7 +718,7 @@ export const featureItems: Record<FeatureCategorySlug, FeatureItem[]> = {
     },
     {
       name: "Collaborative drafts",
-      description: "Write replies together with live cursors before they go out.",
+      description: "Share drafts so teammates can review and edit replies before they go out.",
       icon: PenLine,
       slug: "collaborative-drafts",
     },
@@ -786,7 +786,7 @@ export const featureItems: Record<FeatureCategorySlug, FeatureItem[]> = {
     },
     {
       name: "Canned responses",
-      description: "Reusable replies with variables like {{first_name}}, inserted with a slash.",
+      description: "Reusable replies with variables like {{contact.first_name}}, one click from the composer.",
       icon: Reply,
       slug: "canned-responses",
     },
@@ -811,7 +811,7 @@ export const featureItems: Record<FeatureCategorySlug, FeatureItem[]> = {
   "chat-tasks": [
     {
       name: "Team chat",
-      description: "Channels and direct messages right next to your inbox.",
+      description: "Group chats and direct messages right next to your inbox.",
       icon: MessagesSquare,
       slug: "team-chat",
     },
@@ -822,8 +822,8 @@ export const featureItems: Record<FeatureCategorySlug, FeatureItem[]> = {
       slug: "tasks",
     },
     {
-      name: "Share to channel",
-      description: "Post an email thread into a channel to ask for help in one click.",
+      name: "Link to conversations",
+      description: "Paste a conversation link into a chat to pull teammates into the thread.",
       icon: Hash,
     },
     {

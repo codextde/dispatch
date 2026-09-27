@@ -95,7 +95,7 @@ export const useCases: UseCase[] = [
       {
         label: "Follow up",
         title: "Bring quiet deals back",
-        body: "Snooze a thread until the day you promised to follow up, or schedule your reply to land at 9 a.m. in the prospect's time zone.",
+        body: "Snooze a thread until the day you promised to follow up, or schedule your reply to land first thing in the morning.",
         visual: "snooze",
       },
     ],
@@ -158,7 +158,7 @@ export const useCases: UseCase[] = [
       "Create a label per client and auto-apply it with domain rules",
       "Invite freelancers with a limited role for their projects",
       "Turn change requests into tasks with due dates",
-      "Use a #clients chat channel for quick internal questions",
+      "Start a Clients group chat for quick internal questions",
     ],
   },
   {
@@ -348,13 +348,13 @@ export const useCases: UseCase[] = [
       {
         label: "Sort",
         title: "Rules clear the noise",
-        body: "Carrier and marketplace notifications are labeled and archived automatically, so the queue only shows customers.",
+        body: "Carrier and marketplace notifications are labeled and closed automatically, so the queue only shows customers.",
         visual: "rules",
       },
       {
         label: "Reply",
         title: "Saved replies with variables",
-        body: "Insert canned responses with {{first_name}} and {{order_number}} filled in, then adjust the details before sending.",
+        body: "Insert canned responses with the customer's name filled in, add the order details and send.",
         visual: "canned",
       },
       {
@@ -367,8 +367,8 @@ export const useCases: UseCase[] = [
     features: ["canned-responses", "rules-automation", "shared-inbox", "assignments", "analytics", "ai-assistant"],
     setup: [
       "Connect orders@ and returns@ as team inboxes",
-      "Label and archive carrier notifications with a rule",
-      "Save replies for order status, returns and exchanges using {{order_number}}",
+      "Label and close carrier notifications with a rule",
+      "Save replies for order status, returns and exchanges",
       "Assign returns to the fulfillment team automatically",
       "Track first-reply time during peak season",
     ],

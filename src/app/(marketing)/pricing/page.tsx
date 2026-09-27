@@ -144,7 +144,7 @@ function PlanTable({ pricing }: { pricing: CloudPricing }) {
         <caption className="sr-only">Features included in the self-hosted and cloud plans</caption>
         <thead>
           <tr className="bg-background">
-            <th scope="col" className="w-[44%] border-b border-border py-4 sm:w-1/2" />
+            <td className="w-[44%] border-b border-border py-4 sm:w-1/2" />
             <th scope="col" className="border-b border-border px-2 py-4 text-[14.5px] font-semibold sm:px-3">
               Self-hosted
             </th>

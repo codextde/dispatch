@@ -31,11 +31,13 @@ export type NavGroup = {
 
 const iconCls = "size-4"
 
-function featureLink(slug: string): NavLink {
-  const f = features.find((x) => x.slug === slug)
-  if (!f) throw new Error(`Unknown feature ${slug}`)
-  const Icon = f.icon
-  return { title: f.name, description: f.tagline, href: `/features/${f.slug}`, icon: <Icon className={iconCls} /> }
+function featureLinks(slugs: string[]): NavLink[] {
+  return slugs.flatMap((slug) => {
+    const f = features.find((x) => x.slug === slug)
+    if (!f) return []
+    const Icon = f.icon
+    return [{ title: f.name, description: f.tagline, href: `/features/${f.slug}`, icon: <Icon className={iconCls} /> }]
+  })
 }
 
 /** Header / mobile menu structure. Built on the server so icons render as plain SVG. */
@@ -47,11 +49,11 @@ export function getMarketingNav(): { groups: NavGroup[]; pricing: NavLink } {
         columns: [
           {
             title: "Collaborate",
-            links: ["shared-inbox", "internal-comments", "assignments", "collaborative-drafts"].map(featureLink),
+            links: featureLinks(["shared-inbox", "internal-comments", "assignments", "collaborative-drafts"]),
           },
           {
             title: "Automate",
-            links: ["rules-automation", "canned-responses", "ai-assistant", "analytics"].map(featureLink),
+            links: featureLinks(["rules-automation", "canned-responses", "ai-assistant", "analytics"]),
           },
         ],
         footer: { title: "All features", href: "/features", icon: <LayoutGrid className={iconCls} /> },

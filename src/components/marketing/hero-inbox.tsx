@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { AnimatePresence, LazyMotion, MotionConfig, domAnimation, m, useReducedMotion } from "motion/react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { AnimatePresence, LazyMotion, MotionConfig, domAnimation, m } from "motion/react"
 import {
   AlarmClock,
   Archive,
@@ -98,12 +98,45 @@ const incoming: Row = {
 /** Timeline of the loop, in ms from the start. */
 const TIMELINE = [1400, 3000, 4300, 6600, 11500]
 
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)"
+function subscribeReducedMotion(onChange: () => void) {
+  const mq = window.matchMedia(REDUCED_MOTION)
+  mq.addEventListener("change", onChange)
+  return () => mq.removeEventListener("change", onChange)
+}
+
+/** false on the server and during hydration, so the markup always matches. */
+function usePrefersReducedMotion() {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia(REDUCED_MOTION).matches,
+    () => false,
+  )
+}
+
 export function HeroInbox() {
-  const reduce = useReducedMotion()
+  const reduce = usePrefersReducedMotion()
   const [tick, setTick] = useState(0)
+  const [visible, setVisible] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Only animate while the mock is on screen; restart from the top when it returns.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        setVisible(entry.isIntersecting)
+        if (!entry.isIntersecting) setTick(0)
+      },
+      { threshold: 0.15 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
 
   useEffect(() => {
-    if (reduce) return
+    if (reduce || !visible) return
     let timers: ReturnType<typeof setTimeout>[] = []
     const schedule = () => {
       timers = TIMELINE.map((t, i) =>
@@ -117,7 +150,7 @@ export function HeroInbox() {
     }
     schedule()
     return () => timers.forEach(clearTimeout)
-  }, [reduce])
+  }, [reduce, visible])
 
   // Reduced motion: show the finished state without looping.
   const step = reduce ? 4 : tick
@@ -127,7 +160,7 @@ export function HeroInbox() {
   return (
     <LazyMotion features={domAnimation} strict>
       <MotionConfig reducedMotion="user">
-        <div className="mk-glow">
+        <div ref={ref} className="mk-glow">
           <div className="rounded-[14px] border border-black/10 bg-[#141414] p-1.5 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)]">
             {/* window chrome */}
             <div className="flex items-center gap-2 px-2.5 pt-1 pb-2.5">
@@ -179,12 +212,8 @@ export function HeroInbox() {
                   <SideItem dot={labelColors.bug} label="Bug" />
                 </div>
                 <div className="mt-auto flex items-center gap-2 px-1 text-[11px] text-muted-foreground">
-                  <span className="flex -space-x-1.5">
-                    <Avatar who="maya" size={18} className="ring-2 ring-[#191919]" />
-                    <Avatar who="jonas" size={18} className="ring-2 ring-[#191919]" />
-                    <Avatar who="priya" size={18} className="ring-2 ring-[#191919]" />
-                  </span>
-                  3 online
+                  <span className="size-1.5 rounded-full bg-brand" />
+                  All inboxes synced
                 </div>
               </aside>
 

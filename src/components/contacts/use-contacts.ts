@@ -18,6 +18,7 @@ export type ContactFacets = {
 }
 export type ContactInput = Partial<{
   email: string
+  alternateEmails: string[]
   name: string | null
   company: string | null
   title: string | null

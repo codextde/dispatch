@@ -10,6 +10,16 @@ export function referencePrice(c: Competitor): number {
   return c.plans.find((p) => p.name === c.referencePlan)?.price ?? c.plans[0]?.price ?? 0
 }
 
+/**
+ * The plan a team of `users` would actually need: the reference plan, or the
+ * next tier up when the team exceeds that plan's seat cap.
+ */
+export function planForTeam(c: Competitor, users: number) {
+  const start = Math.max(0, c.plans.findIndex((p) => p.name === c.referencePlan))
+  const fits = c.plans.slice(start).find((p) => p.maxUsers === undefined || users <= p.maxUsers)
+  return fits ?? c.plans[c.plans.length - 1]!
+}
+
 /** Dispatch Cloud price per month, for comparing with per-seat monthly prices. */
 export function monthlyCloud(p: CloudPricing): number {
   return p.interval === "year" ? p.amount / 12 : p.amount
@@ -118,7 +128,7 @@ export function PerSeatComparison({ pricing, slugs = ["missive", "front", "hiver
       name: c.name,
       sub: `${c.referencePlan} · ${usd(referencePrice(c))}/user`,
       model: "Per user",
-      cost: (n: number) => usd(referencePrice(c) * n),
+      cost: (n: number) => usd(planForTeam(c, n).price * n),
       openSource: false,
       selfHost: false,
       highlight: false,

@@ -31,7 +31,7 @@ const roadmap: { t: string; done: boolean }[] = [
   { t: "Native iOS and Android apps", done: false },
   { t: "Calendar integration (Google, Microsoft)", done: false },
   { t: "SAML SSO and SCIM provisioning", done: false },
-  { t: "SLA policies and business hours", done: false },
+  { t: "SLA policies", done: false },
   { t: "Importers for Missive and Front", done: false },
 ]
 

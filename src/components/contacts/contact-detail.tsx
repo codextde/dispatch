@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import {
+  AtSign,
   Building2,
   Check,
   Copy,
@@ -49,7 +50,7 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
-import { CustomFieldsEditor, InlineField, TagInput } from "./contact-fields"
+import { CustomFieldsEditor, EmailListInput, InlineField, TagInput } from "./contact-fields"
 import {
   displayName,
   useContactDetail,
@@ -271,6 +272,12 @@ function ContactDetailBody({
       <Section title="Details">
         <div className="flex flex-col gap-0.5">
           <InlineField label="Email" icon={<Mail className="size-3.5" />} type="email" value={contact.email} readOnly={!editable} onCommit={(v) => v && patch({ email: v })} />
+          <div className="grid grid-cols-[88px_1fr] items-start gap-2">
+            <span className="flex min-h-8 items-center gap-1.5 text-[12.5px] text-muted-foreground">
+              <AtSign className="size-3.5" /> Also
+            </span>
+            <EmailListInput value={contact.alternateEmails} readOnly={!editable} onChange={(alternateEmails) => patch({ alternateEmails })} />
+          </div>
           <InlineField label="Phone" icon={<Phone className="size-3.5" />} type="tel" value={contact.phone} readOnly={!editable} placeholder="Add phone" onCommit={(v) => patch({ phone: v || null })} />
           <InlineField label="Company" icon={<Building2 className="size-3.5" />} value={contact.company} readOnly={!editable} placeholder="Add company" onCommit={(v) => patch({ company: v || null })} />
           <InlineField label="Title" icon={<Briefcase className="size-3.5" />} value={contact.title} readOnly={!editable} placeholder="Add job title" onCommit={(v) => patch({ title: v || null })} />

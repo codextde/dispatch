@@ -23,7 +23,6 @@ export async function generateMetadata({ params }: PageProps<"/features/[slug]">
     title: `${f.name} — ${f.headline[0].replace(/\.$/, "")}`,
     description: f.metaDescription,
     alternates: { canonical: `/features/${f.slug}` },
-    openGraph: { title: `${f.name} · Dispatch`, description: f.metaDescription },
   }
 }
 

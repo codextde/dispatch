@@ -66,7 +66,7 @@ export default async function CompetitorPage({ params }: PageProps<"/compare/[sl
             </caption>
             <thead>
               <tr>
-                <th scope="col" className="w-[38%] border-b border-border pb-4" />
+                <td className="w-[38%] border-b border-border pb-4" />
                 <th scope="col" className="border-b border-border bg-brand-soft/60 px-2.5 pt-4 pb-4 sm:px-4 text-[15px] font-semibold">
                   Dispatch
                 </th>

@@ -261,3 +261,89 @@ export function CustomFieldsEditor({
     </div>
   )
 }
+
+const EMAIL_RE = /^[^\s@<>()",;:]+@[^\s@<>()",;:]+\.[^\s@<>()",;:]{2,}$/
+
+/**
+ * Editable list of email addresses (alternate emails). Enter, comma or blur
+ * adds an address; invalid input is flagged instead of being dropped.
+ */
+export function EmailListInput({
+  value,
+  onChange,
+  readOnly,
+  placeholder = "Add another email",
+}: {
+  value: string[]
+  onChange: (emails: string[]) => void
+  readOnly?: boolean
+  placeholder?: string
+}) {
+  const [draft, setDraft] = useState("")
+  const [invalid, setInvalid] = useState(false)
+  const add = (raw: string) => {
+    const e = raw.trim().replace(/^mailto:/i, "").toLowerCase()
+    if (!e) return
+    if (!EMAIL_RE.test(e)) return setInvalid(true)
+    setInvalid(false)
+    setDraft("")
+    if (!value.includes(e)) onChange([...value, e])
+  }
+  if (readOnly && value.length === 0) return <span className="flex min-h-8 items-center px-2 text-[13px] text-muted-foreground">—</span>
+  return (
+    <div className="flex min-w-0 flex-col gap-1 py-1">
+      {value.length > 0 && (
+        <ul className="flex min-w-0 flex-col">
+          {value.map((e) => (
+            <li key={e} className="group/alt flex min-h-7 min-w-0 items-center gap-1 rounded-md px-2 hover:bg-accent/60">
+              <a href={`mailto:${e}`} className="min-w-0 flex-1 truncate text-[13px] underline-offset-2 hover:underline" title={e}>
+                {e}
+              </a>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => onChange(value.filter((v) => v !== e))}
+                  className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 outline-none group-hover/alt:opacity-100 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`Remove ${e}`}
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!readOnly && (
+        <input
+          type="email"
+          value={draft}
+          onChange={(ev) => {
+            const v = ev.target.value
+            setInvalid(false)
+            if (/[,;\s]$/.test(v)) add(v.slice(0, -1))
+            else setDraft(v)
+          }}
+          onKeyDown={(ev) => {
+            if (ev.key === "Enter") {
+              ev.preventDefault()
+              add(draft)
+            }
+            if (ev.key === "Escape") {
+              setDraft("")
+              setInvalid(false)
+            }
+          }}
+          onBlur={() => draft && add(draft)}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          aria-invalid={invalid || undefined}
+          className={cn(
+            "w-full min-w-0 rounded-md bg-transparent px-2 py-1.5 text-[13px] outline-none placeholder:text-muted-foreground/70 hover:bg-accent/70 focus:bg-background focus:ring-2 focus:ring-ring/40 dark:focus:bg-input/30",
+            invalid && "text-destructive ring-2 ring-destructive/30"
+          )}
+        />
+      )}
+      {invalid && <p className="px-2 text-xs text-destructive">That doesn’t look like an email address.</p>}
+    </div>
+  )
+}

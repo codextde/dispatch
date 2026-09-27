@@ -13,7 +13,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { composeHref, ConversationLink } from "./contact-detail"
-import { InlineField, TagInput } from "./contact-fields"
+import { EmailListInput, InlineField, TagInput } from "./contact-fields"
 import { displayName, useContactLookup, useContactMutations, type ContactInput } from "./use-contacts"
 
 /**
@@ -64,6 +64,8 @@ export function ContactCard({
   const recent = data.conversations.filter((c) => c.id !== excludeConversationId).slice(0, 3)
   const otherCount = data.conversationTotal - (data.conversations.some((c) => c.id === excludeConversationId) ? 1 : 0)
   const patch = (p: ContactInput) => contact && update.mutate({ id: contact.id, patch: p })
+  // The card may have been opened for an alternate address: show the contact's other addresses
+  const otherAddresses = contact ? [contact.email, ...contact.alternateEmails].filter((a) => a.toLowerCase() !== email.toLowerCase()) : []
 
   const copy = async () => {
     try {
@@ -139,6 +141,10 @@ export function ContactCard({
           <InlineField label="Title" value={contact.title} placeholder="Add job title" onCommit={(v) => patch({ title: v || null })} />
           <InlineField label="Phone" type="tel" value={contact.phone} placeholder="Add phone" onCommit={(v) => patch({ phone: v || null })} />
           <div className="grid grid-cols-[88px_1fr] items-start gap-2">
+            <span className="flex min-h-8 items-center text-[12.5px] text-muted-foreground">Other emails</span>
+            <EmailListInput value={contact.alternateEmails} onChange={(alternateEmails) => patch({ alternateEmails })} placeholder="Add email" />
+          </div>
+          <div className="grid grid-cols-[88px_1fr] items-start gap-2">
             <span className="flex min-h-8 items-center text-[12.5px] text-muted-foreground">Tags</span>
             <TagInput value={contact.tags} onChange={(tags) => patch({ tags })} />
           </div>
@@ -159,6 +165,17 @@ export function ContactCard({
               {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
             </button>
           </div>
+          {otherAddresses.length > 0 && (
+            <p className="flex min-w-0 flex-wrap gap-x-1.5 text-[12px] text-muted-foreground">
+              <span>Also</span>
+              {otherAddresses.map((a, i) => (
+                <a key={a} href={`mailto:${a}`} className="max-w-full truncate hover:text-foreground hover:underline" title={a}>
+                  {a}
+                  {i < otherAddresses.length - 1 ? "," : ""}
+                </a>
+              ))}
+            </p>
+          )}
           {contact?.phone && (
             <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
               <Phone className="size-3.5" />
