@@ -220,9 +220,13 @@ Each delivery is a `POST` with these headers:
 | `X-Dispatch-Delivery` | Unique delivery ID. It stays the same across retries of that delivery. |
 | `X-Dispatch-Signature` | `t=<unix>,v1=<hex>` (see above) |
 
-- **Success:** any `2xx` response within **10 seconds**. Redirects are not followed, so use the final URL. Do slow work asynchronously after acknowledging.
+- **Success:** any `2xx` response within **10 seconds**. Redirects are not followed, and a `3xx` counts as a failure, so use the final URL. Do slow work asynchronously after acknowledging.
 - **Retries:** a failed delivery (non-2xx, timeout, connection error) is retried after **1 minute, 5 minutes, 30 minutes, 2 hours and 6 hours**, for 6 attempts in total. After that it's marked as failed. Your handler must be idempotent, so deduplicate on the event `id` or `X-Dispatch-Delivery`.
 - **Auto-disable:** after **50 consecutive failed attempts**, the webhook is disabled and the event is recorded in the audit log. Re-enable it in Settings once your endpoint works again.
 - **Ordering:** deliveries aren't strictly ordered. Use `createdAt`, or fetch the current state from the API when order matters.
-- **Inspection:** each webhook's recent deliveries, with status codes and response bodies, are listed in its settings.
+- **Inspection:** each webhook's recent deliveries are listed in its settings, with status codes and response bodies (truncated to 1 KB). Deliveries are kept for 30 days.
 - **Private networks:** on instances with *Block private networks* enabled, webhook URLs must resolve to public IP addresses.
+
+### Rule webhooks
+
+The *Call a webhook* action in [rules](configuration.md#workspace-settings) is separate from the webhooks above. When a rule matches, it POSTs a JSON body with `"event": "rule.matched"` and the conversation details to the URL configured in the rule. It uses the same `Content-Type`, `User-Agent` and `X-Dispatch-Event` headers, but **no signature and no delivery ID**. Failed calls are retried as a background job, up to 6 attempts. To authenticate these requests, put a secret token in the URL (e.g. `https://example.com/hooks/dispatch?token=…`) and check it on your side.

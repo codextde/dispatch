@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { db, schema } from "@/server/db"
 import { ApiError, json, parseJson, requireApiOrg, route } from "@/server/api"
 import { assertWritable } from "@/server/authz"
@@ -7,6 +7,7 @@ import {
   canEditContact,
   contactDto,
   contactInput,
+  findEmailConflict,
   getContact,
   isUniqueViolation,
   isUuid,
@@ -42,19 +43,16 @@ export const PATCH = route<P>(async (req, { params }) => {
   const input = await parseJson(req, contactInput.partial())
 
   const patch: Partial<typeof schema.contacts.$inferInsert> = {}
+  const willBePrivate = input.isPrivate ?? Boolean(contact.ownerUserId)
   if (input.email !== undefined) {
     const email = normalizeEmail(input.email)
     if (!isValidEmail(email)) throw new ApiError(400, "Enter a valid email address", "validation_error")
-    if (email !== contact.email.toLowerCase()) {
-      const taken = await db.query.contacts.findFirst({
-        where: contact.ownerUserId
-          ? sql`${schema.contacts.orgId} = ${ctx.org.id} and lower(${schema.contacts.email}) = ${email} and ${schema.contacts.ownerUserId} = ${contact.ownerUserId}`
-          : sql`${schema.contacts.orgId} = ${ctx.org.id} and lower(${schema.contacts.email}) = ${email} and ${schema.contacts.ownerUserId} is null`,
-        columns: { id: true },
-      })
-      if (taken) throw new ApiError(409, "Another contact already uses this email", "conflict")
-    }
     patch.email = email
+  }
+  // Emails are unique among shared contacts and among each member's private contacts
+  if (input.email !== undefined || input.isPrivate !== undefined) {
+    const conflict = await findEmailConflict(ctx, patch.email ?? contact.email, { isPrivate: willBePrivate, excludeId: contact.id })
+    if (conflict) throw new ApiError(409, "Another contact already uses this email", "conflict")
   }
   if (input.name !== undefined) patch.name = input.name || null
   if (input.company !== undefined) patch.company = input.company || null

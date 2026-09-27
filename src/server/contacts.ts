@@ -71,14 +71,20 @@ export function canEditContact(ctx: Ctx, contact: Pick<Contact, "ownerUserId">) 
  * Increments `messageCount`, advances `lastContactedAt` and fills in missing
  * names. Skips invalid and system addresses, the workspace's own inboxes and
  * workspace members. Safe to call for every synced or sent message.
+ *
+ * `ownerUserId` (personal inboxes): correspondents become the owner's private
+ * contacts, never shared ones. Addresses already in the shared address book
+ * are left untouched, so personal mail neither duplicates nor reveals activity
+ * on shared contacts.
  */
 export async function upsertContactsFromParticipants(
   orgId: string,
   participants: { name?: string | null; email: string }[],
-  opts: { direction: "inbound" | "outbound"; at?: Date; tx?: DbOrTx } = { direction: "inbound" }
+  opts: { direction: "inbound" | "outbound"; at?: Date; tx?: DbOrTx; ownerUserId?: string | null } = { direction: "inbound" }
 ): Promise<number> {
   const tx = opts.tx ?? db
   const at = opts.at ?? new Date()
+  const owner = opts.ownerUserId ?? null
   const unique = new Map<string, string | null>()
   for (const p of participants) {
     if (!p?.email) continue
@@ -91,7 +97,7 @@ export async function upsertContactsFromParticipants(
 
   // Never add our own inboxes (and aliases) or teammates to the address book
   const emails = [...unique.keys()]
-  const [inboxes, members] = await Promise.all([
+  const [inboxes, members, shared] = await Promise.all([
     tx
       .select({ email: schema.accounts.email, aliases: schema.accounts.aliases })
       .from(schema.accounts)
@@ -101,25 +107,42 @@ export async function upsertContactsFromParticipants(
       .from(schema.memberships)
       .innerJoin(schema.users, eq(schema.users.id, schema.memberships.userId))
       .where(and(eq(schema.memberships.orgId, orgId), inArray(sql`lower(${schema.users.email})`, emails))),
+    owner
+      ? tx
+          .select({ email: schema.contacts.email })
+          .from(schema.contacts)
+          .where(
+            and(
+              eq(schema.contacts.orgId, orgId),
+              isNull(schema.contacts.ownerUserId),
+              inArray(sql`lower(${schema.contacts.email})`, emails)
+            )
+          )
+      : Promise.resolve([]),
   ])
-  const internal = new Set<string>()
+  const skip = new Set<string>()
   for (const a of inboxes) {
-    internal.add(a.email.toLowerCase())
-    for (const alias of a.aliases) internal.add(alias.toLowerCase())
+    skip.add(a.email.toLowerCase())
+    for (const alias of a.aliases) skip.add(alias.toLowerCase())
   }
-  for (const m of members) internal.add(m.email.toLowerCase())
+  for (const m of members) skip.add(m.email.toLowerCase())
+  for (const c of shared) skip.add(c.email.toLowerCase())
 
-  const rows = emails.filter((e) => !internal.has(e)).map((email) => ({ email, name: unique.get(email) ?? null }))
+  const rows = emails.filter((e) => !skip.has(e)).map((email) => ({ email, name: unique.get(email) ?? null }))
   if (!rows.length) return 0
 
   const values = sql.join(
-    rows.map((r) => sql`(${orgId}::uuid, ${r.email}, ${r.name}, ${at.toISOString()}::timestamptz, 1)`),
+    rows.map((r) => sql`(${orgId}::uuid, ${owner}::uuid, ${r.email}, ${r.name}, ${at.toISOString()}::timestamptz, 1)`),
     sql`, `
   )
+  // Arbiter: the shared index (owner null) or the owner's private index
+  const target = owner
+    ? sql`(org_id, owner_user_id, lower(email)) where owner_user_id is not null`
+    : sql`(org_id, lower(email)) where owner_user_id is null`
   await tx.execute(sql`
-    insert into contacts (org_id, email, name, last_contacted_at, message_count)
+    insert into contacts (org_id, owner_user_id, email, name, last_contacted_at, message_count)
     values ${values}
-    on conflict (org_id, lower(email)) where owner_user_id is null do update set
+    on conflict ${target} do update set
       message_count = contacts.message_count + 1,
       last_contacted_at = greatest(contacts.last_contacted_at, excluded.last_contacted_at),
       name = coalesce(nullif(contacts.name, ''), excluded.name),
@@ -132,11 +155,41 @@ export async function upsertContactsFromParticipants(
 /*                                   Queries                                  */
 /* -------------------------------------------------------------------------- */
 
+/** The contact for an address as the member sees it: the shared one if it exists, else their private one. */
 export async function getContactByEmail(ctx: Pick<Ctx, "org" | "user">, email: string) {
   const [row] = await db
     .select()
     .from(schema.contacts)
     .where(and(visibleContactsWhere(ctx), sql`lower(${schema.contacts.email}) = ${normalizeEmail(email)}`))
+    .orderBy(sql`${schema.contacts.ownerUserId} is not null`)
+    .limit(1)
+  return row ?? null
+}
+
+/**
+ * Existing contact that a new/changed contact with `email` would collide with:
+ * shared contacts are unique per workspace, private ones per owner. A private
+ * copy of an address that is already in the shared book is also refused.
+ */
+export async function findEmailConflict(
+  ctx: Pick<Ctx, "org" | "user">,
+  email: string,
+  opts: { isPrivate: boolean; excludeId?: string }
+) {
+  const c = schema.contacts
+  const scope = opts.isPrivate ? or(isNull(c.ownerUserId), eq(c.ownerUserId, ctx.user.id))! : isNull(c.ownerUserId)
+  const [row] = await db
+    .select({ id: c.id, ownerUserId: c.ownerUserId })
+    .from(c)
+    .where(
+      and(
+        eq(c.orgId, ctx.org.id),
+        sql`lower(${c.email}) = ${normalizeEmail(email)}`,
+        scope,
+        opts.excludeId ? sql`${c.id} <> ${opts.excludeId}` : undefined
+      )
+    )
+    .orderBy(sql`${c.ownerUserId} is not null`)
     .limit(1)
   return row ?? null
 }

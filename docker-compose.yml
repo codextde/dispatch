@@ -44,6 +44,8 @@ services:
     restart: unless-stopped
     environment:
       DOMAIN: ${DOMAIN:-${SERVICE_FQDN_APP_3000}}
+      # let in-flight sends finish on shutdown (must stay below stop_grace_period)
+      WORKER_SHUTDOWN_TIMEOUT_MS: "25000"
     volumes:
       - dispatch-data:/data
       - dispatch-secrets:/secrets:ro

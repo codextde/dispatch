@@ -117,12 +117,6 @@ function friendlyHttpError(status: number, providerMessage: string | undefined) 
   return new AiError(providerMessage ? `AI request failed: ${providerMessage}` : `AI request failed (HTTP ${status})`, 502)
 }
 
-/** Private-network blocking is on for SaaS instances and when enabled in Admin → Security. */
-async function privateNetworksBlocked() {
-  const general = await getSettings("general")
-  return general.mode === "saas" || (await isPrivateNetworkBlocked())
-}
-
 /**
  * Validate an AI endpoint URL. Instance endpoints (set by the super admin) are
  * trusted, so a local Ollama over http works. Workspace endpoints must use
@@ -157,7 +151,8 @@ const MAX_RESPONSE_BYTES = 4 * 1024 * 1024
  * be rebound to a private address after it was saved.
  */
 async function postJson(url: string, headers: Record<string, string>, body: unknown, opts: { source: AiConfig["source"] }) {
-  const guard = opts.source === "workspace" && (await privateNetworksBlocked())
+  // Blocking is on for SaaS instances and when enabled in Admin → Security (fails closed)
+  const guard = opts.source === "workspace" && (await isPrivateNetworkBlocked())
   const u = checkAiEndpoint(url, opts.source, guard)
   const payload = Buffer.from(JSON.stringify(body))
   const lib = u.protocol === "https:" ? https : http

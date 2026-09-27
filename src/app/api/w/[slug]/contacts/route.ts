@@ -1,5 +1,4 @@
 import { z } from "zod"
-import { sql } from "drizzle-orm"
 import { db, schema } from "@/server/db"
 import { ApiError, json, parseJson, parseQuery, requireApiOrg, route } from "@/server/api"
 import { assertWritable } from "@/server/authz"
@@ -7,6 +6,7 @@ import {
   contactDto,
   contactInput,
   contactFacets,
+  findEmailConflict,
   isUniqueViolation,
   isValidEmail,
   normalizeCustomFields,
@@ -54,13 +54,15 @@ export const POST = route<P>(async (req, { params }) => {
     throw new ApiError(403, "You can only add private contacts. Ask an admin for the “Manage shared contacts” permission.", "forbidden")
   }
   // Uniqueness is per scope: one shared contact per address, one private contact per address per owner
-  const existing = await db.query.contacts.findFirst({
-    where: input.isPrivate
-      ? sql`${schema.contacts.orgId} = ${ctx.org.id} and lower(${schema.contacts.email}) = ${email} and ${schema.contacts.ownerUserId} = ${ctx.user.id}`
-      : sql`${schema.contacts.orgId} = ${ctx.org.id} and lower(${schema.contacts.email}) = ${email} and ${schema.contacts.ownerUserId} is null`,
-    columns: { id: true },
-  })
-  if (existing) throw new ApiError(409, "A contact with this email already exists", "conflict", { id: existing.id })
+  const existing = await findEmailConflict(ctx, email, { isPrivate: Boolean(input.isPrivate) })
+  if (existing) {
+    throw new ApiError(
+      409,
+      existing.ownerUserId ? "This email is already in your private contacts" : "This email is already in the shared address book",
+      "conflict",
+      { id: existing.id }
+    )
+  }
   const [row] = await db
     .insert(schema.contacts)
     .values({

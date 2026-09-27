@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm"
 import { db, schema } from "@/server/db"
 import { ApiError, json, parseJson, requireApiOrg, route } from "@/server/api"
 import { assertWritable } from "@/server/authz"
@@ -55,12 +55,24 @@ export const POST = route<P>(async (req, { params }) => {
   let skipped = 0
 
   await db.transaction(async (tx) => {
+    // Rows this import collides with: shared contacts, plus the member's own private ones for private imports
+    // (a private copy of an address that is already shared is skipped)
     const existing = emails.length
       ? await tx
           .select()
           .from(schema.contacts)
-          .where(and(eq(schema.contacts.orgId, ctx.org.id), inArray(sql`lower(${schema.contacts.email})`, emails)))
+          .where(
+            and(
+              eq(schema.contacts.orgId, ctx.org.id),
+              inArray(sql`lower(${schema.contacts.email})`, emails),
+              input.isPrivate
+                ? or(isNull(schema.contacts.ownerUserId), eq(schema.contacts.ownerUserId, ctx.user.id))
+                : isNull(schema.contacts.ownerUserId)
+            )
+          )
+          .orderBy(sql`${schema.contacts.ownerUserId} is null`)
       : []
+    // Shared rows sort last, so they win when both exist
     const existingByEmail = new Map(existing.map((c) => [c.email.toLowerCase(), c]))
 
     const inserts: (typeof schema.contacts.$inferInsert)[] = []
@@ -81,7 +93,7 @@ export const POST = route<P>(async (req, { params }) => {
         })
         continue
       }
-      if (input.mode === "skip" || !canEditContact(ctx, current)) {
+      if (input.mode === "skip" || !canEditContact(ctx, current) || Boolean(current.ownerUserId) !== Boolean(input.isPrivate)) {
         skipped++
         continue
       }
