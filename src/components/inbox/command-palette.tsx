@@ -41,7 +41,7 @@ import type { ConversationListItem } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import { useChats, useSearch } from "@/hooks/inbox/queries"
 import { inboxUI, useInboxUI } from "@/hooks/inbox/store"
-import { shortcutLabel } from "@/hooks/inbox/use-hotkeys"
+import { useShortcutLabel } from "@/hooks/inbox/use-hotkeys"
 import { STATIC_BOX_ICONS } from "./box-info"
 import { useInbox } from "./inbox-provider"
 import { useShortcutCombo } from "./shortcut-hint"
@@ -72,6 +72,7 @@ const BOX_SHORTCUTS: Partial<Record<StaticBox, ShortcutAction>> = {
 const matches = (item: StaticItem, q: string) => !q || `${item.label} ${item.keywords ?? ""}`.toLowerCase().includes(q)
 
 function Shortcut({ combo }: { combo: string }) {
+  const shortcutLabel = useShortcutLabel()
   return <CommandShortcut className="font-mono text-[11px] tracking-normal">{shortcutLabel(combo).join(" ")}</CommandShortcut>
 }
 

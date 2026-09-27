@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useCallback, useSyncExternalStore } from "react"
 
 /**
  * Minimal keyboard shortcut handling for the inbox.
@@ -21,7 +21,23 @@ export type Hotkey = {
 const SEQUENCE_TIMEOUT = 1200
 let sequencePrefix: { key: string; at: number } | null = null
 
+/** Platform check for event handlers. Don't use it while rendering: the server can't know it (see `useIsMac`). */
 export const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+
+const noopSubscribe = () => () => {}
+/**
+ * Hydration-safe platform check for rendering: the server (and the hydration
+ * pass) render the non-Mac labels, then Macs switch to ⌘/⌥ right after.
+ */
+export function useIsMac(): boolean {
+  return useSyncExternalStore(noopSubscribe, isMac, () => false)
+}
+
+/** `(combo) => ["⌘K"]` bound to the current platform, for use while rendering. */
+export function useShortcutLabel() {
+  const mac = useIsMac()
+  return useCallback((combo: string) => shortcutLabel(combo, mac), [mac])
+}
 
 function isTypingTarget(target: EventTarget | null) {
   const el = target as HTMLElement | null
@@ -108,21 +124,21 @@ export function useHotkeys(hotkeys: Hotkey[], enabled = true) {
   }, [enabled])
 }
 
-/** Display label for a shortcut, e.g. "mod+k" → "⌘K" / "Ctrl K". */
-export function shortcutLabel(combo: string): string[] {
+/** Display label for a shortcut, e.g. "mod+k" → "⌘K" / "Ctrl K". Prefer `useShortcutLabel()` in components. */
+export function shortcutLabel(combo: string, mac = isMac()): string[] {
   return combo.split(" ").map((part) =>
     part
       .split("+")
       .map((k) => {
-        if (k === "mod") return isMac() ? "⌘" : "Ctrl"
+        if (k === "mod") return mac ? "⌘" : "Ctrl"
         if (k === "shift") return "⇧"
-        if (k === "alt") return isMac() ? "⌥" : "Alt"
+        if (k === "alt") return mac ? "⌥" : "Alt"
         if (k === "Enter") return "↵"
         if (k === "Escape") return "Esc"
         if (k === "ArrowDown") return "↓"
         if (k === "ArrowUp") return "↑"
         return k.length === 1 ? k.toUpperCase() : k
       })
-      .join(isMac() ? "" : " ")
+      .join(mac ? "" : " ")
   )
 }

@@ -39,7 +39,7 @@ import { useOrg } from "@/components/app/org-provider"
 import { useChats, useCounts } from "@/hooks/inbox/queries"
 import { inboxUI } from "@/hooks/inbox/store"
 import { usePersistentState } from "@/hooks/inbox/use-persistent-state"
-import { shortcutLabel } from "@/hooks/inbox/use-hotkeys"
+import { useShortcutLabel } from "@/hooks/inbox/use-hotkeys"
 import { memberName } from "@/lib/inbox/format"
 import type { LabelSummary } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
@@ -176,6 +176,7 @@ function labelTree(labels: LabelSummary[]): LabelNode[] {
 }
 
 export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; onCollapse?: () => void }) {
+  const shortcutLabel = useShortcutLabel()
   const { slug, bootstrap, member, meId } = useInbox()
   const { can } = useOrg()
   const hint = useShortcutHint()

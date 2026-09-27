@@ -20,7 +20,7 @@ import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/compon
 import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useResponses } from "@/hooks/inbox/queries"
-import { shortcutLabel } from "@/hooks/inbox/use-hotkeys"
+import { useShortcutLabel } from "@/hooks/inbox/use-hotkeys"
 import { timePresets } from "@/lib/inbox/snooze"
 import type { AccountSummary, CannedResponseItem } from "@/lib/inbox/types"
 import { useInbox } from "../inbox-provider"
@@ -208,6 +208,7 @@ export function SendButton({
   allowClose?: boolean
   label?: string
 }) {
+  const shortcutLabel = useShortcutLabel()
   const [later, setLater] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const presets = menuOpen ? timePresets() : []

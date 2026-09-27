@@ -4,7 +4,7 @@ import { Fragment } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Kbd } from "@/components/ui/kbd"
 import { inboxUI, useInboxUI } from "@/hooks/inbox/store"
-import { shortcutLabel } from "@/hooks/inbox/use-hotkeys"
+import { useShortcutLabel } from "@/hooks/inbox/use-hotkeys"
 import { SHORTCUTS, type ShortcutAction, type ShortcutGroup, type ShortcutScheme } from "@/lib/inbox/shortcuts"
 import { useInbox } from "./inbox-provider"
 
@@ -33,6 +33,7 @@ function groupsFor(scheme: ShortcutScheme): Group[] {
 }
 
 function Keys({ combo }: { combo: string }) {
+  const shortcutLabel = useShortcutLabel()
   const parts = shortcutLabel(combo)
   return (
     <span className="inline-flex items-center gap-1">

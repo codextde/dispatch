@@ -4,11 +4,12 @@ import { Command, Inbox, Keyboard, SquarePen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
 import { inboxUI } from "@/hooks/inbox/store"
-import { shortcutLabel } from "@/hooks/inbox/use-hotkeys"
+import { useShortcutLabel } from "@/hooks/inbox/use-hotkeys"
 import { useShortcutHint } from "../shortcut-hint"
 
 /** Placeholder of the conversation pane when nothing is open (desktop). */
 export function NoConversation() {
+  const shortcutLabel = useShortcutLabel()
   const hint = useShortcutHint()
   const rows = [
     { keys: [hint("next"), hint("prev")], label: "Move between conversations" },

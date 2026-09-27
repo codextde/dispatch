@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback } from "react"
-import { shortcutLabel } from "@/hooks/inbox/use-hotkeys"
+import { useShortcutLabel } from "@/hooks/inbox/use-hotkeys"
 import { primaryKey, type ShortcutAction } from "@/lib/inbox/shortcuts"
 import { useInbox } from "./inbox-provider"
 
@@ -11,13 +11,14 @@ import { useInbox } from "./inbox-provider"
  */
 export function useShortcutHint() {
   const { shortcutScheme, shortcutsEnabled } = useInbox()
+  const shortcutLabel = useShortcutLabel()
   return useCallback(
     (action: ShortcutAction): string | null => {
       if (!shortcutsEnabled) return null
       const combo = primaryKey(shortcutScheme, action)
       return combo ? shortcutLabel(combo).join(" ") : null
     },
-    [shortcutScheme, shortcutsEnabled]
+    [shortcutScheme, shortcutsEnabled, shortcutLabel]
   )
 }
 

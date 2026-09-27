@@ -44,8 +44,8 @@ Self-host for free or use Dispatch Cloud for $50/month.</p>
 **Collaboration**
 - Internal comments with @mentions right in the conversation
 - Assignments, "assigned to me" and team views
-- Realtime presence, typing indicators, collision detection and collaborative drafts
-- Team chat with channels and direct messages
+- Realtime presence, typing indicators and collision detection, plus shared drafts your team can pick up
+- Team chat with group chats and direct messages
 - Tasks linked to conversations, with assignees and due dates
 - Shared contacts built automatically from your mail
 
@@ -71,7 +71,7 @@ Self-host for free or use Dispatch Cloud for $50/month.</p>
 | <img src="docs/screenshots/analytics.png" alt="Analytics" width="100%"><br>Analytics | <img src="docs/screenshots/settings.png" alt="Workspace settings" width="100%"><br>Workspace settings |
 | <img src="docs/screenshots/admin.png" alt="Instance admin panel" width="100%"><br>Instance admin | <img src="docs/screenshots/landing.png" alt="Marketing site in SaaS mode" width="100%"><br>Built-in marketing site (SaaS mode) |
 
-<p align="center"><img src="docs/screenshots/mobile.png" alt="Dispatch on a phone" width="280"><br><sub>Works on phones, too</sub></p>
+<p align="center"><img src="docs/screenshots/mobile.png" alt="Dispatch inbox on a phone" width="260">&nbsp;&nbsp;<img src="docs/screenshots/mobile-conversation.png" alt="A conversation on a phone" width="260"><br><sub>Fully mobile optimized, installable as an app</sub></p>
 
 ## How Dispatch compares
 
@@ -165,7 +165,7 @@ The **app** serves the UI, API and realtime stream. The **worker** syncs mailbox
 - [ ] Native iOS and Android apps
 - [ ] Calendar integration (Google, Microsoft)
 - [ ] SAML SSO and SCIM provisioning
-- [ ] SLA policies and business hours
+- [ ] SLA policies and reporting
 - [ ] Website live chat widget
 - [ ] Importers for Missive and Front
 
