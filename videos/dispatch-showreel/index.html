@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Dispatch — One line, one take</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Geist";
+        src: url("assets/fonts/geist-var.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "Geist Mono";
+        src: url("assets/fonts/geist-mono-var.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+      }
+      :root {
+        --ink: #121210;
+        --ink-2: #1b1b18;
+        --ink-3: #2a2a25;
+        --paper: #faf9f5;
+        --paper-2: #f1efe7;
+        --card: #fffefb;
+        --fg: #f4f2ea;
+        --quiet: #8c8a80;
+        --quiet-paper: #6f6d64;
+        --green: #4ade80;
+        --green-deep: #16a34a;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ink);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--ink);
+        font-family: "Geist", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      [data-composition-id="main"] > div[data-composition-src] {
+        position: absolute;
+        inset: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="15"
+      data-fps="60"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- 120 BPM grid: every cut lands on a beat (0.5s). -->
+      <div
+        id="el-noise"
+        data-composition-id="s1-noise"
+        data-composition-src="compositions/s1-noise.html"
+        data-start="0"
+        data-duration="2.5"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="el-signal"
+        data-composition-id="s2-signal"
+        data-composition-src="compositions/s2-signal.html"
+        data-start="2.5"
+        data-duration="2"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="el-product"
+        data-composition-id="s3-product"
+        data-composition-src="compositions/s3-product.html"
+        data-start="4.5"
+        data-duration="4"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="el-pricing"
+        data-composition-id="s4-pricing"
+        data-composition-src="compositions/s4-pricing.html"
+        data-start="8.5"
+        data-duration="3"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="el-terminal"
+        data-composition-id="s5-terminal"
+        data-composition-src="compositions/s5-terminal.html"
+        data-start="11.5"
+        data-duration="1.5"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="el-logo"
+        data-composition-id="s6-logo"
+        data-composition-src="compositions/s6-logo.html"
+        data-start="13"
+        data-duration="2"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Score: authored to the edit (120 BPM), plus the SFX layer. -->
+      <audio id="el-score" src="assets/audio/score.wav" data-start="0" data-duration="15" data-track-index="10" data-volume="0.9"></audio>
+    </div>
+    <script>
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>
