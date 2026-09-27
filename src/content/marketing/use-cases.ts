@@ -189,7 +189,7 @@ export const useCases: UseCase[] = [
       {
         label: "Route",
         title: "Rules sort the queue",
-        body: "Match on sender, subject or content to label, assign or move emails to the right team inbox the moment they arrive.",
+        body: "Match on sender, subject or content to label them and assign them to the right person or team the moment they arrive.",
         visual: "rules",
       },
       {

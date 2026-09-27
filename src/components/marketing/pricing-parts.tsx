@@ -4,21 +4,10 @@ import type { Competitor } from "@/content/marketing/types"
 import { APP_ENTRY } from "@/content/marketing/site"
 import { cn } from "@/lib/utils"
 import type { CloudPricing } from "./lib/pricing"
+import { planForTeam, referencePrice } from "./lib/plans"
 import { ButtonLink, MonoLabel } from "./primitives"
 
-export function referencePrice(c: Competitor): number {
-  return c.plans.find((p) => p.name === c.referencePlan)?.price ?? c.plans[0]?.price ?? 0
-}
-
-/**
- * The plan a team of `users` would actually need: the reference plan, or the
- * next tier up when the team exceeds that plan's seat cap.
- */
-export function planForTeam(c: Competitor, users: number) {
-  const start = Math.max(0, c.plans.findIndex((p) => p.name === c.referencePlan))
-  const fits = c.plans.slice(start).find((p) => p.maxUsers === undefined || users <= p.maxUsers)
-  return fits ?? c.plans[c.plans.length - 1]!
-}
+export { planForTeam, referencePrice }
 
 /** Dispatch Cloud price per month, for comparing with per-seat monthly prices. */
 export function monthlyCloud(p: CloudPricing): number {

@@ -42,7 +42,7 @@ export const conversationPatchSchema = z
 
 export type PatchInput = z.infer<typeof conversationPatchSchema>
 
-const CONVERSATION_FIELDS = ["status", "snoozedUntil", "teamId", "priority", "subject", "spam", "labelIds", "addLabelIds", "removeLabelIds"] as const
+const CONVERSATION_FIELDS = ["status", "snoozedUntil", "teamId", "priority", "subject", "spam", "trash", "labelIds", "addLabelIds", "removeLabelIds"] as const
 const ASSIGN_FIELDS = ["assigneeIds", "addAssigneeIds", "removeAssigneeIds"] as const
 const USER_FIELDS = ["starred", "pinned", "following", "muted", "read"] as const
 
@@ -420,6 +420,11 @@ export async function mergeConversations(ctx: Ctx, scope: InboxScope, targetId: 
   }
   const sids = sources.map((s) => s.conversation.id)
   await db.transaction(async (tx) => {
+    // Serialize concurrent merges (A→B vs B→A) and re-check after locking.
+    const locked = await tx.execute<{ id: string; merged_into_id: string | null }>(
+      sql`select id, merged_into_id from conversations where id in (${sql.join([targetId, ...sids].map((s) => sql`${s}::uuid`), sql`, `)}) order by id for update`
+    )
+    if (locked.some((r) => r.merged_into_id)) throw new ApiError(409, "One of these conversations was merged in the meantime", "merge_conflict")
     await tx.update(schema.messages).set({ conversationId: targetId }).where(inArray(schema.messages.conversationId, sids))
     await tx.update(schema.comments).set({ conversationId: targetId }).where(inArray(schema.comments.conversationId, sids))
     await tx.update(schema.conversationEvents).set({ conversationId: targetId }).where(inArray(schema.conversationEvents.conversationId, sids))

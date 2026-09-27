@@ -324,7 +324,7 @@ function Automate() {
           className="md:col-span-2 lg:col-span-4"
           layout="row"
           title="Rules & automation."
-          quiet="When, if, then: label, assign, move or notify automatically."
+          quiet="When, if, then: label, assign, snooze or close automatically."
           visual="rules"
           href="/features/rules-automation"
         />

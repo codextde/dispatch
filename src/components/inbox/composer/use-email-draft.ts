@@ -62,10 +62,13 @@ export function draftFromInfo(info: DraftInfo, fallbackSignature: string | null)
 
 type Options = {
   initial: EmailDraftState
+  saveOnMount?: boolean
   attachmentIds: string[]
   /** Replace the editor content (after conflicts / remote updates / undo) */
   onRemoteContent: (body: string) => void
   onResetAttachments: (info: DraftInfo) => void
+  /** Attachments added by the server (forwarded files) */
+  onServerAttachments?: (info: DraftInfo) => void
   /** Called after a successful send (the composer closes/resets itself) */
   onSent: (result: SendResult, opts: { close: boolean }) => void
 }
@@ -77,7 +80,7 @@ const SAVE_DELAY = 1200
  * with optimistic concurrency), conflict resolution for shared drafts,
  * send (queued with undo window / scheduled) and discard.
  */
-export function useEmailDraft({ initial, attachmentIds, onRemoteContent, onResetAttachments, onSent }: Options) {
+export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onRemoteContent, onResetAttachments, onServerAttachments, onSent }: Options) {
   const { slug, member, signature, bootstrap } = useInbox()
   const { org } = useOrg()
   const qc = useQueryClient()
@@ -86,9 +89,9 @@ export function useEmailDraft({ initial, attachmentIds, onRemoteContent, onReset
   const [sending, setSending] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const state = useRef({ draft: initial, attachmentIds, dirty: false, inflight: null as Promise<void> | null, timer: null as ReturnType<typeof setTimeout> | null, touched: !!initial.id })
-  const cbs = useRef({ onRemoteContent, onResetAttachments, onSent })
+  const cbs = useRef({ onRemoteContent, onResetAttachments, onServerAttachments, onSent })
   useEffect(() => {
-    cbs.current = { onRemoteContent, onResetAttachments, onSent }
+    cbs.current = { onRemoteContent, onResetAttachments, onServerAttachments, onSent }
   })
 
   const signatureHtml = useCallback(
@@ -154,6 +157,7 @@ export function useEmailDraft({ initial, attachmentIds, onRemoteContent, onReset
         state.current.draft = next
         setDraft(next)
         setLastSavedAt(new Date())
+        cbs.current.onServerAttachments?.(info)
         if (!d.id) {
           void qc.invalidateQueries({ queryKey: inboxKeys.counts(slug) })
           if (d.conversationId) void qc.invalidateQueries({ queryKey: inboxKeys.thread(slug, d.conversationId) })
@@ -163,9 +167,14 @@ export function useEmailDraft({ initial, attachmentIds, onRemoteContent, onReset
           const info = err.details as DraftInfo
           applyServer(info, `${memberName(member(info.lastEditedBy), "A teammate")} updated this draft`)
         } else if (err instanceof ApiClientError && err.status === 404) {
-          // Draft was sent or discarded elsewhere: start over as a new draft.
-          state.current.draft = { ...state.current.draft, id: null, version: 0 }
+          // Draft was sent or discarded elsewhere: start over as a new draft
+          // (a new message also needs a new conversation).
+          const cur = state.current.draft
+          state.current.draft = { ...cur, id: null, version: 0, conversationId: cur.mode === "new" ? null : cur.conversationId }
           state.current.dirty = true
+          // An edited draft is re-created with the next change; a new message whose
+          // conversation disappeared can't be saved until it gets a new one.
+          if (!d.id) toast.error("Draft not saved: the conversation is no longer available")
         } else {
           state.current.dirty = true
           toast.error(err instanceof Error ? `Draft not saved: ${err.message}` : "Draft not saved")
@@ -195,6 +204,15 @@ export function useEmailDraft({ initial, attachmentIds, onRemoteContent, onReset
     },
     [schedule]
   )
+
+  // A carried-over draft (mode switch) differs from the saved copy: save it.
+  const [initialSave] = useState(saveOnMount)
+  useEffect(() => {
+    if (!initialSave) return
+    state.current.dirty = true
+    state.current.touched = true
+    schedule()
+  }, [initialSave, schedule])
 
   // Attachments changed → save
   const attKey = attachmentIds.join(",")
@@ -292,7 +310,7 @@ export function useEmailDraft({ initial, attachmentIds, onRemoteContent, onReset
 /** After an undo: bring the draft back into a composer. */
 export function reopenDraft(info: DraftInfo) {
   if (info.mode === "new") inboxUI.openCompose({ draftId: info.id })
-  else inboxUI.openComposer(info.conversationId, info.mode)
+  else inboxUI.openComposer(info.conversationId, info.mode, { draft: info })
 }
 
 /**

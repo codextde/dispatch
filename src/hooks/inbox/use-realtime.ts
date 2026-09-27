@@ -74,6 +74,7 @@ export function useRealtime(slug: string, opts: { meId: string; notificationPref
     let es: EventSource | null = null
     let retryTimer: ReturnType<typeof setTimeout> | null = null
     let flushTimer: ReturnType<typeof setTimeout> | null = null
+    let countsTimer: ReturnType<typeof setTimeout> | null = null
     let attempts = 0
     let disconnectedAt: number | null = null
     let closed = false
@@ -84,7 +85,13 @@ export function useRealtime(slug: string, opts: { meId: string; notificationPref
     const flush = () => {
       flushTimer = null
       if (pending.lists) void qc.invalidateQueries({ queryKey: inboxKeys.lists(slug) })
-      if (pending.counts) void qc.invalidateQueries({ queryKey: inboxKeys.counts(slug) })
+      if (pending.counts) {
+        // Unread counts are the most expensive query: refresh at most every 2 seconds.
+        countsTimer ??= setTimeout(() => {
+          countsTimer = null
+          void qc.invalidateQueries({ queryKey: inboxKeys.counts(slug) })
+        }, 2000)
+      }
       if (pending.bootstrap) void qc.invalidateQueries({ queryKey: inboxKeys.bootstrap(slug) })
       if (pending.chats) void qc.invalidateQueries({ queryKey: inboxKeys.chats(slug) })
       if (pending.notifications) void qc.invalidateQueries({ queryKey: inboxKeys.notifications(slug) })
@@ -209,6 +216,7 @@ export function useRealtime(slug: string, opts: { meId: string; notificationPref
       document.removeEventListener("visibilitychange", onVisible)
       if (retryTimer) clearTimeout(retryTimer)
       if (flushTimer) clearTimeout(flushTimer)
+      if (countsTimer) clearTimeout(countsTimer)
       es?.close()
     }
   }, [qc, slug])

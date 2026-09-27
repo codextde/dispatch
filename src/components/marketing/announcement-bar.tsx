@@ -4,7 +4,7 @@ import { GitHubMark } from "./primitives"
 
 export function AnnouncementBar({ stars }: { stars: string | null }) {
   return (
-    <div className="mk-dark border-b border-border bg-[#141414]">
+    <aside aria-label="Announcement" className="mk-dark border-b border-border bg-[#141414]">
       <a
         href={GITHUB_URL}
         target="_blank"
@@ -25,6 +25,6 @@ export function AnnouncementBar({ stars }: { stars: string | null }) {
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" aria-hidden />
         </span>
       </a>
-    </div>
+    </aside>
   )
 }

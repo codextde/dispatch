@@ -25,14 +25,12 @@ export const POST = route<{ slug: string }>(async (req, { params }) => {
   const orgId = ctx.org.id
   const me = ctx.user.id
 
-  if (input.left && input.left !== input.conversationId) {
+  // Leaving: only if my presence still points at that conversation (requests can arrive out of order).
+  if (input.left && input.left !== input.conversationId && getViewers(orgId, input.left).some((v) => v.userId === me)) {
     touchPresence(orgId, me, "", false)
     await publish({ orgId, type: "presence", conversationId: input.left, actorId: me, data: { viewers: getViewers(orgId, input.left).map((v) => ({ userId: v.userId, composing: normalize(v.composing) })) } })
   }
-  if (!input.conversationId) {
-    if (!input.left) touchPresence(orgId, me, "", false)
-    return json({ viewers: [] })
-  }
+  if (!input.conversationId) return json({ viewers: [] })
 
   const scope = await loadScope(ctx)
   const row = await loadOneAccessible(ctx, scope, input.conversationId)

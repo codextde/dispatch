@@ -5,10 +5,17 @@ import { useCases } from "@/content/marketing/use-cases"
 import { getAppUrl } from "@/server/env"
 import { getSettings } from "@/server/settings"
 
+/** Reflects instance settings (domain, marketing site on/off), so it is rendered per request. */
+export const dynamic = "force-dynamic"
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = getAppUrl()
-  const general = await getSettings("general").catch(() => null)
-  if (general?.marketingSite === false) return []
+  const [general, legal] = await Promise.all([
+    getSettings("general").catch(() => null),
+    getSettings("legal").catch(() => null),
+  ])
+  const legalPages = (["imprint", "privacy", "terms"] as const).filter((k) => legal?.[k]?.trim())
+  if (general?.marketingSite === false) return legalPages.map((k) => ({ url: `${base}/legal/${k}` }))
 
   const lastModified = new Date()
   const entry = (path: string, priority: number, changeFrequency: "weekly" | "monthly" | "yearly" = "monthly") => ({
@@ -32,8 +39,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/open-source", 0.6),
     entry("/changelog", 0.5, "weekly"),
     entry("/about", 0.4),
-    entry("/legal/imprint", 0.1, "yearly"),
-    entry("/legal/privacy", 0.1, "yearly"),
-    entry("/legal/terms", 0.1, "yearly"),
+    ...legalPages.map((k) => entry(`/legal/${k}`, 0.1, "yearly")),
   ]
 }

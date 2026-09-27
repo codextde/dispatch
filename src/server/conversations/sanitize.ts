@@ -27,9 +27,33 @@ const GLOBAL_ATTRS = [
   "color", "face", "size", "dir", "lang", "title", "colspan", "rowspan", "nowrap", "role", "type", "start", "span",
 ]
 
-const REMOTE_URL_RE = /^(https?:)?\/\//i
-const CSS_URL_RE = /url\(\s*(['"]?)\s*((?:https?:)?\/\/[^)'"]*)\1\s*\)/gi
+const CSS_URL_RE = /url\s*\(\s*(['"]?)([^)'"]*)\1\s*\)/gi
+const IMAGE_SET_RE = /(-webkit-)?image-set\s*\([^;{}]*\)/gi
 const DANGEROUS_CSS_RE = /expression\s*\(|javascript:|vbscript:|-moz-binding|behavior\s*:/gi
+
+/**
+ * Is this URL fetched from somewhere else than our own origin? Only `data:`,
+ * `cid:` and same-origin absolute paths (our attachment URLs) are local;
+ * everything else — including `//host`, `\\host`, `http:host` and relative
+ * paths — counts as remote.
+ */
+export function isRemoteUrl(value: string) {
+  const v = value.trim()
+  if (!v) return false
+  if (/^(data|cid):/i.test(v)) return false
+  if (/^\/(?![\/\\])/.test(v)) return false
+  return true
+}
+
+/** Undo CSS escapes (`u\72l(` → `url(`) so filters can't be bypassed. */
+function unescapeCss(css: string) {
+  return css
+    .replace(/\\([0-9a-f]{1,6})\s?/gi, (_m, hex: string) => {
+      const code = Number.parseInt(hex, 16)
+      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : ""
+    })
+    .replace(/\\(.)/g, "$1")
+}
 
 export type SanitizeEmailOptions = {
   /** Replace remote images and CSS backgrounds (default true) */
@@ -39,9 +63,14 @@ export type SanitizeEmailOptions = {
 }
 
 function cleanCss(css: string, blockRemote: boolean, onRemote: () => void) {
-  let out = css.replace(DANGEROUS_CSS_RE, "")
+  let out = unescapeCss(css).replace(DANGEROUS_CSS_RE, "")
   out = out.replace(/@import[^;]*;?/gi, "")
-  out = out.replace(CSS_URL_RE, (match) => {
+  out = out.replace(IMAGE_SET_RE, (match) => {
+    onRemote()
+    return blockRemote ? "none" : match
+  })
+  out = out.replace(CSS_URL_RE, (match, _q: string, url: string) => {
+    if (!isRemoteUrl(url)) return match
     onRemote()
     return blockRemote ? "none" : match
   })
@@ -82,7 +111,7 @@ export function sanitizeEmailHtml(html: string, opts: SanitizeEmailOptions = {})
         const next = { ...attribs }
         if (next.style) next.style = cleanCss(next.style, blockRemote, markRemote)
         if (next.background) {
-          if (REMOTE_URL_RE.test(next.background)) {
+          if (isRemoteUrl(next.background)) {
             markRemote()
             if (blockRemote) delete next.background
           } else delete next.background
@@ -103,7 +132,7 @@ export function sanitizeEmailHtml(html: string, opts: SanitizeEmailOptions = {})
           const url = opts.cidMap?.get(cid)
           if (url) next.src = url
           else delete next.src
-        } else if (REMOTE_URL_RE.test(src)) {
+        } else if (isRemoteUrl(src)) {
           markRemote()
           if (blockRemote) {
             next["data-blocked-src"] = src

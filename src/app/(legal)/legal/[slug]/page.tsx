@@ -26,22 +26,31 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/legal/[slug]">): Promise<Metadata> {
   const { slug } = await params
   if (!isLegalSlug(slug)) return {}
-  return { title: pages[slug].title, alternates: { canonical: `/legal/${slug}` } }
+  const legal = await getSettings("legal")
+  const published = Boolean(legal[pages[slug].field].trim())
+  return {
+    title: pages[slug].title,
+    alternates: { canonical: `/legal/${slug}` },
+    // Placeholder pages shouldn't end up in search results.
+    ...(published ? {} : { robots: { index: false } }),
+  }
 }
 
 /** Operator-provided Markdown → sanitized HTML. */
 function renderMarkdown(md: string): string {
   const html = marked.parse(md, { async: false, gfm: true, breaks: false })
   return sanitizeHtml(html, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["h1", "h2", "img"]),
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["h2", "img"]),
     allowedAttributes: {
-      a: ["href", "title", "name", "target", "rel"],
+      a: ["href", "title", "target", "rel"],
       img: ["src", "alt", "title", "width", "height"],
       th: ["align"],
       td: ["align"],
     },
     allowedSchemes: ["http", "https", "mailto", "tel"],
     transformTags: {
+      // The page already has an <h1>; demote Markdown top-level headings.
+      h1: "h2",
       a: (tagName, attribs) => {
         const external = /^https?:\/\//.test(attribs.href ?? "")
         return {
@@ -94,10 +103,6 @@ export default async function LegalPage({ params }: PageProps<"/legal/[slug]">) 
               <FileText className="size-4 text-muted-foreground" aria-hidden />
             </span>
             <p className="mt-5 text-[15px] font-medium">The operator of this instance hasn&apos;t published this page yet.</p>
-            <p className="mt-1.5 max-w-sm text-[13.5px] leading-relaxed text-muted-foreground">
-              Administrators can add it in Admin → Settings → Legal. It&apos;s written in Markdown and appears here
-              right away.
-            </p>
           </div>
         )}
       </div>

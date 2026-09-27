@@ -85,7 +85,12 @@ export function isUuid(value: string | null | undefined): value is string {
 
 export function parseBox(box: string | null | undefined): ParsedBox | null {
   if (!box) return null
-  const decoded = decodeURIComponent(box)
+  let decoded: string
+  try {
+    decoded = decodeURIComponent(box)
+  } catch {
+    return null
+  }
   if ((STATIC_BOXES as readonly string[]).includes(decoded)) return { kind: "static", id: decoded as StaticBox }
   const dot = decoded.indexOf(".")
   if (dot < 0) return null

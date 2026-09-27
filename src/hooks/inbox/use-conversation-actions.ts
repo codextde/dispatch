@@ -46,7 +46,7 @@ export function useConversationActions() {
     [qc, slug]
   )
 
-  const mutation = useMutation<unknown, Error, Vars, Snapshot>({
+  const { mutateAsync, isPending } = useMutation<unknown, Error, Vars, Snapshot>({
     mutationFn: ({ ids, patch }) =>
       ids.length === 1
         ? api.patch(`/api/w/${slug}/conversations/${ids[0]}`, patch)
@@ -98,33 +98,34 @@ export function useConversationActions() {
     (ids: string[], patch: ConversationPatch, opts: RunOptions = {}) => {
       if (!ids.length) return
       const previous = ids.map((id) => find(id)).filter(Boolean) as ConversationListItem[]
-      mutation.mutate(
-        { ids, patch },
-        {
-          onSuccess: () => {
-            opts.onDone?.()
-            if (!opts.undo) return
-            // Group items by the patch that undoes the change for them.
-            const groups = new Map<string, { ids: string[]; patch: ConversationPatch }>()
-            for (const item of previous) {
-              const inv = inversePatch(item, patch)
-              if (!inv) continue
-              const key = JSON.stringify(inv)
-              const g = groups.get(key) ?? { ids: [], patch: inv }
-              g.ids.push(item.id)
-              groups.set(key, g)
-            }
-            toast(opts.undo, {
-              action: groups.size
-                ? { label: "Undo", onClick: () => groups.forEach((g) => mutation.mutate({ ids: g.ids, patch: g.patch })) }
-                : undefined,
-            })
-          },
-        }
-      )
+      // mutateAsync keeps each call's continuation even when calls overlap
+      // (e.g. "close" followed immediately by "mark read" on the next conversation).
+      mutateAsync({ ids, patch })
+        .then(() => {
+          opts.onDone?.()
+          if (!opts.undo) return
+          // Group items by the patch that undoes the change for them.
+          const groups = new Map<string, { ids: string[]; patch: ConversationPatch }>()
+          for (const item of previous) {
+            const inv = inversePatch(item, patch)
+            if (!inv) continue
+            const key = JSON.stringify(inv)
+            const g = groups.get(key) ?? { ids: [], patch: inv }
+            g.ids.push(item.id)
+            groups.set(key, g)
+          }
+          toast(opts.undo, {
+            action: groups.size
+              ? { label: "Undo", onClick: () => groups.forEach((g) => void mutateAsync({ ids: g.ids, patch: g.patch }).catch(() => {})) }
+              : undefined,
+          })
+        })
+        .catch(() => {
+          /* rolled back + toast in onError */
+        })
     },
-    [find, mutation]
+    [find, mutateAsync]
   )
 
-  return { run, find, pending: mutation.isPending }
+  return { run, find, pending: isPending }
 }

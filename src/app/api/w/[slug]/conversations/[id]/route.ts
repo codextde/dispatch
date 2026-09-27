@@ -14,15 +14,16 @@ export const GET = route<P>(async (req, { params }) => {
   return json(thread)
 })
 
-/** PATCH /api/w/[slug]/conversations/[id]  body: ConversationPatch → ConversationListItem */
+/**
+ * PATCH /api/w/[slug]/conversations/[id]  body: ConversationPatch
+ *   → { item: ConversationListItem | null } (null when the change removed your access, e.g. unassigning yourself)
+ */
 export const PATCH = route<P>(async (req, { params }) => {
   const { slug, id } = await params
   const { ctx, scope } = await inboxContext(req, slug, { write: true })
   const patch = await parseJson(req, conversationPatchSchema)
   await applyConversationPatch(ctx, scope, [assertUuid(id, "Conversation")], patch)
-  const item = await getListItem(ctx, scope, id)
-  if (!item) throw new ApiError(404, "Conversation not found", "not_found")
-  return json(item)
+  return json({ item: await getListItem(ctx, scope, id) })
 })
 
 /** DELETE /api/w/[slug]/conversations/[id] → permanently delete (must be in trash) */

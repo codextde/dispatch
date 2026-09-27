@@ -92,7 +92,7 @@ function OutboundStatus({ message, conversationId }: { message: ThreadMessage; c
     onSuccess: (draft) => {
       refresh()
       toast.success(message.status === "scheduled" ? "Scheduled message canceled — it's a draft again" : "Sending undone")
-      inboxUI.openComposer(conversationId, draft.mode === "new" ? "reply" : draft.mode)
+      inboxUI.openComposer(conversationId, draft.mode === "new" ? "reply" : draft.mode, { draft })
     },
     onError: (err) => toast.error(err.message),
   })
@@ -241,7 +241,7 @@ export function MessageItem({
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon-xs" aria-label="Reply" onClick={() => inboxUI.openComposer(conversationId, "reply", message.id)}>
+                  <Button variant="ghost" size="icon-xs" aria-label="Reply" onClick={() => inboxUI.openComposer(conversationId, "reply", { messageId: message.id })}>
                     <Reply />
                   </Button>
                 </TooltipTrigger>
@@ -254,13 +254,13 @@ export function MessageItem({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "reply", message.id)}>
+                  <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "reply", { messageId: message.id })}>
                     <Reply /> Reply
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "reply_all", message.id)}>
+                  <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "reply_all", { messageId: message.id })}>
                     <ReplyAll /> Reply all
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "forward", message.id)}>
+                  <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "forward", { messageId: message.id })}>
                     <Forward /> Forward
                   </DropdownMenuItem>
                   {message.messageId && (

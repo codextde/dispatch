@@ -123,11 +123,15 @@ async function syncMessageAttachments(tx: Tx, ctx: Ctx, messageId: string, attac
         )
       )
   }
+  return { removedKeys: removed.map((r) => r.storageKey), count: await countFiles(tx, messageId) }
+}
+
+async function countFiles(tx: Tx, messageId: string) {
   const [{ count }] = (await tx
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.attachments)
     .where(and(eq(schema.attachments.messageId, messageId), eq(schema.attachments.isInline, false)))) as [{ count: number }]
-  return { removedKeys: removed.map((r) => r.storageKey), count }
+  return count
 }
 
 /** Copy the (non-inline) attachments of a forwarded message to the draft. */
@@ -212,6 +216,13 @@ export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | n
   if (draftId) {
     const { draft, conversation, mine } = await loadEditableDraft(ctx, scope, draftId)
     const from = input.accountId ? await resolveFrom(ctx, scope, input.accountId, input.fromEmail) : null
+    const prevMode = (draft.headers?.[DRAFT_MODE_HEADER] as DraftMode | undefined) ?? (draft.replyToMessageId ? "reply" : "new")
+    // Reply ↔ reply all ↔ forward switches keep the same draft; "new" drafts stay new.
+    const mode: DraftMode = prevMode === "new" ? "new" : input.mode === "new" ? prevMode : input.mode
+    const target =
+      mode !== "new" && (mode !== prevMode || (input.replyToMessageId && input.replyToMessageId !== draft.replyToMessageId))
+        ? await loadReplyTarget(conversation.id, input.replyToMessageId ?? draft.replyToMessageId)
+        : null
     const result = await db.transaction(async (tx) => {
       const [updated] = await tx
         .update(m)
@@ -227,6 +238,8 @@ export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | n
           textBody: text,
           snippet: makeSnippet(text),
           isSharedDraft: mine && input.isShared !== undefined ? input.isShared : draft.isSharedDraft,
+          headers: { ...draft.headers, [DRAFT_MODE_HEADER]: mode },
+          replyToMessageId: target?.id ?? draft.replyToMessageId,
           lastEditedBy: me,
           draftVersion: sql`${m.draftVersion} + 1`,
         })
@@ -240,8 +253,9 @@ export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | n
         .returning()
       if (!updated) return null
       const sync = await syncMessageAttachments(tx, ctx, updated.id, input.attachmentIds)
-      await tx.update(m).set({ hasAttachments: sync.count > 0 }).where(eq(m.id, updated.id))
-      if (conversation.messageCount === 0 && conversation.createdBy === me) {
+      if (mode === "forward" && prevMode !== "forward" && target) await copyForwardAttachments(tx, ctx, target.id, updated.id)
+      await tx.update(m).set({ hasAttachments: (await countFiles(tx, updated.id)) > 0 }).where(eq(m.id, updated.id))
+      if (mode === "new") {
         // A new-message draft: keep the conversation in sync with the draft.
         await tx
           .update(schema.conversations)
@@ -310,9 +324,11 @@ export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | n
         replyToMessageId: replyTarget?.id ?? null,
       })
       .returning()
+    // Link uploads first, then add copies of the forwarded message's files (returned in DraftInfo,
+    // so the client keeps them in later autosaves).
+    await syncMessageAttachments(tx, ctx, draft!.id, input.attachmentIds)
     if (input.mode === "forward" && replyTarget) await copyForwardAttachments(tx, ctx, replyTarget.id, draft!.id)
-    const sync = await syncMessageAttachments(tx, ctx, draft!.id, input.attachmentIds)
-    if (sync.count) await tx.update(m).set({ hasAttachments: true }).where(eq(m.id, draft!.id))
+    if (await countFiles(tx, draft!.id)) await tx.update(m).set({ hasAttachments: true }).where(eq(m.id, draft!.id))
     return draft!
   })
   const info = await getDraft(ctx, scope, created.id)
@@ -491,9 +507,13 @@ export async function sendMessage(ctx: Ctx, scope: InboxScope, input: SendInput)
         .values({ ...values, orgId: ctx.org.id, conversationId: convId })
         .returning()
       message = inserted!
-      if (mode === "forward" && replyTarget) await copyForwardAttachments(tx, ctx, replyTarget.id, message.id)
     }
-    const sync = await syncMessageAttachments(tx, ctx, message.id, input.attachmentIds)
+    let sync = await syncMessageAttachments(tx, ctx, message.id, input.attachmentIds)
+    if (!draft && mode === "forward" && replyTarget) {
+      // Sent without a saved draft: include the forwarded message's files.
+      await copyForwardAttachments(tx, ctx, replyTarget.id, message.id)
+      sync = { ...sync, count: await countFiles(tx, message.id) }
+    }
     if ((sync.count > 0) !== message.hasAttachments) {
       await tx.update(m).set({ hasAttachments: sync.count > 0 }).where(eq(m.id, message.id))
       message = { ...message, hasAttachments: sync.count > 0 }
@@ -569,7 +589,7 @@ export async function cancelSend(ctx: Ctx, scope: InboxScope, messageId: string)
   return toDraftInfo(ctx.org.slug, draft, atts)
 }
 
-/** Send a scheduled (or queued) message right away. */
+/** Send a scheduled (or queued) message right away, or retry a failed one. */
 export async function sendNow(ctx: Ctx, scope: InboxScope, messageId: string) {
   const msg = await db.query.messages.findFirst({ where: and(eq(m.id, messageId), eq(m.orgId, ctx.org.id)) })
   if (!msg) throw new ApiError(404, "Message not found", "not_found")
@@ -578,8 +598,8 @@ export async function sendNow(ctx: Ctx, scope: InboxScope, messageId: string) {
   if (msg.authorId !== ctx.user.id) throw new ApiError(403, "Only the sender can send this message", "forbidden")
   const [updated] = await db
     .update(m)
-    .set({ status: "queued", sendAt: new Date() })
-    .where(and(eq(m.id, messageId), inArray(m.status, ["queued", "scheduled"])))
+    .set({ status: "queued", sendAt: new Date(), sendError: null, sendAttempts: 0 })
+    .where(and(eq(m.id, messageId), inArray(m.status, ["queued", "scheduled", "failed"])))
     .returning({ id: m.id })
   if (!updated) throw new ApiError(409, "The message is already being sent", "already_sending")
   await publishConversations(ctx.org.id, [msg.conversationId], ctx.user.id)
@@ -597,7 +617,8 @@ export async function getMessageBody(ctx: Ctx, scope: InboxScope, messageId: str
   if (msg.status === "queued" && msg.authorId !== ctx.user.id) throw new ApiError(404, "Message not found", "not_found")
 
   const security = await getSettings("security")
-  const allowRemote = msg.direction === "outbound" || (security.remoteImages !== "never" && (loadImages || security.remoteImages === "always"))
+  // Outbound messages may quote inbound HTML (tracking pixels), so they follow the same policy.
+  const allowRemote = security.remoteImages !== "never" && (loadImages || security.remoteImages === "always")
 
   if (!msg.htmlBody) {
     return { html: textToHtml(msg.textBody ?? ""), hasRemoteImages: false, imagesLoaded: true, simple: true }

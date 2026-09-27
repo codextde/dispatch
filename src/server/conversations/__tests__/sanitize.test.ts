@@ -69,3 +69,13 @@ describe("toPrefixTsQuery", () => {
     expect(toPrefixTsQuery("it's")).toBe("it:* & s:*")
   })
 })
+
+describe("remote content detection", () => {
+  it("blocks protocol tricks and escaped CSS", () => {
+    const input = `<img src="\\\\evil.test/p.gif"><img src="http:evil.test/q.gif"><div style="background-image:u\\72l(https://evil.test/r.png)">a</div><div style="background:image-set('https://evil.test/s.png' 1x)">b</div><img src="/api/w/acme/attachments/1?inline=1">`
+    const { html, hasRemoteImages } = sanitizeEmailHtml(input, { blockRemote: true })
+    expect(hasRemoteImages).toBe(true)
+    expect(html).not.toMatch(/ src="\\\\\\\\evil| src="http:evil|evil\.test\/r\.png|evil\.test\/s\.png/)
+    expect(html).toContain('src="/api/w/acme/attachments/1?inline=1"')
+  })
+})

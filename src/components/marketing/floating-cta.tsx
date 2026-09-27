@@ -39,7 +39,8 @@ export function FloatingCta({ signedIn, stars }: { signedIn: boolean; stars: str
       <MotionConfig reducedMotion="user">
         <AnimatePresence>
           {show && (
-            <m.div
+            <m.aside
+              aria-label="Get started"
               initial={{ y: 24, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 24, opacity: 0 }}
@@ -78,7 +79,7 @@ export function FloatingCta({ signedIn, stars }: { signedIn: boolean; stars: str
                   )}
                 </a>
               </div>
-            </m.div>
+            </m.aside>
           )}
         </AnimatePresence>
       </MotionConfig>

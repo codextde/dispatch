@@ -6,6 +6,7 @@ import { ApiError } from "@/server/api"
 import { publish } from "@/server/realtime"
 import { emitWebhook } from "@/server/jobs"
 import { notify } from "@/server/notifications"
+import { isUuid } from "@/lib/inbox/boxes"
 import type { ThreadComment } from "@/lib/inbox/types"
 import { sanitizeCommentHtml } from "./sanitize"
 import { loadOneAccessible, type Ctx, type InboxScope } from "./scope"
@@ -58,7 +59,7 @@ export async function createComment(
   const { html, mentionIds, text } = sanitizeCommentHtml(input.body)
   if (!text && !input.attachmentIds.length) throw new ApiError(400, "Comment is empty", "empty_comment")
 
-  const members = await activeMemberIds(ctx.org.id, mentionIds)
+  const members = await activeMemberIds(ctx.org.id, mentionIds.filter(isUuid))
   const mentions = mentionIds.filter((id) => members.has(id))
 
   if (input.parentId) {
@@ -192,7 +193,7 @@ export async function updateComment(ctx: Ctx, scope: InboxScope, commentId: stri
   if (comment.authorId !== ctx.user.id) throw new ApiError(403, "You can only edit your own comments", "forbidden")
   const { html, mentionIds, text } = sanitizeCommentHtml(body)
   if (!text) throw new ApiError(400, "Comment is empty", "empty_comment")
-  const members = await activeMemberIds(ctx.org.id, mentionIds)
+  const members = await activeMemberIds(ctx.org.id, mentionIds.filter(isUuid))
   const mentions = mentionIds.filter((id) => members.has(id))
   await db
     .update(schema.comments)

@@ -199,11 +199,6 @@ export function ChatVisual() {
                 <Mail className="size-3" /> Scheduled maintenance, Oct 4
               </span>
             </p>
-            <div className="mt-1.5 flex gap-1">
-              <span className="rounded-full border border-border bg-card px-1.5 text-[10px]">
-                <Check className="mr-0.5 inline size-2.5" />2
-              </span>
-            </div>
           </div>
         </div>
       </div>

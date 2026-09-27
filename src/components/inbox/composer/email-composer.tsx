@@ -43,8 +43,10 @@ export type EmailComposerProps = {
   onSent: (result: SendResult, opts: { close: boolean }) => void
   onDiscarded?: () => void
   onActivity?: () => void
-  /** Called when the mode changes recipients (reply ↔ reply all ↔ forward) */
+  /** Receives every change of the draft state (e.g. to carry it over when switching reply mode) */
   onDraftChange?: (draft: EmailDraftState) => void
+  /** Persist the initial state right away (it differs from the saved draft) */
+  saveOnMount?: boolean
 }
 
 export function EmailComposer({
@@ -64,6 +66,7 @@ export function EmailComposer({
   onDiscarded,
   onActivity,
   onDraftChange,
+  saveOnMount = false,
 }: EmailComposerProps) {
   const { slug, bootstrap, member, meId } = useInbox()
   const { org } = useOrg()
@@ -85,9 +88,11 @@ export function EmailComposer({
 
   const d = useEmailDraft({
     initial,
+    saveOnMount,
     attachmentIds: uploads.ids,
     onRemoteContent: (body) => editor?.commands.setContent(body, { emitUpdate: false }),
     onResetAttachments: (info) => uploads.reset(info.attachments),
+    onServerAttachments: (info) => uploads.merge(info.attachments),
     onSent: (result, opts) => {
       editor?.commands.clearContent(false)
       uploads.reset()

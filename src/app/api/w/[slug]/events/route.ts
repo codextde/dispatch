@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server"
-import { and, eq } from "drizzle-orm"
+import { and, eq, gt, isNull, or } from "drizzle-orm"
 import { errorResponse, requireApiOrg } from "@/server/api"
 import { SESSION_COOKIE, validateSessionToken } from "@/server/auth/session"
 import { subscribe } from "@/server/realtime"
@@ -56,7 +56,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
       const heartbeat = setInterval(() => send(`: ping ${Date.now()}\n\n`), HEARTBEAT_MS)
       const recheck = setInterval(async () => {
         try {
-          const session = ctx.via === "session" ? await validateSessionToken(token) : { user: ctx.user }
+          const session =
+            ctx.via === "session"
+              ? await validateSessionToken(token)
+              : await db.query.apiKeys.findFirst({
+                  where: and(
+                    eq(schema.apiKeys.id, ctx.apiKeyId!),
+                    isNull(schema.apiKeys.revokedAt),
+                    or(isNull(schema.apiKeys.expiresAt), gt(schema.apiKeys.expiresAt, new Date()))
+                  ),
+                  columns: { id: true },
+                })
           const membership = session
             ? await db.query.memberships.findFirst({
                 where: and(eq(schema.memberships.orgId, orgId), eq(schema.memberships.userId, me), eq(schema.memberships.status, "active")),

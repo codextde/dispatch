@@ -49,7 +49,9 @@ export function ConversationComposer({
   const conv = thread.conversation
   const { bootstrap, meId, ownAddresses, member } = useInbox()
   const isMobile = useIsMobile()
-  const [email, setEmail] = useState<{ mode: ReplyMode; key: number; draft?: DraftInfo; messageId?: string } | null>(null)
+  const [email, setEmail] = useState<{ mode: ReplyMode; key: number; draft?: DraftInfo; messageId?: string; carry?: EmailDraftState } | null>(null)
+  /** Latest state of the open email composer (to keep the draft when switching reply mode) */
+  const latestDraft = useRef<EmailDraftState | null>(null)
   const [commentOpen, setCommentOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const canReply = conv.level !== "read" && conv.kind === "email"
@@ -71,15 +73,12 @@ export function ConversationComposer({
     if (composingTimer.current) clearTimeout(composingTimer.current)
   }, [])
 
-  const openEmail = useCallback(
-    (mode: ReplyMode, messageId?: string) => {
-      if (!canReply) return
-      setCommentOpen(false)
-      const draft = mode === "reply" && !messageId ? myDraft : undefined
-      setEmail((prev) => ({ mode: draft?.mode === "new" ? "reply" : ((draft?.mode as ReplyMode) ?? mode), key: (prev?.key ?? 0) + 1, draft, messageId }))
-    },
-    [canReply, myDraft]
-  )
+  const openEmail = (mode: ReplyMode) => {
+    if (!canReply) return
+    setCommentOpen(false)
+    const draft = mode === "reply" ? myDraft : undefined
+    setEmail((prev) => ({ mode: draft?.mode === "new" ? "reply" : ((draft?.mode as ReplyMode) ?? mode), key: (prev?.key ?? 0) + 1, draft }))
+  }
 
   // Keyboard / external commands (r, a, f, c; undo send re-opens the draft).
   const command = useInboxUI((s) => (s.composer?.conversationId === conv.id ? s.composer : null))
@@ -92,9 +91,11 @@ export function ConversationComposer({
       setCommentOpen(true)
       setFocusComment(command.nonce)
     } else if (command.mode !== "new" && canReply) {
-      const draft = command.messageId
-        ? undefined
-        : (thread.drafts.find((d) => d.authorId === meId && d.mode === command.mode) ?? (command.mode === "reply" ? myDraft : undefined))
+      const draft =
+        command.draft ??
+        (command.messageId
+          ? undefined
+          : (thread.drafts.find((d) => d.authorId === meId && d.mode === command.mode) ?? (command.mode === "reply" ? myDraft : undefined)))
       setCommentOpen(false)
       setEmail({ mode: command.mode, key: command.nonce, draft, messageId: command.messageId })
     }
@@ -111,6 +112,7 @@ export function ConversationComposer({
   const initial = useMemo<EmailDraftState | null>(() => {
     if (!email) return null
     const sigFor = (accountId: string | null) => bootstrap.accounts.find((a) => a.id === accountId)?.defaultSignatureId ?? null
+    if (email.carry) return email.carry
     if (email.draft) return draftFromInfo(email.draft, sigFor(email.draft.accountId))
     const defaults = replyDefaults(thread, email.mode, accounts, ownAddresses, email.messageId)
     return {
@@ -135,7 +137,20 @@ export function ConversationComposer({
 
   const switchMode = (mode: ReplyMode) => {
     if (!email || mode === email.mode) return
-    setEmail((prev) => ({ mode, key: (prev?.key ?? 0) + 1, messageId: prev?.messageId }))
+    const latest = latestDraft.current
+    const defaults = replyDefaults(thread, mode, accounts, ownAddresses, latest?.replyToMessageId ?? email.messageId)
+    // Keep the text, attachments and draft id; recompute recipients for the new mode.
+    const carry: EmailDraftState | undefined = latest
+      ? {
+          ...latest,
+          mode,
+          to: defaults.to,
+          cc: defaults.cc,
+          subject: mode === "forward" ? defaults.subject : "",
+          replyToMessageId: defaults.replyToMessageId,
+        }
+      : undefined
+    setEmail((prev) => ({ mode, key: (prev?.key ?? 0) + 1, messageId: prev?.messageId, draft: prev?.draft, carry }))
   }
 
   const onSent = (_result: SendResult, opts: { close: boolean }) => {
@@ -201,6 +216,10 @@ export function ConversationComposer({
       }}
       onSent={onSent}
       onActivity={() => activity("reply")}
+      onDraftChange={(d) => {
+        latestDraft.current = d
+      }}
+      saveOnMount={!!email.carry}
     />
   )
 

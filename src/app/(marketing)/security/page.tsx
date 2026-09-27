@@ -147,7 +147,7 @@ export default async function SecurityPage() {
           <ul className="space-y-3 self-center">
             {[
               "Mail stays in the original mailbox; Dispatch keeps a synced copy in your own Postgres",
-              "No telemetry: a self-hosted instance doesn't phone home",
+              "No telemetry: Dispatch never reports usage data anywhere",
               "The AI assistant is off by default and only uses the provider and API key you configure",
               "Stripe is contacted only when an operator turns billing on",
               "Open source under AGPL-3.0, so every claim on this page can be verified in the code",

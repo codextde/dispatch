@@ -4,7 +4,7 @@ import { CtaSection } from "@/components/marketing/cta-section"
 import { FaqSection } from "@/components/marketing/faq"
 import { clientPricing, getCloudPricing, type CloudPricing } from "@/components/marketing/lib/pricing"
 import { PageHero } from "@/components/marketing/page-hero"
-import { Bool, PlanCards, referencePrice } from "@/components/marketing/pricing-parts"
+import { Bool, PlanCards } from "@/components/marketing/pricing-parts"
 import { JsonLd, MonoLabel, PixelMark, Section, SectionHeading } from "@/components/marketing/primitives"
 import { competitors, PRICES_AS_OF } from "@/content/marketing/competitors"
 import type { Faq } from "@/content/marketing/types"
@@ -23,7 +23,7 @@ export default async function PricingPage() {
   const rivals = ["missive", "front", "hiver", "help-scout"]
     .map((s) => competitors.find((c) => c.slug === s))
     .filter((c) => c !== undefined)
-    .map((c) => ({ name: c.name, plan: c.referencePlan, price: referencePrice(c) }))
+    .map((c) => ({ name: c.name, plans: c.plans, referencePlan: c.referencePlan }))
 
   return (
     <>

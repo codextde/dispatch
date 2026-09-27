@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react"
 import type { ListFilters } from "@/lib/inbox/boxes"
-import type { DraftMode } from "@/lib/inbox/types"
+import type { DraftInfo, DraftMode } from "@/lib/inbox/types"
 
 /**
  * UI state shared across the inbox panes (list, conversation, sidebar,
@@ -10,7 +10,15 @@ import type { DraftMode } from "@/lib/inbox/types"
  * components from re-rendering (selectors) without adding a dependency.
  */
 export type PickerKind = "label" | "assign" | "snooze" | "team" | "merge" | null
-export type ComposerCommand = { conversationId: string; mode: DraftMode | "comment"; messageId?: string; nonce: number } | null
+export type ComposerCommand = {
+  conversationId: string
+  mode: DraftMode | "comment"
+  /** Reply to this message instead of the latest one */
+  messageId?: string
+  /** Open this draft (e.g. after "Undo send") */
+  draft?: DraftInfo
+  nonce: number
+} | null
 export type ComposeInit = { to?: { name?: string | null; email: string }[]; subject?: string; html?: string; draftId?: string; accountId?: string }
 
 export type InboxUIState = {
@@ -79,8 +87,8 @@ export const inboxUI = {
     }
   },
   /** Ask the conversation view to open its composer (r / a / f / c shortcuts). */
-  openComposer(conversationId: string, mode: DraftMode | "comment", messageId?: string) {
-    inboxUI.set({ composer: { conversationId, mode, messageId, nonce: Date.now() } })
+  openComposer(conversationId: string, mode: DraftMode | "comment", opts: { messageId?: string; draft?: DraftInfo } = {}) {
+    inboxUI.set({ composer: { conversationId, mode, ...opts, nonce: Date.now() } })
   },
   openCompose(init?: ComposeInit) {
     inboxUI.set((s) => ({ compose: { open: true, init, nonce: s.compose.nonce + 1 } }))

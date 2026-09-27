@@ -76,7 +76,17 @@ export function useUploads(slug: string, maxMb: number, initial: AttachmentInfo[
     setItems(next.map((a) => ({ key: a.id, filename: a.filename, size: a.size, progress: 1, status: "done" as const, attachment: a })))
   }, [])
 
+  /** Add attachments the server attached (e.g. forwarded files) without touching running uploads. */
+  const merge = useCallback((list: AttachmentInfo[]) => {
+    setItems((prev) => {
+      const known = new Set(prev.map((i) => i.attachment?.id).filter(Boolean))
+      const extra = list.filter((a) => !known.has(a.id) && !a.isInline)
+      if (!extra.length) return prev
+      return [...prev, ...extra.map((a) => ({ key: a.id, filename: a.filename, size: a.size, progress: 1, status: "done" as const, attachment: a }))]
+    })
+  }, [])
+
   const ids = items.filter((i) => i.status === "done" && i.attachment).map((i) => i.attachment!.id)
   const uploading = items.some((i) => i.status === "uploading")
-  return { items, ids, uploading, add, remove, reset }
+  return { items, ids, uploading, add, remove, reset, merge }
 }
