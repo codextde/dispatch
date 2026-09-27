@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest"
 import type { RuleCondition } from "@/server/db/schema"
-import { evaluateCondition, evaluateConditions, isWithinBusinessHours, regexTest, safeRegex, type RuleEvalContext } from "@/server/rules/conditions"
+import {
+  evaluateCondition,
+  evaluateConditions,
+  isWithinBusinessHours,
+  regexTest,
+  safeRegex,
+  unsafePatterns,
+  type RuleEvalContext,
+} from "@/server/rules/conditions"
 
 const ctx: RuleEvalContext = {
   from: { name: "Anna Schmidt", email: "anna@Example.org".toLowerCase() },
@@ -100,13 +108,20 @@ describe("safeRegex", () => {
     expect(safeRegex("(\\w+\\s?)+$")).toBeNull()
     expect(safeRegex("(a)\\1")).toBeNull()
   })
-  it("stops catastrophic patterns that pass the static checks", () => {
-    const re = safeRegex("((a+))+$")
-    expect(re).not.toBeNull() // not caught statically…
+  it.each(["(a|a)*$", "(.*a){8}$", "((a+))+$", "(\\w+|x)+$", "(a|aa)+$"])("refuses backtracking-prone %s", (pattern) => {
+    expect(safeRegex(pattern)).toBeNull()
     const started = Date.now()
-    expect(regexTest(re!, "a".repeat(40) + "!")).toBe(false) // …but interrupted by the time limit
+    expect(evaluateCondition(c("body", "matches", pattern), { ...ctx, body: "a".repeat(5000) + "!" })).toBe(false)
+    expect(Date.now() - started).toBeLessThan(200)
+  })
+  it("interrupts slow matching that slips past the static checks", () => {
+    const started = Date.now()
+    expect(regexTest(/((a+))+$/, "a".repeat(40) + "!")).toBe(false)
     expect(Date.now() - started).toBeLessThan(1000)
     expect(regexTest(/inv\w+/i, "INVOICE")).toBe(true)
+  })
+  it("lists refused patterns of a rule", () => {
+    expect(unsafePatterns({ match: "all", conditions: [c("subject", "matches", "(a|a)*$"), c("subject", "matches", "^ok")] })).toEqual(["(a|a)*$"])
   })
   it("treats a bad regex condition as not matching", () => {
     expect(evaluateCondition(c("subject", "matches", "(a+)+$"), ctx)).toBe(false)
@@ -129,6 +144,17 @@ describe("business hours", () => {
     // Unknown time zones fall back to UTC
     expect(isWithinBusinessHours(monday, hours, "Not/AZone")).toBe(false) // 08:30 UTC
     expect(isWithinBusinessHours(new Date("2026-09-28T09:00:00Z"), hours, "Not/AZone")).toBe(true)
+  })
+  it("handles overnight ranges (the shift belongs to the day it starts)", () => {
+    const night = { enabled: true, days: [5], start: "22:00", end: "06:00" } // Friday night shift
+    expect(isWithinBusinessHours(new Date("2026-10-02T23:30:00Z"), night, "UTC")).toBe(true) // Fri 23:30
+    expect(isWithinBusinessHours(new Date("2026-10-03T03:00:00Z"), night, "UTC")).toBe(true) // Sat 03:00
+    expect(isWithinBusinessHours(new Date("2026-10-03T06:00:00Z"), night, "UTC")).toBe(false) // Sat 06:00
+    expect(isWithinBusinessHours(new Date("2026-10-02T03:00:00Z"), night, "UTC")).toBe(false) // Fri 03:00 (Thursday's shift)
+    expect(isWithinBusinessHours(new Date("2026-10-02T12:00:00Z"), night, "UTC")).toBe(false)
+  })
+  it("treats start == end as the whole day", () => {
+    expect(isWithinBusinessHours(new Date("2026-09-28T02:00:00Z"), { enabled: true, days: [1], start: "00:00", end: "00:00" }, "UTC")).toBe(true)
   })
   it("drives the business_hours condition", () => {
     expect(evaluateCondition(c("business_hours", "is_false"), ctx)).toBe(true)

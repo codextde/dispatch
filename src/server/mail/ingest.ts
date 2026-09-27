@@ -395,12 +395,14 @@ export async function ingestRawMessage(input: IngestInput): Promise<IngestResult
     direction,
   }
 
-  // Address book (best effort)
-  try {
-    const people = direction === "inbound" ? externals : mergeParticipants([parsed.to, parsed.cc, parsed.bcc], own)
-    await upsertContactsFromParticipants(account.orgId, people, { direction, at: displayDate })
-  } catch (err) {
-    console.error("[ingest] contact upsert failed", err)
+  // Shared address book (best effort) — never from personal inboxes, their mail is private
+  if (!account.ownerUserId) {
+    try {
+      const people = direction === "inbound" ? externals : mergeParticipants([parsed.to, parsed.cc, parsed.bcc], own)
+      await upsertContactsFromParticipants(account.orgId, people, { direction, at: displayDate })
+    } catch (err) {
+      console.error("[ingest] contact upsert failed", err)
+    }
   }
 
   if (mode === "backfill") return result

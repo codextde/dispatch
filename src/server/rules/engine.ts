@@ -16,8 +16,8 @@ import { generateMessageId, htmlToPlainText, isAutomatedMessage, normalizeEmail,
  *
  *   runRules({ orgId, trigger: "incoming", conversationId, messageId })
  *
- * Shared inboxes run the workspace rules, personal inboxes only their owner's
- * personal rules (ordered by position). Workspace webhooks are never emitted
+ * Shared inboxes run the workspace rules; personal inboxes their owner's
+ * personal rules plus workspace rules that explicitly target them. Workspace webhooks are never emitted
  * for personal inboxes. Every action is isolated: a failing action is logged
  * and the remaining actions still run.
  */
@@ -57,9 +57,10 @@ export async function runRules(input: RunRulesInput): Promise<{ applied: string[
     ? ((await db.query.accounts.findFirst({ where: eq(schema.accounts.id, message.accountId) })) ?? null)
     : null
 
-  // Personal inboxes only run their owner's personal rules; shared inboxes run workspace rules
+  // Shared inboxes run workspace rules; personal inboxes run their owner's personal rules
+  // (and workspace rules only when they explicitly target that inbox, see the filter below)
   const r = schema.rules
-  const owners = account?.ownerUserId ? eq(r.ownerUserId, account.ownerUserId) : isNull(r.ownerUserId)
+  const owners = account?.ownerUserId ? or(isNull(r.ownerUserId), eq(r.ownerUserId, account.ownerUserId)) : isNull(r.ownerUserId)
   const rules = (
     await db
       .select()

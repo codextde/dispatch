@@ -25,13 +25,19 @@ export function SecuritySettingsForm({ initial, mode }: { initial: SecuritySetti
             <>
               Refuse IMAP, SMTP and webhook connections to private, loopback and link-local addresses (SSRF protection).{" "}
               {mode === "saas"
-                ? "Strongly recommended for public SaaS instances."
+                ? "Always on for public SaaS instances — workspaces run by strangers must never reach your internal network."
                 : "Recommended unless your team connects to mail servers on your internal network."}
             </>
           }
-          checked={v.blockPrivateNetworks}
+          // Enforced by the mail engine in SaaS mode regardless of the stored value (src/server/mail/net-guard.ts)
+          checked={mode === "saas" || v.blockPrivateNetworks}
+          disabled={mode === "saas"}
           onCheckedChange={(blockPrivateNetworks) => form.set({ blockPrivateNetworks })}
         />
+        <p className="mt-3 text-xs text-muted-foreground">
+          Plain-text IMAP/SMTP without STARTTLS is only allowed for servers on private or loopback addresses; public mail servers
+          must support TLS.
+        </p>
       </Panel>
 
       <Panel title="Sign-in protection">

@@ -9,7 +9,7 @@ import { isPrivateAddress } from "@/server/mail/ip-ranges"
  * is actually connected), no redirects, hard timeout, bounded response read.
  */
 
-const MAX_RESPONSE_BYTES = 4096
+const MAX_RESPONSE_BYTES = 1024
 
 export type PostResult = { status: number; body: string }
 

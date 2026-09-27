@@ -217,7 +217,7 @@ export function SetupWizard(props: SetupWizardProps) {
                     <p className="text-[13px] leading-relaxed text-muted-foreground">
                       To prove you run this server, enter the one-time code printed in its logs. Run{" "}
                       <code className="rounded bg-muted px-1 py-0.5 font-mono text-[12px] text-foreground">docker compose logs app</code> or
-                      open the app&apos;s logs in Coolify and look for &ldquo;Dispatch first-run setup code&rdquo;.
+                      open the app&apos;s Logs tab in Coolify and look for &ldquo;Dispatch first-run setup code&rdquo;.
                     </p>
                     <Input
                       id="setup-code"

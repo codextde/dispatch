@@ -122,7 +122,7 @@ See [docs/configuration.md](docs/configuration.md).
 
 ### First-run setup
 
-Open `/setup` to create the instance owner (super admin). To prove you run the server, the wizard asks for a one-time **setup code**, which Dispatch prints to the app logs on start until setup is complete:
+Open `/setup` to create the instance owner (super admin). To prove you run the server, the wizard asks for a one-time **setup code**, which Dispatch prints to the app logs until an owner exists:
 
 ```bash
 docker compose logs app | grep -A2 "setup code"

@@ -60,16 +60,21 @@ Already running a reverse proxy? Skip the override file and see [Reverse proxy &
 
 ## First-run setup
 
-The setup wizard at `/setup` runs once. Before anything else, it asks for a one-time **setup code**. While setup isn't complete, Dispatch prints the code to the app logs on start, in a box with the line `Dispatch first-run setup code: XXXX-XXXX-XXXX`:
+The setup wizard at `/setup` runs once. To create the owner account, you need a one-time **setup code**. While no owner exists, Dispatch prints the code to the app logs on start, and again when `/setup` is opened (at most once a minute):
 
 ```bash
 docker compose logs app | grep -A2 "setup code"
+# Dispatch first-run setup code: ABCD-EFGH-JKLM
+# Open https://mail.example.com/setup and enter this code
+# to create the owner account of this instance.
 ```
 
-If several codes appear (e.g. after a restart), use the most recent one. Then:
+The code stays the same across restarts. It's stored in `/data/secrets/setup-code` and deleted when setup completes. Upper/lower case and dashes don't matter when typing it, and there's a limit of 10 attempts per hour per IP.
+
+The wizard steps:
 
 1. **Welcome & system check.** Confirms the database connection, that the data directory is writable, and the public URL (HTTPS).
-2. **Owner account.** Enter your name and email. This creates the super admin and signs you in right away; no email needed.
+2. **Owner account.** Enter the setup code, your name and your email. This creates the super admin and signs you in right away; no email needed.
 3. **Instance.**
    - Instance name.
    - Mode: *Private* (just your company) or *Public SaaS*.
@@ -217,7 +222,7 @@ docker compose exec app sh                                   # shell in the app 
 | `app` stays *starting* / *unhealthy* | `docker compose logs app`. Usually the database isn't reachable yet (it retries for ~2 minutes) or `/data` isn't writable. |
 | `dependency failed to start: container … is unhealthy` | The worker waits for a healthy app. Fix the app first, then run `docker compose up -d` again. |
 | Caddy can't get a certificate | DNS must point to this server, and ports 80/443 must be open and not used by another web server. See `docker compose logs caddy`. |
-| `/setup` rejects the setup code | Copy the most recent code from `docker compose logs app \| grep -A2 "setup code"`. Each start while setup is incomplete may print a new one. |
+| `/setup` rejects the setup code | Copy the code from `docker compose logs app \| grep -A2 "setup code"`, or `docker compose exec app cat /data/secrets/setup-code`. After 10 wrong attempts, wait an hour. |
 | Sign-in links point to `localhost` or the wrong host | `DOMAIN` is missing or wrong in `.env`. Fix it and `docker compose up -d`. |
 | No emails arrive | Email is still in *log* mode: sign-in links are in `docker compose logs app`. Configure [email delivery](email-delivery.md). |
 | Inbox won't connect | See [Connecting inboxes → Troubleshooting](connecting-inboxes.md#troubleshooting). Outbound ports 993/465/587 must be open. |

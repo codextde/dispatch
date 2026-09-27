@@ -93,7 +93,7 @@ async function deliver(delivery: Delivery) {
       status = res.status
       responseBody = res.body
       ok = res.status >= 200 && res.status < 300
-      if (!ok && res.status >= 300 && res.status < 400) responseBody = `Redirects are not followed (HTTP ${res.status}). ${res.body}`.slice(0, 4096)
+      if (!ok && res.status >= 300 && res.status < 400) responseBody = `Redirects are not followed (HTTP ${res.status}). ${res.body}`.slice(0, 1024)
     } catch (err) {
       responseBody = describeError(err)
     }

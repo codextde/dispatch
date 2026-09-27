@@ -101,7 +101,7 @@ export async function assignConversation(opts: {
 }): Promise<boolean> {
   const conv = await db.query.conversations.findFirst({
     where: and(eq(schema.conversations.id, opts.conversationId), eq(schema.conversations.orgId, opts.orgId)),
-    columns: { id: true, number: true, subject: true, customSubject: true },
+    columns: { id: true, number: true, subject: true, customSubject: true, accountId: true },
   })
   if (!conv) return false
   const added = await db.transaction(async (tx) => {
@@ -137,6 +137,11 @@ export async function assignConversation(opts: {
     body: opts.reason === "rule" ? "Assigned automatically by a rule" : "Assigned automatically",
     conversationId: conv.id,
   })
+  // Workspace webhooks never carry conversations of personal inboxes
+  const account = conv.accountId
+    ? await db.query.accounts.findFirst({ where: eq(schema.accounts.id, conv.accountId), columns: { ownerUserId: true } })
+    : null
+  if (account?.ownerUserId) return true
   await emitWebhook(opts.orgId, "conversation.assigned", {
     conversationId: conv.id,
     number: conv.number,

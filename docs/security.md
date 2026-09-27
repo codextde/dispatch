@@ -15,7 +15,7 @@ A Dispatch instance has access to full mailboxes. The most sensitive assets are:
 
 | Threat | Controls |
 | --- | --- |
-| **Instance takeover after deployment** | The first-run wizard requires a one-time setup code that is printed only to the server logs, so a stranger who finds a fresh instance can't make themselves its owner. |
+| **Instance takeover after deployment** | Creating the first owner requires a one-time setup code. The code is printed only to the server logs and stored in `$DATA_DIR/secrets/setup-code` (0600). Checks are constant-time and limited to 10 attempts per hour per IP, and the code is deleted when setup completes. A stranger who finds a fresh instance can't make themselves its owner. |
 | **Account takeover** | Passwordless login: no passwords to phish or reuse. Magic links and codes are single-use, expire after 15 minutes (configurable), are stored only as hashes and are rate-limited per email and IP. Optional Google / Microsoft sign-in. |
 | **Session theft** | 256-bit random tokens, stored as SHA-256 hashes. `httpOnly` cookies, `Secure` on HTTPS, `SameSite=Lax`. Users see their devices and can revoke any session, and admins can cap sessions per user. |
 | **Cross-tenant access** | Every tenant query is scoped by workspace (`org_id`), and conversation visibility goes through one access layer (`src/server/access.ts`). Realtime events carry only IDs, and clients refetch through the same permission checks. |

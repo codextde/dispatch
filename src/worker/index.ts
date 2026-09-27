@@ -14,6 +14,7 @@
  * emitWebhook and the inbox when queueing mail). Multiple workers can run
  * side by side: every claim uses FOR UPDATE SKIP LOCKED.
  */
+import fs from "node:fs"
 import postgres from "postgres"
 import { sql } from "drizzle-orm"
 import { db } from "@/server/db"
@@ -186,8 +187,16 @@ async function main() {
     .catch(onError)
 
   for (const l of loops) l.start()
+
+  // Liveness file for the container healthcheck: only refreshed while the event loop is alive
+  const heartbeatFile = process.env.WORKER_HEARTBEAT_FILE || "/tmp/dispatch-worker.heartbeat"
+  const touch = () => void fs.promises.writeFile(heartbeatFile, new Date().toISOString()).catch(() => {})
+  touch()
+  setInterval(touch, 15_000).unref()
   log.info("worker ready")
 
+  // Docker gives 10s between SIGTERM and SIGKILL by default
+  const shutdownBudgetMs = Math.max(Number(process.env.WORKER_SHUTDOWN_TIMEOUT_MS) || 9_000, 3_000)
   const shutdown = async (signal: string) => {
     if (stopping) return
     stopping = true
@@ -195,13 +204,12 @@ async function main() {
     const force = setTimeout(() => {
       log.error("forced exit after shutdown timeout")
       process.exit(1)
-    }, 45_000)
+    }, shutdownBudgetMs)
     force.unref()
-    // Let in-flight deliveries finish, then close IMAP connections
-    await Promise.all(loops.map((l) => l.stop(30_000)))
-    await accounts.stopAll()
-    await listener.end({ timeout: 5 }).catch(() => {})
-    await db.$client.end({ timeout: 5 }).catch(() => {})
+    // Let in-flight deliveries and jobs finish while IMAP connections log out
+    await Promise.all([Promise.all(loops.map((l) => l.stop(shutdownBudgetMs - 2_500))), accounts.stopAll()])
+    await listener.end({ timeout: 1 }).catch(() => {})
+    await db.$client.end({ timeout: 1 }).catch(() => {})
     log.info("stopped")
     process.exit(0)
   }

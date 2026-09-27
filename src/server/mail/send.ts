@@ -317,10 +317,13 @@ async function afterSuccess(account: Account, msg: Message) {
     await enqueueJob("imap.append_sent", { messageId: msg.id }, { maxAttempts: 5 })
   }
 
-  try {
-    await upsertContactsFromParticipants(msg.orgId, [...msg.to, ...msg.cc, ...msg.bcc], { direction: "outbound", at: msg.sentAt ?? new Date() })
-  } catch (err) {
-    console.error("[send] contact upsert failed", err)
+  // Personal inboxes are private: their correspondents don't go into the shared address book
+  if (!account.ownerUserId) {
+    try {
+      await upsertContactsFromParticipants(msg.orgId, [...msg.to, ...msg.cc, ...msg.bcc], { direction: "outbound", at: msg.sentAt ?? new Date() })
+    } catch (err) {
+      console.error("[send] contact upsert failed", err)
+    }
   }
 
   await publish({ orgId: msg.orgId, type: "message.updated", conversationId: msg.conversationId, data: { messageId: msg.id } })

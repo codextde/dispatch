@@ -124,10 +124,10 @@ export class AccountSync {
     this.wake?.()
     const client = this.client
     if (client) {
-      await withTimeout(client.logout().catch(() => {}), 5_000)
+      await withTimeout(client.logout().catch(() => {}), 2_000)
       client.close()
     }
-    await withTimeout(this.runPromise ?? Promise.resolve(), 15_000)
+    await withTimeout(this.runPromise ?? Promise.resolve(), 3_000)
   }
 
   /** Force a sync pass now (or a reconnect when the connection is down). */
