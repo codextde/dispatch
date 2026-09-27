@@ -46,3 +46,4 @@ next-env.d.ts
 /.omc
 /dist
 !.env.example
+/idea.md

@@ -179,33 +179,35 @@ export function EditorToolbar({ editor, className }: { editor: Editor | null; cl
           }
         : null,
   })
-  if (!editor || !state) return null
+  if (!editor) return null
+  // useEditorState only reports after the first transaction of a freshly mounted editor.
+  const active = state ?? { bold: false, italic: false, underline: false, strike: false, bullet: false, ordered: false, quote: false, code: false }
   const chain = () => editor.chain().focus()
   return (
     <div className={cn("flex flex-wrap items-center gap-0.5", className)} role="toolbar" aria-label="Formatting">
-      <ToolbarButton label="Bold" active={state.bold} onClick={() => chain().toggleBold().run()}>
+      <ToolbarButton label="Bold" active={active.bold} onClick={() => chain().toggleBold().run()}>
         <Bold />
       </ToolbarButton>
-      <ToolbarButton label="Italic" active={state.italic} onClick={() => chain().toggleItalic().run()}>
+      <ToolbarButton label="Italic" active={active.italic} onClick={() => chain().toggleItalic().run()}>
         <Italic />
       </ToolbarButton>
-      <ToolbarButton label="Underline" active={state.underline} onClick={() => chain().toggleUnderline().run()}>
+      <ToolbarButton label="Underline" active={active.underline} onClick={() => chain().toggleUnderline().run()}>
         <Underline />
       </ToolbarButton>
-      <ToolbarButton label="Strikethrough" active={state.strike} onClick={() => chain().toggleStrike().run()}>
+      <ToolbarButton label="Strikethrough" active={active.strike} onClick={() => chain().toggleStrike().run()}>
         <Strikethrough />
       </ToolbarButton>
       <span className="mx-1 h-4 w-px bg-border" aria-hidden />
-      <ToolbarButton label="Bulleted list" active={state.bullet} onClick={() => chain().toggleBulletList().run()}>
+      <ToolbarButton label="Bulleted list" active={active.bullet} onClick={() => chain().toggleBulletList().run()}>
         <List />
       </ToolbarButton>
-      <ToolbarButton label="Numbered list" active={state.ordered} onClick={() => chain().toggleOrderedList().run()}>
+      <ToolbarButton label="Numbered list" active={active.ordered} onClick={() => chain().toggleOrderedList().run()}>
         <ListOrdered />
       </ToolbarButton>
-      <ToolbarButton label="Quote" active={state.quote} onClick={() => chain().toggleBlockquote().run()}>
+      <ToolbarButton label="Quote" active={active.quote} onClick={() => chain().toggleBlockquote().run()}>
         <Quote />
       </ToolbarButton>
-      <ToolbarButton label="Code" active={state.code} onClick={() => chain().toggleCode().run()}>
+      <ToolbarButton label="Code" active={active.code} onClick={() => chain().toggleCode().run()}>
         <Code />
       </ToolbarButton>
       <LinkButton editor={editor} />

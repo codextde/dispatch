@@ -130,15 +130,14 @@ function encodeCursor(row: ListRow) {
   return Buffer.from(`${row.cursorTs}|${row.id}`).toString("base64url")
 }
 
+/** Postgres timestamptz text, e.g. "2026-09-27 10:00:00.123456+02" (parsed by Postgres itself). */
+const CURSOR_TS_RE = /^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(\.\d{1,6})?([+-]\d\d(:?\d\d)?|Z)?$/
+const CURSOR_ID_RE = /^[0-9a-f-]{36}$/i
+
 function decodeCursor(cursor: string): { ts: string; id: string } {
-  try {
-    const [ts, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|")
-    // Postgres timestamptz text, e.g. "2026-09-27 10:00:00.123456+00" (parsed by Postgres itself).
-    if (!ts || !id || !/^[0-9a-f-]{36}$/i.test(id) || !/^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(\.\d{1,6})?([+-]\d\d(:?\d\d)?|Z)?$/.test(ts)) throw new Error()
-    return { ts, id }
-  } catch {
-    throw new ApiError(400, "Invalid cursor", "invalid_cursor")
-  }
+  const [ts, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|")
+  if (!ts || !id || !CURSOR_ID_RE.test(id) || !CURSOR_TS_RE.test(ts)) throw new ApiError(400, "Invalid cursor", "invalid_cursor")
+  return { ts, id }
 }
 
 export async function listConversations(

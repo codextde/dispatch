@@ -35,6 +35,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  // Allow testing the dev server via 127.0.0.1 in addition to localhost
+  allowedDevOrigins: ["127.0.0.1"],
   reactStrictMode: true,
   serverExternalPackages: ["imapflow", "mailparser", "nodemailer", "sanitize-html", "postgres"],
   images: {

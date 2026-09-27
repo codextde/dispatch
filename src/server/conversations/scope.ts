@@ -40,8 +40,8 @@ export async function loadScope(ctx: Ctx): Promise<InboxScope> {
 
 /**
  * Visibility of conversations for inbox queries: the foundation rules plus
- * "internal chats are only visible to their current members" (leaving or
- * being removed from a chat revokes access even for its creator/followers).
+ * "internal chats are only visible to their current members": leaving or
+ * being removed from a chat revokes access, also for its creator/followers.
  */
 export function visibleWhere(ctx: Ctx, scope: InboxScope) {
   const c = schema.conversations
