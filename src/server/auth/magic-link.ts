@@ -1,5 +1,5 @@
 import "server-only"
-import { and, desc, eq, gt, isNull, sql } from "drizzle-orm"
+import { and, desc, eq, gt, isNull, lt, sql } from "drizzle-orm"
 import { z } from "zod"
 import { db, schema } from "@/server/db"
 import { hashToken, hmac, randomCode, randomToken, safeEqual } from "@/server/crypto"
@@ -8,6 +8,7 @@ import { getSettings } from "@/server/settings"
 import { rateLimit } from "@/server/rate-limit"
 import { sendMagicLinkEmail } from "@/server/mail/system-mailer"
 import { acceptPendingInvitationsForEmail } from "@/server/orgs"
+import { joinWorkspacesByEmailDomain } from "@/server/workspace/auto-join"
 import { audit } from "@/server/audit"
 
 /**
@@ -26,11 +27,23 @@ export function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
 }
 
-/** Only allow same-origin relative redirects. */
+/**
+ * Only allow same-origin relative redirects. Control characters and
+ * backslashes are rejected (browsers strip tabs/newlines, so "/\t/evil.com"
+ * would become "//evil.com"), and the result must resolve to our own origin.
+ */
 export function safeRedirect(path: string | null | undefined, fallback = "/"): string {
-  if (!path || typeof path !== "string") return fallback
-  if (!path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) return fallback
-  return path
+  if (!path || typeof path !== "string" || path.length > 2000) return fallback
+  if (/[\u0000-\u001f\u007f\\]/.test(path)) return fallback
+  if (!path.startsWith("/") || path.startsWith("//")) return fallback
+  try {
+    const base = new URL("http://dispatch.invalid")
+    const url = new URL(path, base)
+    if (url.origin !== base.origin) return fallback
+    return url.pathname + url.search + url.hash
+  } catch {
+    return fallback
+  }
 }
 
 /** Can this email sign in (existing user) or sign up (per instance policy)? */
@@ -50,12 +63,40 @@ export async function canEmailAuthenticate(email: string): Promise<{ allowed: bo
   })
   if (invite) return { allowed: true, existing: false }
   if (auth.signupMode === "open") return { allowed: true, existing: false }
+  // A workspace that auto-admits this email domain acts like a standing invitation
+  const domainPart = email.split("@")[1] ?? ""
+  if (domainPart && (await hasAutoJoinWorkspace(domainPart))) return { allowed: true, existing: false }
   if (auth.signupMode === "domains") {
     const domain = email.split("@")[1] ?? ""
     const ok = auth.allowedSignupDomains.map((d) => d.toLowerCase().replace(/^@/, "")).includes(domain)
     return ok ? { allowed: true, existing: false } : { allowed: false, existing: false, reason: "domain" }
   }
   return { allowed: false, existing: false, reason: "invite_only" }
+}
+
+/**
+ * Is there an active workspace that auto-admits members with this email
+ * domain? The domain must belong to one of that workspace's admins (same rule
+ * as `joinWorkspacesByEmailDomain`), so nobody can open sign-ups for a domain
+ * they don't control.
+ */
+export async function hasAutoJoinWorkspace(domain: string): Promise<boolean> {
+  const d = domain.toLowerCase()
+  const rows = await db.execute<{ id: string }>(sql`
+    select o.id from organizations o
+    where o.suspended_at is null
+      and (o.settings->>'autoJoinDomains')::boolean is true
+      and o.settings->'allowedDomains' ? ${d}
+      and exists (
+        select 1 from memberships m
+        join users u on u.id = m.user_id
+        join roles r on r.id = m.role_id
+        where m.org_id = o.id and m.status = 'active' and u.status = 'active'
+          and (r.key = 'owner' or 'settings.manage' = any(r.permissions))
+          and lower(split_part(u.email, '@', 2)) = ${d}
+      )
+    limit 1`)
+  return rows.length > 0
 }
 
 export type RequestResult =
@@ -139,6 +180,7 @@ async function completeLogin(row: typeof schema.loginTokens.$inferSelect): Promi
   }
   if (!user) return { ok: false, error: "Could not create account." }
   await acceptPendingInvitationsForEmail(user.id, row.email)
+  await joinWorkspacesByEmailDomain(user.id, row.email)
   // Invalidate any other outstanding tokens for this email
   await db
     .update(schema.loginTokens)
@@ -171,17 +213,22 @@ export async function verifyLoginCode(emailInput: string, code: string, ip?: str
   const limit = await rateLimit(`code:ip:${ip ?? "unknown"}`, 50, 3600)
   if (!limit.ok) return { ok: false, error: "Too many attempts. Please try again later." }
 
+  const emailLimit = await rateLimit(`code:email:${email}`, 30, 3600)
+  if (!emailLimit.ok) return { ok: false, error: "Too many attempts. Please try again later." }
+
   const row = await db.query.loginTokens.findFirst({
     where: and(eq(schema.loginTokens.email, email), isNull(schema.loginTokens.usedAt), gt(schema.loginTokens.expiresAt, new Date())),
     orderBy: desc(schema.loginTokens.createdAt),
   })
   if (!row) return { ok: false, error: "This code has expired. Request a new one." }
-  if (row.attempts >= 5) return { ok: false, error: "Too many incorrect attempts. Request a new code." }
+  // Claim an attempt atomically *before* comparing, so parallel guesses can't exceed the limit
+  const [claimed] = await db
+    .update(schema.loginTokens)
+    .set({ attempts: sql`${schema.loginTokens.attempts} + 1` })
+    .where(and(eq(schema.loginTokens.id, row.id), isNull(schema.loginTokens.usedAt), lt(schema.loginTokens.attempts, 5)))
+    .returning({ id: schema.loginTokens.id })
+  if (!claimed) return { ok: false, error: "Too many incorrect attempts. Request a new code." }
   if (!safeEqual(row.codeHash, hmac(`${email}:${cleaned}`, "login-code"))) {
-    await db
-      .update(schema.loginTokens)
-      .set({ attempts: sql`${schema.loginTokens.attempts} + 1` })
-      .where(eq(schema.loginTokens.id, row.id))
     return { ok: false, error: "That code isn't right. Check the email and try again." }
   }
   return completeLogin(row)

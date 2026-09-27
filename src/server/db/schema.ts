@@ -596,8 +596,14 @@ export const messages = pgTable(
     index("messages_conversation_idx").on(t.conversationId, t.createdAt),
     index("messages_org_msgid_idx").on(t.orgId, t.messageId),
     uniqueIndex("messages_account_msgid_idx").on(t.accountId, t.messageId),
+    /** Threading: find replies to a message that was synced after them */
+    index("messages_account_reply_idx").on(t.accountId, t.inReplyTo),
     index("messages_status_send_idx").on(t.status, t.sendAt),
     index("messages_author_idx").on(t.authorId),
+    index("messages_search_idx").using(
+      "gin",
+      sql`to_tsvector('simple', coalesce(${t.subject}, '') || ' ' || coalesce(${t.textBody}, ''))`
+    ),
   ]
 )
 
@@ -747,7 +753,11 @@ export const contacts = pgTable(
   },
   (t) => [
     index("contacts_org_idx").on(t.orgId),
-    uniqueIndex("contacts_org_email_idx").on(t.orgId, sql`lower(${t.email})`),
+    /** One shared contact per address, plus one private contact per address per owner */
+    uniqueIndex("contacts_org_email_idx").on(t.orgId, sql`lower(${t.email})`).where(sql`${t.ownerUserId} is null`),
+    uniqueIndex("contacts_owner_email_idx")
+      .on(t.orgId, t.ownerUserId, sql`lower(${t.email})`)
+      .where(sql`${t.ownerUserId} is not null`),
   ]
 )
 
@@ -871,6 +881,8 @@ export type RuleCondition = {
     | "header"
     | "label"
     | "domain"
+    /** true when the message arrived inside org.settings.businessHours (always true if business hours are disabled) */
+    | "business_hours"
   operator: "contains" | "not_contains" | "equals" | "not_equals" | "starts_with" | "ends_with" | "matches" | "is_true" | "is_false"
   value?: string
   header?: string

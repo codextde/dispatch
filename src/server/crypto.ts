@@ -129,9 +129,14 @@ export function safeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(ab, bb)
 }
 
-/** Mask a secret for display: "sk_live_…a1b2" */
+/**
+ * Mask a secret for display. Only well-known key prefixes and the last 4
+ * characters of long secrets are shown ("sk_live_••••a1b2"); short secrets
+ * such as passwords are fully masked.
+ */
 export function maskSecret(secret: string | undefined | null, visible = 4): string {
   if (!secret) return ""
-  if (secret.length <= visible * 2) return "••••••"
-  return `${secret.slice(0, Math.min(7, visible + 3))}…${secret.slice(-visible)}`
+  if (secret.length < 16) return "••••••••"
+  const prefix = /^(sk|pk|rk)_(live|test)_|^(sk-ant-api\d+-|sk-proj-|sk-|whsec_|dsp_|re_|SG\.)/.exec(secret)?.[0] ?? ""
+  return `${prefix}••••${secret.slice(-visible)}`
 }

@@ -34,7 +34,7 @@ export function UserAvatar({
   return (
     <Avatar className={cn(sizes[size], "shrink-0", className)}>
       {src ? <AvatarImage src={src} alt={name ?? email ?? ""} /> : null}
-      <AvatarFallback className="font-medium text-white" style={{ backgroundColor: bg }}>
+      <AvatarFallback className="text-[length:inherit] font-medium text-white" style={{ backgroundColor: bg }}>
         {initials(name, email)}
       </AvatarFallback>
     </Avatar>

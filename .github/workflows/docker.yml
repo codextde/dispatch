@@ -1,0 +1,60 @@
+name: Docker image
+
+# Builds ghcr.io/codextde/dispatch for linux/amd64 and linux/arm64 on native
+# runners (no QEMU) with Docker's reusable github-builder workflow, which adds
+# SLSA provenance, an SBOM and signed attestations.
+#
+#   push to main  → :main, :sha-<short>                 (edge builds)
+#   tag v1.2.3    → :1.2.3, :1.2, :1, :latest, :sha-<short>  (releases; no :latest for pre-releases)
+#   pull request  → build only, nothing is pushed
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - docker/**
+      - package.json
+      - pnpm-lock.yaml
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  image:
+    uses: docker/github-builder/.github/workflows/build.yml@v1
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+      attestations: write
+    with:
+      output: image
+      push: ${{ github.event_name != 'pull_request' }}
+      platforms: linux/amd64,linux/arm64
+      meta-images: ghcr.io/codextde/dispatch
+      meta-tags: |
+        type=ref,event=branch
+        type=semver,pattern={{version}}
+        type=semver,pattern={{major}}.{{minor}}
+        type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+        type=sha
+      set-meta-labels: true
+      set-meta-annotations: true
+      cache: true
+      cache-mode: max
+      sbom: true
+    secrets:
+      registry-auths: |
+        - registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}

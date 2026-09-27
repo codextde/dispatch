@@ -1,0 +1,36 @@
+# Optional additions for plain Docker (not needed on Coolify).
+#
+#   cp docker-compose.override.example.yml docker-compose.override.yml
+#   docker compose up -d
+#
+# Docker Compose merges docker-compose.override.yml automatically.
+# Pick ONE of the options below and delete the other.
+
+services:
+  # Option A: bundled Caddy with automatic HTTPS (Let's Encrypt).
+  # Requirements: ports 80 and 443 are free, and DNS for $DOMAIN points to this server.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    command: caddy reverse-proxy --from ${DOMAIN:?Set DOMAIN in .env} --to app:3000
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+  # Option B: you already run a reverse proxy on the host (nginx, Traefik, ...).
+  # Delete the caddy service above and the caddy volumes below, then uncomment
+  # this to publish the app on localhost only and point your proxy at it:
+  #
+  # app:
+  #   ports:
+  #     - "127.0.0.1:3000:3000"
+
+volumes:
+  caddy-data:
+  caddy-config:

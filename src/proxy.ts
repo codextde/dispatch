@@ -8,6 +8,15 @@ import { NextResponse, type NextRequest } from "next/server"
  */
 const SESSION_COOKIE = "dispatch_session"
 const COOKIE_MAX_AGE = 400 * 24 * 60 * 60
+/** Mirrors getAppUrl() in src/server/env.ts (kept inline: proxy must stay dependency-free). */
+function isHttpsDeployment() {
+  const url = process.env.APP_URL || process.env.DOMAIN || ""
+  if (!url) return false
+  if (/^https:\/\//.test(url)) return true
+  if (/^http:\/\//.test(url)) return false
+  return !/^(localhost|127\.0\.0\.1)(:|$)/.test(url)
+}
+
 const PROTECTED = [/^\/w\//, /^\/admin(\/|$)/, /^\/onboarding(\/|$)/]
 
 export function proxy(req: NextRequest) {
@@ -24,7 +33,7 @@ export function proxy(req: NextRequest) {
   const res = NextResponse.next()
   const isDocument = req.headers.get("sec-fetch-dest") === "document"
   if (token && isDocument) {
-    const secure = req.nextUrl.protocol === "https:" || req.headers.get("x-forwarded-proto") === "https"
+    const secure = isHttpsDeployment() || req.nextUrl.protocol === "https:"
     res.cookies.set(SESSION_COOKIE, token, { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: COOKIE_MAX_AGE })
   }
   return res

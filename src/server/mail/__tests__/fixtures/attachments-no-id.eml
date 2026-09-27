@@ -1,0 +1,35 @@
+Date: Tue, 22 Sep 2026 08:15:00 +0000
+From: Monitoring <alerts@status.example.net>
+To: support@acme.test
+Subject: =?UTF-8?B?U3RhdHVzOiBHcsO8biDinJM=?=
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="mix"
+
+--mix
+Content-Type: multipart/related; boundary="rel"
+
+--rel
+Content-Type: text/html; charset=utf-8
+
+<p>All systems <b>operational</b> <img src="cid:logo@status"></p>
+--rel
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-ID: <logo@status>
+Content-Disposition: inline; filename="logo.png"
+
+iVBORw0KGgo=
+--rel--
+--mix
+Content-Type: application/pdf; name="report.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="report.pdf"
+
+JVBERi0xLjQK
+--mix
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment
+
+AAECAw==
+--mix--

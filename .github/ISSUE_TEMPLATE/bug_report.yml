@@ -1,0 +1,71 @@
+name: Bug report
+description: Something in Dispatch doesn't work as expected
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+        **Security issues:** please do not open a public issue. Report them privately via
+        [GitHub security advisories](https://github.com/codextde/dispatch/security/advisories/new) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug. Screenshots or screen recordings help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to …
+        2. Click on …
+        3. See error …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Dispatch Cloud
+        - Self-hosted with Docker Compose
+        - Self-hosted with Coolify
+        - Local development
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown at `https://<your-domain>/api/health` or the image tag you run.
+      placeholder: "1.0.0"
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Mail provider (if relevant)
+      options:
+        - Not related to a mailbox
+        - Gmail / Google Workspace
+        - Outlook / Microsoft 365
+        - Other IMAP / SMTP
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      placeholder: "Safari 19 on iOS 20"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: "Output of `docker compose logs app worker --tail 200`. Remove email addresses, tokens and other personal data."
+      render: shell

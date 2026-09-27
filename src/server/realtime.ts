@@ -98,12 +98,14 @@ export async function subscribe(listener: Listener): Promise<() => void> {
 
 /* ----------------------------- Presence (in-memory) ----------------------------- */
 
-type PresenceEntry = { userId: string; conversationId: string; composing: boolean; at: number }
+/** `composing`: false, or what the user is writing ("comment" | "reply"; `true` = unspecified) */
+type Composing = boolean | "comment" | "reply"
+type PresenceEntry = { userId: string; conversationId: string; composing: Composing; at: number }
 const presence = ((globalThis as unknown as { __dispatchPresence?: Map<string, PresenceEntry> }).__dispatchPresence ??=
   new Map())
 
 /** Record that a user is viewing (or composing in) a conversation. Returns current viewers. */
-export function touchPresence(orgId: string, userId: string, conversationId: string, composing = false) {
+export function touchPresence(orgId: string, userId: string, conversationId: string, composing: Composing = false) {
   const now = Date.now()
   presence.set(`${orgId}:${userId}`, { userId, conversationId, composing, at: now })
   return getViewers(orgId, conversationId)
@@ -111,7 +113,7 @@ export function touchPresence(orgId: string, userId: string, conversationId: str
 
 export function getViewers(orgId: string, conversationId: string) {
   const now = Date.now()
-  const viewers: { userId: string; composing: boolean }[] = []
+  const viewers: { userId: string; composing: Composing }[] = []
   for (const [key, p] of presence) {
     if (now - p.at > 45_000) {
       presence.delete(key)

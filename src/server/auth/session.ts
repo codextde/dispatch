@@ -61,7 +61,9 @@ export async function createSession(
     })
     .returning()
 
-  // Enforce max sessions per user (drop the oldest ones)
+  // Enforce max sessions per user (drop the oldest ones). An admin impersonating
+  // the user must never sign them out of one of their real devices.
+  if (meta.impersonatorId) return { token, session: session! }
   const all = await db
     .select({ id: schema.sessions.id })
     .from(schema.sessions)
@@ -103,16 +105,20 @@ export async function validateSessionToken(token: string | undefined | null): Pr
   const row = rows[0]
   if (!row || row.user.status !== "active") return null
 
-  // Refresh at most every 10 minutes: last-used + sliding expiry
+  // Refresh at most every 10 minutes: last-used + sliding expiry.
+  // Impersonation sessions keep their short fixed lifetime and don't count as the user's activity.
   const now = Date.now()
   if (now - row.session.lastUsedAt.getTime() > 10 * 60_000) {
     const auth = await getSettings("auth")
-    const expiresAt = new Date(now + auth.sessionDays * 86_400_000)
+    const impersonating = Boolean(row.session.impersonatorId)
+    const expiresAt = impersonating ? row.session.expiresAt : new Date(now + auth.sessionDays * 86_400_000)
     await db
       .update(schema.sessions)
       .set({ lastUsedAt: new Date(now), expiresAt })
       .where(eq(schema.sessions.id, row.session.id))
-    await db.update(schema.users).set({ lastSeenAt: new Date(now) }).where(eq(schema.users.id, row.user.id))
+    if (!impersonating) {
+      await db.update(schema.users).set({ lastSeenAt: new Date(now) }).where(eq(schema.users.id, row.user.id))
+    }
   }
   return row
 }

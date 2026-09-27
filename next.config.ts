@@ -44,7 +44,19 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "30mb" },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }]
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Downloaded attachments / inline previews: never run scripts in our origin.
+      {
+        source: "/api/w/:slug/attachments/:id",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "sandbox allow-downloads allow-popups; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; object-src 'self'",
+          },
+        ],
+      },
+    ]
   },
 }
 
