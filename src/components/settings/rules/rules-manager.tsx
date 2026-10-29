@@ -38,6 +38,8 @@ import { createRuleFromTemplate, deleteRule, duplicateRule, reorderRules, toggle
 import type { RuleListItem } from "@/server/workspace/queries/rules"
 import type { RuleTemplateInfo } from "@/server/workspace/services/rules"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
+import { ruleText } from "@/components/settings/rules/rule-labels"
 
 export type RuleScopeData = { scope: RuleScope; rules: RuleListItem[]; templates: RuleTemplateInfo[] }
 
@@ -69,6 +71,7 @@ export function RulesManager({
   lookup: RuleLookup
   defaultScope: RuleScope
 }) {
+  const { locale } = useI18n()
   const [tab, setTab] = useState<RuleScope>(scopes.some((s) => s.scope === defaultScope) ? defaultScope : scopes[0]!.scope)
 
   if (scopes.length === 1) {
@@ -79,7 +82,7 @@ export function RulesManager({
       <TabsList variant="line" className="h-9 border-b border-border w-full justify-start rounded-none px-0">
         {scopes.map((s) => (
           <TabsTrigger key={s.scope} value={s.scope} className="flex-none px-2">
-            {SCOPE_COPY[s.scope].tab}
+            {ruleText(SCOPE_COPY[s.scope].tab, locale)}
             <span className="rounded-full bg-muted px-1.5 font-mono text-[10.5px] text-muted-foreground tabular-nums">
               {s.rules.length}
             </span>
@@ -96,6 +99,7 @@ export function RulesManager({
 }
 
 function ScopePanel({ slug, data, lookup }: { slug: string; data: RuleScopeData; lookup: RuleLookup }) {
+  const { locale } = useI18n()
   const router = useRouter()
   const copy = SCOPE_COPY[data.scope]
   const newHref = `/w/${slug}/settings/rules/new?scope=${data.scope}`
@@ -133,7 +137,7 @@ function ScopePanel({ slug, data, lookup }: { slug: string; data: RuleScopeData;
   const onToggle = (rule: RuleListItem, enabled: boolean) => {
     setItems((list) => list.map((r) => (r.id === rule.id ? { ...r, enabled } : r)))
     void run(() => toggleRule({ slug, id: rule.id, enabled }), {
-      success: enabled ? `“${rule.name}” enabled` : `“${rule.name}” paused`,
+      success: locale === "it" ? `Regola “${rule.name}” ${enabled ? "attivata" : "messa in pausa"}` : `“${rule.name}” ${enabled ? "enabled" : "paused"}`,
       onError: () => setItems((list) => list.map((r) => (r.id === rule.id ? { ...r, enabled: !enabled } : r))),
     })
   }
@@ -141,18 +145,18 @@ function ScopePanel({ slug, data, lookup }: { slug: string; data: RuleScopeData;
   const onDuplicate = (rule: RuleListItem) =>
     run(() => duplicateRule({ slug, id: rule.id }), {
       onSuccess: (res) => router.push(`/w/${slug}/settings/rules/${res.id}`),
-      success: "Rule duplicated — the copy is paused until you enable it",
+      success: ruleText("Rule duplicated — the copy is paused until you enable it", locale),
     })
 
   return (
     <>
       <SettingsSection
-        title={copy.title}
-        description={copy.description}
+        title={ruleText(copy.title, locale)}
+        description={ruleText(copy.description, locale)}
         action={
           <Button asChild size="sm">
             <Link href={newHref}>
-              <Plus /> New rule
+              <Plus /> {ruleText("New rule", locale)}
             </Link>
           </Button>
         }
@@ -161,12 +165,12 @@ function ScopePanel({ slug, data, lookup }: { slug: string; data: RuleScopeData;
         {items.length === 0 ? (
           <EmptyState
             icon={<Workflow />}
-            title="No rules yet"
-            description="Rules label, assign, reply to and route emails automatically. Start from scratch or pick a template below."
+            title={ruleText("No rules yet", locale)}
+            description={ruleText("Rules label, assign, reply to and route emails automatically. Start from scratch or pick a template below.", locale)}
           >
             <Button asChild size="sm" variant="outline">
               <Link href={newHref}>
-                <Plus /> Create a rule
+                <Plus /> {ruleText("Create a rule", locale)}
               </Link>
             </Button>
           </EmptyState>
@@ -204,20 +208,19 @@ function ScopePanel({ slug, data, lookup }: { slug: string; data: RuleScopeData;
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(o) => !o && setDeleting(null)}
-        title="Delete rule?"
+        title={ruleText("Delete rule?", locale)}
         description={
           deleting ? (
             <>
-              <span className="font-medium text-foreground">{deleting.name}</span> will stop running immediately. This can’t be
-              undone.
+              <span className="font-medium text-foreground">{deleting.name}</span> {ruleText("will stop running immediately. This can’t be undone.", locale)}
             </>
           ) : null
         }
-        confirmLabel="Delete rule"
+        confirmLabel={ruleText("Delete rule", locale)}
         destructive
         onConfirm={async () => {
           if (!deleting) return
-          const res = await run(() => deleteRule({ slug, id: deleting.id }), { success: "Rule deleted" })
+      const res = await run(() => deleteRule({ slug, id: deleting.id }), { success: ruleText("Rule deleted", locale) })
           if (res.ok) setItems((list) => list.filter((r) => r.id !== deleting.id))
           return res.ok
         }}
@@ -245,8 +248,9 @@ function SortableRuleRow({
   onDuplicate: (rule: RuleListItem) => void
   onDelete: (rule: RuleListItem) => void
 }) {
+  const { locale } = useI18n()
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: rule.id })
-  const summary = useMemo(() => summarizeRule(rule, lookup), [rule, lookup])
+  const summary = useMemo(() => summarizeRule(rule, lookup, locale), [rule, lookup, locale])
   const href = `/w/${slug}/settings/rules/${rule.id}`
   const inboxNames = rule.accountIds.map((id) => lookup.accounts[id] ?? "Removed inbox")
   const inboxLabel =
@@ -268,7 +272,7 @@ function SortableRuleRow({
       <button
         ref={setActivatorNodeRef}
         type="button"
-        aria-label={`Reorder ${rule.name}`}
+        aria-label={`${ruleText("Reorder", locale)} ${rule.name}`}
         className="mt-0.5 flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
         {...attributes}
         {...listeners}
@@ -287,15 +291,15 @@ function SortableRuleRow({
             {rule.name}
           </Link>
           <span className="inline-flex h-5 items-center rounded-md border bg-surface px-1.5 font-mono text-[10.5px] tracking-wide text-muted-foreground uppercase">
-            {rule.trigger === "outgoing" ? "Outgoing" : "Incoming"}
+            {ruleText(rule.trigger === "outgoing" ? "Outgoing" : "Incoming", locale)}
           </span>
           {rule.stopProcessing && (
             <span className="inline-flex h-5 items-center rounded-md border border-warning/40 bg-warning/10 px-1.5 font-mono text-[10.5px] tracking-wide text-[color-mix(in_oklch,var(--warning),var(--foreground)_50%)] uppercase">
-              Stops
+              {ruleText("Stops", locale)}
             </span>
           )}
           {!rule.enabled && (
-            <span className="inline-flex h-5 items-center rounded-md bg-muted px-1.5 text-[11px] text-muted-foreground">Paused</span>
+            <span className="inline-flex h-5 items-center rounded-md bg-muted px-1.5 text-[11px] text-muted-foreground">{ruleText("Paused", locale)}</span>
           )}
         </div>
         <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
@@ -303,7 +307,7 @@ function SortableRuleRow({
             <>{summary.when}</>
           ) : (
             <>
-              If {summary.conditions.map((c, i) => (
+              {ruleText("If ", locale)}{summary.conditions.map((c, i) => (
                 <span key={i}>
                   {i > 0 && <span className="text-subtle"> {summary.joiner} </span>}
                   <span className="text-foreground/80">{c}</span>
@@ -314,18 +318,18 @@ function SortableRuleRow({
           <span className="px-1 text-subtle" aria-hidden>
             →
           </span>
-          <span className="sr-only">then </span>
-          <span className="text-foreground/80">{summary.actions.join(", ") || "no actions"}</span>
+          <span className="sr-only">{ruleText("then ", locale)}</span>
+          <span className="text-foreground/80">{summary.actions.map((action) => ruleText(action, locale)).join(", ") || ruleText("no actions", locale)}</span>
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex min-w-0 items-center gap-1">
             <Inbox className="size-3.5 shrink-0" />
             <span className="truncate">{inboxLabel}</span>
           </span>
-          <span className="tabular-nums">{rule.runCount > 0 ? `Ran ${pluralize(rule.runCount, "time")}` : "Never ran"}</span>
+          <span className="tabular-nums">{rule.runCount > 0 ? `${locale === "it" ? "Eseguita" : "Ran"} ${pluralize(rule.runCount, locale === "it" ? "volta" : "time")}` : ruleText("Never ran", locale)}</span>
           {rule.lastRunAt && (
             <span>
-              Last run <LocalTime date={rule.lastRunAt} format="relative" titleFormat="datetime" />
+              {ruleText("Last run", locale)} <LocalTime date={rule.lastRunAt} format="relative" titleFormat="datetime" />
             </span>
           )}
         </div>
@@ -334,27 +338,27 @@ function SortableRuleRow({
         <Switch
           checked={rule.enabled}
           onCheckedChange={(v) => onToggle(rule, v)}
-          aria-label={rule.enabled ? `Pause ${rule.name}` : `Enable ${rule.name}`}
+          aria-label={`${ruleText(rule.enabled ? "Pause" : "Enable", locale)} ${rule.name}`}
           className="mt-1"
         />
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${rule.name}`} className="text-muted-foreground">
+            <Button variant="ghost" size="icon-sm" aria-label={`${ruleText("Actions for", locale)} ${rule.name}`} className="text-muted-foreground">
               <Ellipsis />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuItem asChild>
               <Link href={href}>
-                <Pencil /> Edit
+                <Pencil /> {ruleText("Edit", locale)}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onDuplicate(rule)}>
-              <Copy /> Duplicate
+              <Copy /> {ruleText("Duplicate", locale)}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={() => onDelete(rule)}>
-              <Trash2 /> Delete
+              <Trash2 /> {ruleText("Delete", locale)}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -364,6 +368,7 @@ function SortableRuleRow({
 }
 
 function TemplateGallery({ slug, scope, templates }: { slug: string; scope: RuleScope; templates: RuleTemplateInfo[] }) {
+  const { locale } = useI18n()
   const router = useRouter()
   const { run } = useServerAction()
   const [creating, setCreating] = useState<string | null>(null)
@@ -374,15 +379,17 @@ function TemplateGallery({ slug, scope, templates }: { slug: string; scope: Rule
     const res = await run(() => createRuleFromTemplate({ slug, scope, templateId: t.id }), {
       success: (d) =>
         d.createdLabels.length
-          ? `Rule created — added the ${d.createdLabels.map((l) => `“${l}”`).join(", ")} label`
-          : "Rule created from template",
+          ? locale === "it"
+            ? `Regola creata. Aggiunta etichetta: ${d.createdLabels.map((l) => `“${l}”`).join(", ")}`
+            : `Rule created — added the ${d.createdLabels.map((l) => `“${l}”`).join(", ")} label`
+          : ruleText("Rule created from template", locale),
       onSuccess: (d) => router.push(`/w/${slug}/settings/rules/${d.id}`),
     })
     if (!res.ok) setCreating(null)
   }
 
   return (
-    <SettingsSection title="Start from a template" description="One click creates the rule — you can review and tweak it afterwards.">
+    <SettingsSection title={ruleText("Start from a template", locale)} description={ruleText("One click creates the rule — you can review and tweak it afterwards.", locale)}>
       <ul className="grid gap-3 sm:grid-cols-2">
         {templates.map((t) => {
           const Icon = TEMPLATE_ICONS[t.id] ?? Workflow
@@ -405,11 +412,11 @@ function TemplateGallery({ slug, scope, templates }: { slug: string; scope: Rule
                   {busy ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}
                 </span>
                 <span className="min-w-0">
-                  <span className={cn("block text-[13px] font-medium", !t.available && "text-muted-foreground")}>{t.name}</span>
-                  <span className="mt-0.5 block text-xs text-pretty text-muted-foreground">{t.description}</span>
+                  <span className={cn("block text-[13px] font-medium", !t.available && "text-muted-foreground")}>{ruleText(t.name, locale)}</span>
+                  <span className="mt-0.5 block text-xs text-pretty text-muted-foreground">{ruleText(t.description, locale)}</span>
                   {t.hint && (
                     <span id={`tpl-hint-${scope}-${t.id}`} className="mt-1.5 block text-xs text-[color-mix(in_oklch,var(--warning),var(--foreground)_45%)]">
-                      {t.hint}
+                      {ruleText(t.hint, locale)}
                     </span>
                   )}
                 </span>

@@ -15,7 +15,7 @@ import { getRequestMeta } from "@/server/request"
 export async function establishSession(opts: {
   userId: string
   email: string
-  method: "code" | "link" | "setup"
+  method: "code" | "link" | "password" | "setup"
   isNewUser?: boolean
   redirectTo?: string | null
 }): Promise<string> {

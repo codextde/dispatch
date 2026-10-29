@@ -7,6 +7,7 @@ import { safeRedirect } from "@/server/auth/magic-link"
 import { resolveHomePath } from "@/server/orgs"
 import { isEmailDeliveryConfigured } from "@/server/mail/system-mailer"
 import { unsign } from "@/server/crypto"
+import { headers } from "next/headers"
 import { SplitAuthLayout } from "@/components/auth/auth-layout"
 import { LoginForm, type LoginNotice } from "@/components/auth/login-form"
 
@@ -35,12 +36,27 @@ const ERRORS: Record<string, string> = {
   session_expired: "Your session has expired. Please sign in again.",
 }
 
+const ERRORS_IT: Record<string, string> = {
+  access_denied: "Accesso annullato.",
+  oauth_denied: "Accesso annullato.",
+  oauth_failed: "Impossibile completare l’accesso con questo provider. Riprova oppure usa la tua email.",
+  oauth_state: "La sessione di accesso è scaduta. Riprova.",
+  oauth_disabled: "Questo metodo di accesso non è attivo in questa istanza.",
+  email_unverified: "Il provider non ha verificato il tuo indirizzo email. Accedi usando la tua email.",
+  not_allowed: "L’accesso a questa istanza è solo su invito. Chiedi a un amministratore del workspace di invitarti.",
+  domain: "Le registrazioni sono limitate ai domini email approvati.",
+  invite_only: "L’accesso a questa istanza è solo su invito. Chiedi a un amministratore del workspace di invitarti.",
+  disabled: "Questo account è stato disattivato. Contatta l’amministratore.",
+  session_expired: "La sessione è scaduta. Accedi di nuovo.",
+}
+
 function first(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v
 }
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sp = await searchParams
+  const italian = ((await headers()).get("accept-language") ?? "").toLowerCase().startsWith("it")
   const next = safeRedirect(first(sp.next), "") || undefined
 
   const status = await getSetupStatus()
@@ -64,16 +80,16 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   let notice: LoginNotice | null = null
   if (errorCode) {
     const signed = errorCode.length <= 600 ? unsign(errorCode, "login-error") : null
-    notice = { tone: "error", text: signed?.slice(0, 300) || ERRORS[errorCode] || "Sign-in failed. Please try again." }
+    notice = { tone: "error", text: signed?.slice(0, 300) || (italian ? ERRORS_IT[errorCode] : ERRORS[errorCode]) || (italian ? "Accesso non riuscito. Riprova." : "Sign-in failed. Please try again.") }
   }
-  else if (first(sp.signed_out)) notice = { tone: "success", text: "You've been signed out on this device." }
+  else if (first(sp.signed_out)) notice = { tone: "success", text: italian ? "Hai effettuato la disconnessione su questo dispositivo." : "You've been signed out on this device." }
 
   const signupHint =
     auth.signupMode === "open"
-      ? "New here? Enter your email — we'll create your account."
+      ? italian ? "È la prima volta? Inserisci la tua email: creeremo il tuo account." : "New here? Enter your email — we'll create your account."
       : auth.signupMode === "domains"
-        ? `New here? Sign up with your ${auth.allowedSignupDomains.map((d) => `@${d}`).join(", ")} email address.`
-        : "New here? You'll need an invitation from a workspace admin."
+        ? italian ? `È la prima volta? Usa un indirizzo email ${auth.allowedSignupDomains.map((d) => `@${d}`).join(", ")}.` : `New here? Sign up with your ${auth.allowedSignupDomains.map((d) => `@${d}`).join(", ")} email address.`
+        : italian ? "È la prima volta? Ti serve un invito da un amministratore del workspace." : "New here? You'll need an invitation from a workspace admin."
 
   const showLegal = Boolean(legal.terms.trim() || legal.privacy.trim())
   const marketing = general.mode === "saas" && general.marketingSite
@@ -85,22 +101,22 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       footer={
         showLegal ? (
           <>
-            By continuing you agree to the{" "}
+            {italian ? "Continuando accetti i " : "By continuing you agree to the "}
             {legal.terms.trim() && (
               <Link href="/legal/terms" className="underline underline-offset-2 hover:text-foreground">
-                Terms
+                {italian ? "Termini" : "Terms"}
               </Link>
             )}
             {legal.terms.trim() && legal.privacy.trim() && " and "}
             {legal.privacy.trim() && (
               <Link href="/legal/privacy" className="underline underline-offset-2 hover:text-foreground">
-                Privacy Policy
+                {italian ? "Informativa privacy" : "Privacy Policy"}
               </Link>
             )}
             .
           </>
         ) : (
-          <>Passwordless sign-in · sessions stay active for {auth.sessionDays >= 365 ? "a year" : `${auth.sessionDays} days`}</>
+          <>{italian ? "Accesso con password o codice email · sessioni attive per " : "Sign in with a password or email code · sessions stay active for "}{auth.sessionDays >= 365 ? (italian ? "un anno" : "a year") : `${auth.sessionDays} ${italian ? "giorni" : "days"}`}</>
         )
       }
     >

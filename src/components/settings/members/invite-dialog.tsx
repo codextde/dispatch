@@ -14,6 +14,7 @@ import { parseEmailList } from "@/components/settings/members/parse-emails"
 import { inviteMembersAction } from "@/server/workspace/actions/members"
 import type { MembersPageData } from "@/server/workspace/queries/members"
 import { cn } from "@/lib/utils"
+import { localizeRoleName, useI18n } from "@/lib/i18n"
 
 type InviteResult = {
   invited: { id: string; email: string; url: string; delivered: boolean }[]
@@ -36,6 +37,7 @@ export function InviteDialog({
   defaultRoleId: string | null
   emailDelivery: boolean
 }) {
+  const { t, locale } = useI18n()
   const grantable = roles.filter((r) => r.grantable)
   const initialRole =
     grantable.find((r) => r.id === defaultRoleId)?.id ?? grantable.find((r) => r.key === "member")?.id ?? grantable[0]?.id ?? ""
@@ -80,27 +82,27 @@ export function InviteDialog({
     >
       <DialogTrigger asChild>
         <Button>
-          <UserPlus /> Invite people
+          <UserPlus /> {t("invitePeople")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-lg">
         {!result ? (
           <>
             <DialogHeader>
-              <DialogTitle>Invite people to {orgName}</DialogTitle>
+              <DialogTitle>{t("inviteTo")} {orgName}</DialogTitle>
               <DialogDescription>
                 {emailDelivery
-                  ? "We'll email each person an invitation that's valid for 14 days."
-                  : "You'll get a personal invite link for each person to share."}
+                  ? t("inviteEmailDescription")
+                  : t("inviteShareDescription")}
               </DialogDescription>
             </DialogHeader>
 
             <div className="flex flex-col gap-4">
               <FormField
-                label="Email addresses"
+                label={t("inviteEmails")}
                 htmlFor="invite-emails"
                 error={fieldErrors.emails ?? (parsed.invalid.length ? `Not valid: ${parsed.invalid.slice(0, 3).join(", ")}${parsed.invalid.length > 3 ? "…" : ""}` : undefined)}
-                description="Separate multiple addresses with commas, spaces or new lines."
+                description={t("invSeparateAddresses")}
               >
                 <Textarea
                   id="invite-emails"
@@ -114,28 +116,28 @@ export function InviteDialog({
                 />
               </FormField>
               {parsed.valid.length > 0 && (
-                <div className="-mt-2 flex flex-wrap gap-1" aria-label="Recipients">
+                  <div className="-mt-2 flex flex-wrap gap-1" aria-label={t("invRecipients")}>
                   {parsed.valid.slice(0, 12).map((e) => (
                     <span key={e} className="rounded-md border bg-surface px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
                       {e}
                     </span>
                   ))}
                   {parsed.valid.length > 12 && (
-                    <span className="px-1 py-0.5 text-[11px] text-muted-foreground">+{parsed.valid.length - 12} more</span>
+                    <span className="px-1 py-0.5 text-[11px] text-muted-foreground">+{parsed.valid.length - 12} {t("invMore")}</span>
                   )}
                 </div>
               )}
 
-              <FormField label="Role" htmlFor="invite-role" error={fieldErrors.roleId} description={role?.description ?? undefined}>
+              <FormField label={t("inviteRole")} htmlFor="invite-role" error={fieldErrors.roleId} description={role?.description ?? undefined}>
                 <Select value={roleId} onValueChange={setRoleId}>
                   <SelectTrigger id="invite-role" className="w-full">
-                    <SelectValue placeholder="Choose a role" />
+                    <SelectValue placeholder={t("inviteChooseRole")} />
                   </SelectTrigger>
                   <SelectContent position="popper">
                     {roles.map((r) => (
                       <SelectItem key={r.id} value={r.id} disabled={!r.grantable}>
                         <ColorDot color={r.color ?? "#64748b"} className="size-2" />
-                        {r.name}
+                        {localizeRoleName(r.key, r.name, locale)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -143,14 +145,14 @@ export function InviteDialog({
               </FormField>
 
               {teams.length > 0 && (
-                <FormField label="Teams" optional htmlFor="invite-teams" description="They'll join these teams when they accept.">
+                <FormField label={t("inviteTeams")} optional htmlFor="invite-teams" description={t("invTeamsJoin")}>
                   <MultiCombobox
                     id="invite-teams"
                     options={teams.map((t) => ({ value: t.id, label: t.name, icon: <ColorDot color={t.color} className="size-2" /> }))}
                     value={teamIds}
                     onChange={setTeamIds}
-                    placeholder="No teams"
-                    searchPlaceholder="Search teams…"
+                    placeholder={t("inviteNoTeams")}
+                    searchPlaceholder={t("inviteSearchTeams")}
                   />
                 </FormField>
               )}
@@ -159,8 +161,7 @@ export function InviteDialog({
                 <div className="flex gap-2 rounded-lg border bg-surface/60 p-3 text-[13px] text-muted-foreground">
                   <Info className="mt-0.5 size-4 shrink-0" />
                   <p>
-                    Email delivery isn&apos;t configured on this instance, so no emails are sent. Copy the links after creating
-                    the invitations.
+                    {t("invEmailNotConfigured")}
                   </p>
                 </div>
               )}
@@ -168,15 +169,15 @@ export function InviteDialog({
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-                Cancel
+                {t("inviteCancel")}
               </Button>
               <Button onClick={submit} disabled={pending || parsed.valid.length === 0 || !roleId}>
                 {pending ? <Loader2 className="animate-spin" /> : <MailPlus />}
                 {parsed.valid.length > 1
-                  ? `${emailDelivery ? "Send" : "Create"} ${parsed.valid.length} invitations`
+                    ? `${emailDelivery ? t("invSendMany") : t("invCreateMany")} ${parsed.valid.length} ${t("invInvitations")}`
                   : emailDelivery
-                    ? "Send invitation"
-                    : "Create invitation"}
+                    ? t("inviteSend")
+                    : t("inviteCreate")}
               </Button>
             </DialogFooter>
           </>
@@ -186,31 +187,37 @@ export function InviteDialog({
               <DialogTitle className="flex items-center gap-2">
                 {result.invited.length > 0 && <CheckCircle2 className="size-4 text-success" />}
                 {result.invited.length === 0
-                  ? "Nobody was invited"
-                  : `${result.invited.length} ${result.invited.length === 1 ? "invitation" : "invitations"} created`}
+                  ? t("inviteNobody")
+                  : `${result.invited.length} ${t("inviteCreated")}`}
               </DialogTitle>
               <DialogDescription>
-                {sent.length > 0 && `${sent.length} ${sent.length === 1 ? "email" : "emails"} sent. `}
-                {unsent.length > 0 && "Share these links with the people you invited — each link works once and expires in 14 days."}
+                {sent.length > 0 && `${sent.length} ${t("inviteEmailSent")}. `}
+                {result.invited.length > 0 && t("inviteLinksShare")}
               </DialogDescription>
             </DialogHeader>
 
-            {unsent.length > 0 && (
+            {result.invited.length > 0 && (
               <div className="flex flex-col gap-2">
-                {unsent.map((i) => (
+                <div className="text-[13px] font-medium">{t("invitationLinks")}</div>
+                {result.invited.map((i) => (
                   <div key={i.id} className="flex flex-col gap-1">
-                    <span className="text-[13px] font-medium">{i.email}</span>
+                    <span className="flex items-center justify-between gap-2 text-[13px] font-medium">
+                      <span>{i.email}</span>
+                      <span className={cn("text-xs font-normal", i.delivered ? "text-success" : "text-amber-600 dark:text-amber-300")}>
+                        {i.delivered ? t("invitationSentLabel") : t("invitationShareLabel")}
+                      </span>
+                    </span>
                     <CopyField value={i.url} />
                   </div>
                 ))}
-                {unsent.length > 1 && (
+                {result.invited.length > 1 && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="self-start"
-                    onClick={() => copyToClipboard(unsent.map((i) => `${i.email}: ${i.url}`).join("\n"), "All links copied")}
+                    onClick={() => copyToClipboard(result.invited.map((i) => `${i.email}: ${i.url}`).join("\n"), t("copyAllInvitationLinks"))}
                   >
-                    Copy all links
+                    {t("copyAllInvitationLinks")}
                   </Button>
                 )}
               </div>
@@ -218,7 +225,7 @@ export function InviteDialog({
 
             {result.skipped.length > 0 && (
               <div className="rounded-lg border">
-                <div className="border-b px-3 py-2 text-[13px] font-medium">Skipped</div>
+                <div className="border-b px-3 py-2 text-[13px] font-medium">{t("inviteSkipped")}</div>
                 <ul className="divide-y text-[13px]">
                   {result.skipped.map((s) => (
                     <li key={s.email} className="flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -232,7 +239,7 @@ export function InviteDialog({
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setResult(null)}>
-                Invite more
+                {t("invitePeople")}
               </Button>
               <Button
                 onClick={() => {
@@ -240,7 +247,7 @@ export function InviteDialog({
                   reset()
                 }}
               >
-                Done
+                {t("inviteDone")}
               </Button>
             </DialogFooter>
           </>

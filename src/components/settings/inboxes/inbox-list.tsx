@@ -11,17 +11,19 @@ import { ConnectInboxWizard } from "@/components/settings/inboxes/connect-wizard
 import { InboxStatusBadge } from "@/components/settings/inboxes/inbox-status"
 import { ProviderTile } from "@/components/settings/inboxes/provider-icon"
 import type { ConnectOptions, InboxListItem } from "@/components/settings/inboxes/types"
+import { useI18n } from "@/lib/i18n"
 
-function accessSummary(item: InboxListItem, scope: "shared" | "personal") {
-  if (scope === "personal") return { icon: <Lock className="size-3.5" />, label: "Private to you" }
+function accessSummary(item: InboxListItem, scope: "shared" | "personal", t: ReturnType<typeof useI18n>["t"]) {
+  if (scope === "personal") return { icon: <Lock className="size-3.5" />, label: t("inboxPrivateToYou") }
   const { teams, users } = item.access
-  if (!teams && !users) return { icon: <Globe className="size-3.5" />, label: "Everyone with view-all" }
-  const parts = [teams && pluralize(teams, "team"), users && pluralize(users, "person", "people")].filter(Boolean)
+  if (!teams && !users) return { icon: <Globe className="size-3.5" />, label: t("inboxEveryoneViewAll") }
+  const parts = [teams && pluralize(teams, "team"), users && (users === 1 ? `1 ${t("inboxPerson")}` : `${users} ${t("inboxPeople")}`)].filter(Boolean)
   return { icon: <Users className="size-3.5" />, label: parts.join(" · ") }
 }
 
 export function InboxList({ inboxes, options }: { inboxes: InboxListItem[]; options: ConnectOptions }) {
   const { org } = useOrg()
+  const { t } = useI18n()
   const scope = options.scope
   const base = `/w/${org.slug}/settings/${scope === "shared" ? "inboxes" : "personal-inboxes"}`
   const failing = inboxes.filter((i) => i.status === "error")
@@ -30,11 +32,11 @@ export function InboxList({ inboxes, options }: { inboxes: InboxListItem[]; opti
     return (
       <EmptyState
         icon={<Inbox />}
-        title={scope === "shared" ? "No shared inboxes yet" : "No personal inboxes yet"}
+        title={scope === "shared" ? t("inboxNoSharedYet") : t("inboxNoPersonalYet")}
         description={
           scope === "shared"
-            ? "Connect a team mailbox like support@ or sales@ and work through it together with comments, assignments and rules."
-            : "Connect your own mailbox to handle your email alongside the team's shared inboxes."
+            ? t("inboxConnectSharedDescription")
+            : t("inboxConnectPersonalDescription")
         }
         className="py-14"
       >
@@ -42,7 +44,7 @@ export function InboxList({ inboxes, options }: { inboxes: InboxListItem[]; opti
           options={options}
           trigger={
             <Button>
-              <Inbox /> Connect {scope === "shared" ? "a shared inbox" : "your inbox"}
+              <Inbox /> {t("inboxConnect")} {scope === "shared" ? t("inboxConnectShared") : t("inboxConnectPersonal")}
             </Button>
           }
         />
@@ -57,16 +59,16 @@ export function InboxList({ inboxes, options }: { inboxes: InboxListItem[]; opti
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <p className="text-pretty text-muted-foreground">
             <span className="font-medium text-foreground">
-              {failing.length === 1 ? `${failing[0]!.name} has a connection problem.` : `${failing.length} inboxes have connection problems.`}
+              {failing.length === 1 ? `${failing[0]!.name} ${t("inboxConnectionProblemOne")}` : `${failing.length} ${t("inboxConnectionProblemMany")}`}
             </span>{" "}
-            New email isn&apos;t syncing until the credentials or server settings are fixed.
+            {t("inboxSyncCredentialError")}
           </p>
         </div>
       )}
       <SettingsSection flush bodyClassName="mt-0">
         <ul className="divide-y">
           {inboxes.map((item) => {
-            const access = accessSummary(item, scope)
+            const access = accessSummary(item, scope, t)
             return (
               <li key={item.id} className="group relative flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:px-5">
                 <ProviderTile provider={item.provider} color={item.color} />
@@ -101,13 +103,13 @@ export function InboxList({ inboxes, options }: { inboxes: InboxListItem[]; opti
                   <InboxStatusBadge status={item.status} lastError={item.lastError} />
                   <span className="hidden text-[11px] whitespace-nowrap text-muted-foreground sm:block">
                     {item.status === "paused" ? (
-                      "Sync paused"
+                      t("inboxSyncPausedStatus")
                     ) : item.lastSyncedAt ? (
                       <>
-                        Synced <LocalTime date={item.lastSyncedAt} format="relative" />
+                        {t("inboxSynced")} <LocalTime date={item.lastSyncedAt} format="relative" />
                       </>
                     ) : (
-                      "Not synced yet"
+                      t("inboxNotSyncedYet")
                     )}
                   </span>
                 </div>
@@ -118,7 +120,7 @@ export function InboxList({ inboxes, options }: { inboxes: InboxListItem[]; opti
         </ul>
       </SettingsSection>
       <p className="text-xs text-muted-foreground">
-        {pluralize(inboxes.length, "inbox", "inboxes")} ·{" "}
+        {inboxes.length} {inboxes.length === 1 ? t("inboxInboxCount") : t("inboxInboxes")} ·{" "}
         {pluralize(
           inboxes.reduce((n, i) => n + i.conversationCount, 0),
           "conversation"

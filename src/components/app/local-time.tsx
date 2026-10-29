@@ -1,6 +1,7 @@
 "use client"
 
 import { useSyncExternalStore } from "react"
+import { useI18n, type Locale } from "@/lib/i18n"
 
 /**
  * Timestamps rendered in the viewer's own timezone, without hydration
@@ -67,10 +68,10 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["minute", 60_000],
 ]
 
-function relative(date: Date): string {
+function relative(date: Date, locale: Locale): string {
   const diff = date.getTime() - Date.now()
   if (Math.abs(diff) < 45_000) return "just now"
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
+  const rtf = new Intl.RelativeTimeFormat(locale === "it" ? "it-IT" : "en-US", { numeric: "auto" })
   for (const [unit, ms] of UNITS) {
     if (Math.abs(diff) >= ms || unit === "minute") return rtf.format(Math.round(diff / ms), unit)
   }
@@ -81,20 +82,21 @@ function relative(date: Date): string {
  * Format a date. `local = false` formats deterministically in UTC (safe for
  * SSR/hydration); `local = true` uses the browser's timezone and clock.
  */
-export function formatLocalTime(d: DateLike, format: LocalTimeFormat = "datetime", local = true, fallback = "—"): string {
+export function formatLocalTime(d: DateLike, format: LocalTimeFormat = "datetime", local = true, fallback = "—", locale: Locale = "en"): string {
   const date = toDate(d)
   if (!date) return fallback
   if (format === "relative") {
     // Relative text depends on the viewer's clock: show the absolute UTC date until hydrated
-    return local ? relative(date) : new Intl.DateTimeFormat("en-US", { ...OPTIONS.date, timeZone: "UTC" }).format(date)
+    return local ? relative(date, locale) : new Intl.DateTimeFormat(locale === "it" ? "it-IT" : "en-US", { ...OPTIONS.date, timeZone: "UTC" }).format(date)
   }
-  return new Intl.DateTimeFormat("en-US", { ...OPTIONS[format], ...(local ? {} : { timeZone: "UTC" }) }).format(date)
+  return new Intl.DateTimeFormat(locale === "it" ? "it-IT" : "en-US", { ...OPTIONS[format], ...(local ? {} : { timeZone: "UTC" }) }).format(date)
 }
 
 /** Hook variant for attributes/strings: `const fmt = useLocalTimeFormatter(); title={fmt(d)}` */
 export function useLocalTimeFormatter() {
   const hydrated = useHydrated()
-  return (d: DateLike, format: LocalTimeFormat = "datetime", fallback = "—") => formatLocalTime(d, format, hydrated, fallback)
+  const { locale } = useI18n()
+  return (d: DateLike, format: LocalTimeFormat = "datetime", fallback = "—") => formatLocalTime(d, format, hydrated, fallback, locale)
 }
 
 export function LocalTime({
@@ -112,15 +114,16 @@ export function LocalTime({
   titleFormat?: LocalTimeFormat
 }) {
   const hydrated = useHydrated()
+  const { locale } = useI18n()
   const d = toDate(date)
   if (!d) return <span className={className}>{fallback}</span>
   return (
     <time
       dateTime={d.toISOString()}
       className={className}
-      title={titleFormat ? formatLocalTime(d, titleFormat, hydrated) : undefined}
+      title={titleFormat ? formatLocalTime(d, titleFormat, hydrated, "—", locale) : undefined}
     >
-      {formatLocalTime(d, format, hydrated, fallback)}
+      {formatLocalTime(d, format, hydrated, fallback, locale)}
     </time>
   )
 }

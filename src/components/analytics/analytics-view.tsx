@@ -14,6 +14,7 @@ import { UserAvatar } from "@/components/app/user-avatar"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { addDaysYmd, formatRangeLabel, parseYmd, toYmd } from "@/components/analytics/format"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export type AnalyticsFilterState = {
   range: "7" | "30" | "90" | "custom"
@@ -61,6 +62,7 @@ export function AnalyticsView({
   today: string
   children: React.ReactNode
 }) {
+  const { t, locale } = useI18n()
   const router = useRouter()
   const pathname = usePathname()
   const [pending, startTransition] = useTransition()
@@ -103,7 +105,7 @@ export function AnalyticsView({
 
   return (
     <>
-      <div className="mb-5 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center" role="search" aria-label="Report filters">
+      <div className="mb-5 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center" role="search" aria-label={t("reportFilters")}>
         <div className="flex flex-wrap items-center gap-2">
           <ToggleGroup
             type="single"
@@ -113,12 +115,12 @@ export function AnalyticsView({
             onValueChange={(v) => {
               if (v && v !== "custom") navigate({ range: v as AnalyticsFilterState["range"] })
             }}
-            aria-label="Date range"
+            aria-label={t("dateRange")}
             className="bg-card"
           >
             {(["7", "30", "90"] as const).map((r) => (
-              <ToggleGroupItem key={r} value={r} className="h-8 px-3 font-mono text-xs" aria-label={`Last ${r} days`}>
-                {r}D
+              <ToggleGroupItem key={r} value={r} className="h-8 px-3 font-mono text-xs" aria-label={t("analyticsLastDays").replace("{days}", r)}>
+                {r}{locale === "it" ? "g" : "D"}
               </ToggleGroupItem>
             ))}
             <CustomRange
@@ -130,18 +132,18 @@ export function AnalyticsView({
             />
           </ToggleGroup>
           <span className="text-[13px] text-muted-foreground tabular-nums">
-            {formatRangeLabel(filters.from, addDaysYmd(filters.to, 1))}
+            {formatRangeLabel(filters.from, addDaysYmd(filters.to, 1), locale)}
           </span>
-          {pending && <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-label="Updating" />}
+          {pending && <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-label={t("updating")} />}
         </div>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:ml-auto lg:flex lg:items-center">
           <Combobox
             options={inboxOptions}
             value={filters.inbox}
             onChange={(v) => navigate({ inbox: v })}
-            placeholder="All inboxes"
-            searchPlaceholder="Search inboxes…"
-            emptyText="No shared inboxes."
+            placeholder={t("allInboxes")}
+            searchPlaceholder={t("searchInboxes")}
+            emptyText={t("noSharedInboxes")}
             clearable
             className="bg-card lg:w-44"
           />
@@ -149,9 +151,9 @@ export function AnalyticsView({
             options={teamOptions}
             value={filters.team}
             onChange={(v) => navigate({ team: v })}
-            placeholder="All teams"
-            searchPlaceholder="Search teams…"
-            emptyText="No teams yet."
+            placeholder={t("allTeams")}
+            searchPlaceholder={t("searchTeams")}
+            emptyText={t("noTeamsYet")}
             clearable
             className="bg-card lg:w-40"
           />
@@ -159,8 +161,8 @@ export function AnalyticsView({
             options={memberOptions}
             value={filters.user}
             onChange={(v) => navigate({ user: v })}
-            placeholder="All teammates"
-            searchPlaceholder="Search teammates…"
+            placeholder={t("allTeammates")}
+            searchPlaceholder={t("analyticsSearchTeammates")}
             clearable
             className="bg-card lg:w-48"
           />
@@ -172,7 +174,7 @@ export function AnalyticsView({
             className="self-start text-muted-foreground lg:self-auto"
             onClick={() => navigate({ range: DEFAULT_RANGE, inbox: null, team: null, user: null })}
           >
-            <RotateCcw /> Reset
+            <RotateCcw /> {t("reset")}
           </Button>
         )}
       </div>
@@ -196,6 +198,7 @@ function CustomRange({
   today: string
   onApply: (from: string, to: string) => void
 }) {
+  const { t } = useI18n()
   const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const [range, setRange] = useState<DateRange | undefined>({ from: parseYmd(from), to: parseYmd(to) })
@@ -221,7 +224,7 @@ function CustomRange({
           )}
         >
           <CalendarRange className="size-3.5" />
-          Custom
+          {t("analyticsCustom")}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
@@ -237,11 +240,11 @@ function CustomRange({
         />
         <div className="flex items-center justify-between gap-3 border-t px-3 py-2.5">
           <span className="text-xs text-muted-foreground tabular-nums">
-            {range?.from && range.to ? `${days} ${days === 1 ? "day" : "days"}` : "Pick a start and end date"}
+            {range?.from && range.to ? `${days} ${t(days === 1 ? "analyticsDay" : "analyticsDays")}` : t("analyticsPickDateRange")}
           </span>
           <div className="flex gap-1.5">
             <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               size="sm"
@@ -252,7 +255,7 @@ function CustomRange({
                 setOpen(false)
               }}
             >
-              Apply
+              {t("analyticsApply")}
             </Button>
           </div>
         </div>

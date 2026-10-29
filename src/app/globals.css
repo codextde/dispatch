@@ -192,6 +192,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+  @media (hover: none) and (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="reset"]):not([type="button"]),
+    textarea,
+    select,
+    [contenteditable="true"] {
+      font-size: max(16px, 1em) !important;
+    }
+  }
   html {
     @apply font-sans;
     -webkit-tap-highlight-color: transparent;

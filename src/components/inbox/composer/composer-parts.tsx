@@ -25,10 +25,12 @@ import { timePresets } from "@/lib/inbox/snooze"
 import type { AccountSummary, CannedResponseItem } from "@/lib/inbox/types"
 import { useInbox } from "../inbox-provider"
 import { DateTimeForm } from "../pickers"
+import { useI18n } from "@/lib/i18n"
 
 /** Searchable canned responses. `onPick` receives the raw response (variables are rendered by the caller). */
 export function ResponsePicker({ onPick }: { onPick: (r: CannedResponseItem) => void }) {
   const { slug } = useInbox()
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const { data = [], isLoading } = useResponses(slug, open)
   return (
@@ -36,16 +38,16 @@ export function ResponsePicker({ onPick }: { onPick: (r: CannedResponseItem) => 
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="Insert canned response">
+            <Button variant="ghost" size="icon-sm" aria-label={t("inboxUiInsertResponse")}>
               <MessageSquareText />
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent>Canned responses</TooltipContent>
+        <TooltipContent>{t("responses")}</TooltipContent>
       </Tooltip>
       <PopoverContent align="start" side="top" className="w-[min(24rem,calc(100vw-1rem))] p-0">
         <Command>
-          <CommandInput placeholder="Search responses…" autoFocus />
+          <CommandInput placeholder={t("searchResponsesPlaceholder")} autoFocus />
           <CommandList className="max-h-80">
             {isLoading ? (
               <div className="flex justify-center py-6">
@@ -53,15 +55,15 @@ export function ResponsePicker({ onPick }: { onPick: (r: CannedResponseItem) => 
               </div>
             ) : (
               <CommandEmpty>
-                <span className="block">No responses yet.</span>
-                <span className="mt-1 block text-xs text-muted-foreground">Create them in Settings → Responses.</span>
+                <span className="block">{t("inboxUiNoResponses")}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">{t("inboxUiCreateResponses")}</span>
               </CommandEmpty>
             )}
             {(["personal", "team", "org"] as const).map((scope) => {
               const list = data.filter((r) => r.scope === scope)
               if (!list.length) return null
               return (
-                <CommandGroup key={scope} heading={scope === "personal" ? "Mine" : scope === "team" ? "Team" : "Workspace"}>
+                <CommandGroup key={scope} heading={scope === "personal" ? t("inboxUiMine") : scope === "team" ? t("teams") : t("workspace")}>
                   {list.map((r) => (
                     <CommandItem
                       key={r.id}
@@ -90,10 +92,11 @@ export function ResponsePicker({ onPick }: { onPick: (r: CannedResponseItem) => 
 }
 
 export function AttachButton({ onFiles }: { onFiles: (files: File[]) => void }) {
+  const { t } = useI18n()
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon-sm" asChild aria-label="Attach files">
+        <Button variant="ghost" size="icon-sm" asChild aria-label={t("inboxUiAttachFiles")}>
           <label className="cursor-pointer">
             <Paperclip />
             <input
@@ -109,7 +112,7 @@ export function AttachButton({ onFiles }: { onFiles: (files: File[]) => void }) 
           </label>
         </Button>
       </TooltipTrigger>
-      <TooltipContent>Attach files</TooltipContent>
+      <TooltipContent>{t("inboxUiAttachFiles")}</TooltipContent>
     </Tooltip>
   )
 }
@@ -117,6 +120,7 @@ export function AttachButton({ onFiles }: { onFiles: (files: File[]) => void }) 
 /** Signature selector: "none" or a signature id. */
 export function SignatureSelect({ value, onChange, accountId }: { value: string | null; onChange: (id: string | null) => void; accountId: string | null }) {
   const { bootstrap, signature } = useInbox()
+  const { t } = useI18n()
   const options = bootstrap.signatures.filter((s) => !s.accountId || s.accountId === accountId)
   if (!options.length) return null
   return (
@@ -124,24 +128,24 @@ export function SignatureSelect({ value, onChange, accountId }: { value: string 
       <Tooltip>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-7 max-w-40 gap-1 px-2 text-xs text-muted-foreground" aria-label="Signature">
+            <Button variant="ghost" size="sm" className="h-7 max-w-40 gap-1 px-2 text-xs text-muted-foreground" aria-label={t("inboxUiSignature")}>
               <Signature className="size-3.5" />
-              <span className="truncate max-sm:hidden">{value ? (signature(value)?.name ?? "Signature") : "No signature"}</span>
+              <span className="truncate max-sm:hidden">{value ? (signature(value)?.name ?? t("inboxUiSignature")) : t("inboxUiNoSignature")}</span>
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent>Signature</TooltipContent>
+        <TooltipContent>{t("inboxUiSignature")}</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Signature</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">{t("inboxUiSignature")}</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={value ?? "none"} onValueChange={(v) => onChange(v === "none" ? null : v)}>
           {options.map((s) => (
             <DropdownMenuRadioItem key={s.id} value={s.id}>
               <span className="truncate">{s.name}</span>
-              {s.isOrg && <span className="ml-auto font-mono text-[10px] text-muted-foreground uppercase">Team</span>}
+              {s.isOrg && <span className="ml-auto font-mono text-[10px] text-muted-foreground uppercase">{t("teams")}</span>}
             </DropdownMenuRadioItem>
           ))}
-          <DropdownMenuRadioItem value="none">No signature</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="none">{t("inboxUiNoSignature")}</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -160,15 +164,16 @@ export function FromSelect({
   fromEmail: string
   onChange: (accountId: string, fromEmail: string) => void
 }) {
+  const { t } = useI18n()
   const current = accounts.find((a) => a.id === accountId)
-  const label = current ? `${current.fromName || current.name} <${fromEmail || current.email}>` : "Choose an inbox"
+  const label = current ? `${current.fromName || current.name} <${fromEmail || current.email}>` : t("inboxUiChooseInbox")
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex min-w-0 items-center gap-1 rounded px-1 text-left text-[13px] outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Send from"
+          className="flex min-w-0 max-w-48 items-center gap-1 rounded px-1 text-left text-[13px] outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring max-sm:max-w-[30vw]"
+          aria-label={t("inboxUiSendFrom")}
         >
           {current && <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: current.color }} />}
           <span className="truncate">{label}</span>
@@ -188,7 +193,7 @@ export function FromSelect({
             ))}
           </div>
         ))}
-        {!accounts.length && <DropdownMenuItem disabled>No inbox you can send from</DropdownMenuItem>}
+        {!accounts.length && <DropdownMenuItem disabled>{t("inboxUiNoSendInbox")}</DropdownMenuItem>}
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -200,7 +205,7 @@ export function SendButton({
   disabled,
   pending,
   allowClose = true,
-  label = "Send",
+  label,
 }: {
   onSend: (opts: { close?: boolean; sendAt?: Date }) => void
   disabled?: boolean
@@ -208,6 +213,8 @@ export function SendButton({
   allowClose?: boolean
   label?: string
 }) {
+  const { t, locale } = useI18n()
+  const buttonLabel = label ?? (locale === "it" ? "Invia" : "Send")
   const shortcutLabel = useShortcutLabel()
   const [later, setLater] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -219,17 +226,17 @@ export function SendButton({
           <TooltipTrigger asChild>
             <Button size="sm" disabled={disabled || pending} onClick={() => onSend({})} className="max-md:h-9">
               {pending ? <Spinner /> : <Send />}
-              {label}
+              {buttonLabel}
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            {label} <Kbd>{shortcutLabel("mod+Enter")[0]}</Kbd>
+            {buttonLabel} <Kbd>{shortcutLabel("mod+Enter")[0]}</Kbd>
           </TooltipContent>
         </Tooltip>
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <PopoverAnchor asChild>
             <DropdownMenuTrigger asChild>
-              <Button size="icon-sm" disabled={disabled || pending} aria-label="More send options" className="border-l border-primary-foreground/20 max-md:size-9">
+              <Button size="icon-sm" disabled={disabled || pending} aria-label={locale === "it" ? "Altre opzioni di invio" : "More send options"} className="border-l border-primary-foreground/20 max-md:size-9">
                 <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
@@ -237,27 +244,27 @@ export function SendButton({
           <DropdownMenuContent align="end" side="top" className="w-60">
             {allowClose && (
               <DropdownMenuItem onSelect={() => onSend({ close: true })}>
-                <Send /> {label} & close
+                <Send /> {locale === "it" ? `${buttonLabel} e chiudi` : `${buttonLabel} & close`}
                 <span className="ml-auto text-xs text-muted-foreground">{shortcutLabel("mod+shift+Enter")[0]}</span>
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Send later</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs text-muted-foreground">{locale === "it" ? "Invia più tardi" : "Send later"}</DropdownMenuLabel>
             {presets.map((p) => (
               <DropdownMenuItem key={p.id} onSelect={() => onSend({ sendAt: p.date })}>
-                <CalendarClock /> {p.label}
+                <CalendarClock /> {locale === "it" ? ({ later: "Più tardi oggi", tomorrow: "Domani", weekend: "Questo fine settimana", "next-week": "La prossima settimana", month: "Tra un mese" } as Record<string, string>)[p.id] ?? p.label : p.label}
                 <span className="ml-auto font-mono text-[10.5px] text-muted-foreground">{p.hint}</span>
               </DropdownMenuItem>
             ))}
             <DropdownMenuItem onSelect={() => setTimeout(() => setLater(true), 0)}>
-              <CalendarClock /> Pick date & time…
+              <CalendarClock /> {locale === "it" ? "Scegli data e ora…" : "Pick date & time…"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </ButtonGroup>
       <PopoverContent align="end" side="top" className="w-auto p-3">
         <DateTimeForm
-          submitLabel="Schedule"
+          submitLabel={locale === "it" ? "Programma" : "Schedule"}
           onSubmit={(d) => {
             setLater(false)
             onSend({ sendAt: d })

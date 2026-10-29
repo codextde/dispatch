@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { useI18n } from "@/lib/i18n"
 
 /**
  * Confirmation dialog for destructive or important actions. `onConfirm`
@@ -46,6 +47,8 @@ export function ConfirmDialog({
   children?: React.ReactNode
   onConfirm: () => Promise<boolean | void> | boolean | void
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [openState, setOpenState] = useState(false)
   const open = openProp ?? openState
   const [typed, setTyped] = useState("")
@@ -88,7 +91,7 @@ export function ConfirmDialog({
         {confirmText !== undefined && (
           <div className="flex flex-col gap-1.5">
             <label htmlFor="confirm-text" className="text-[13px] text-muted-foreground">
-              Type <span className="font-mono font-medium text-foreground">{confirmText}</span> to confirm
+              {it ? "Digita" : "Type"} <span className="font-mono font-medium text-foreground">{confirmText}</span> {it ? "per confermare" : "to confirm"}
             </label>
             <Input
               id="confirm-text"

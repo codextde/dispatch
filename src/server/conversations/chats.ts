@@ -25,6 +25,7 @@ export const updateChatSchema = z.object({
  * (two members, no name) are de-duplicated: the existing DM is returned.
  */
 export async function createChat(ctx: Ctx, input: z.infer<typeof createChatSchema>) {
+  if (ctx.org.settings.features?.chat === false) throw new ApiError(404, "Chat is disabled for this workspace", "not_found")
   if (!ctx.permissions.has("chats.create")) throw new ApiError(403, "You don't have permission to create chats", "forbidden")
   const me = ctx.user.id
   const requested = [...new Set([me, ...input.memberIds])]
@@ -65,6 +66,7 @@ export async function createChat(ctx: Ctx, input: z.infer<typeof createChatSchem
 }
 
 export async function updateChat(ctx: Ctx, chatId: string, input: z.infer<typeof updateChatSchema>) {
+  if (ctx.org.settings.features?.chat === false) throw new ApiError(404, "Chat is disabled for this workspace", "not_found")
   const me = ctx.user.id
   const conv = await db.query.conversations.findFirst({
     where: and(eq(schema.conversations.id, chatId), eq(schema.conversations.orgId, ctx.org.id), eq(schema.conversations.kind, "chat")),

@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { aiRequest, useAiStatus, type AiSummaryResult } from "./use-ai"
+import { useI18n } from "@/lib/i18n"
 
-const SENTIMENT: Record<NonNullable<AiSummaryResult["sentiment"]>, { label: string; className: string }> = {
-  positive: { label: "Positive", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
-  neutral: { label: "Neutral", className: "bg-muted text-muted-foreground" },
-  negative: { label: "Frustrated", className: "bg-orange-500/10 text-orange-700 dark:text-orange-300" },
-  urgent: { label: "Urgent", className: "bg-red-500/10 text-red-700 dark:text-red-300" },
+const SENTIMENT: Record<NonNullable<AiSummaryResult["sentiment"]>, { label: string; italian: string; className: string }> = {
+  positive: { label: "Positive", italian: "Positivo", className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
+  neutral: { label: "Neutral", italian: "Neutro", className: "bg-muted text-muted-foreground" },
+  negative: { label: "Frustrated", italian: "Frustrato", className: "bg-orange-500/10 text-orange-700 dark:text-orange-300" },
+  urgent: { label: "Urgent", italian: "Urgente", className: "bg-red-500/10 text-red-700 dark:text-red-300" },
 }
 
 /**
@@ -42,6 +43,8 @@ function AiSummaryInner({
   className?: string
   compact?: boolean
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const { data: status } = useAiStatus(slug)
   const [open, setOpen] = useState(false)
   const summarize = useMutation({
@@ -65,10 +68,10 @@ function AiSummaryInner({
           setOpen(true)
           summarize.mutate(false)
         }}
-        aria-label="Summarize conversation"
+        aria-label={it ? "Riassumi la conversazione" : "Summarize conversation"}
       >
         <Sparkles className="text-brand" />
-        {!compact && "Summarize"}
+        {!compact && (it ? "Riassumi" : "Summarize")}
       </Button>
     )
   }
@@ -76,7 +79,7 @@ function AiSummaryInner({
   return (
     <section
       className={cn("relative overflow-hidden rounded-xl border bg-card shadow-xs", className)}
-      aria-label="AI summary"
+      aria-label={it ? "Riepilogo IA" : "AI summary"}
       aria-busy={summarize.isPending}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/60 to-transparent" aria-hidden />
@@ -85,7 +88,7 @@ function AiSummaryInner({
         <span className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">TL;DR</span>
         {summary?.sentiment && (
           <span className={cn("rounded-md px-1.5 py-px text-[11px] font-medium", SENTIMENT[summary.sentiment].className)}>
-            {SENTIMENT[summary.sentiment].label}
+            {it ? SENTIMENT[summary.sentiment].italian : SENTIMENT[summary.sentiment].label}
           </span>
         )}
         <div className="ml-auto flex items-center">
@@ -95,12 +98,12 @@ function AiSummaryInner({
             size="icon-xs"
             onClick={() => summarize.mutate(true)}
             disabled={summarize.isPending}
-            aria-label="Regenerate summary"
-            title="Regenerate"
+            aria-label={it ? "Rigenera riepilogo" : "Regenerate summary"}
+            title={it ? "Rigenera" : "Regenerate"}
           >
             <RefreshCw className={cn(summarize.isPending && "animate-spin")} />
           </Button>
-          <Button type="button" variant="ghost" size="icon-xs" onClick={() => setOpen(false)} aria-label="Close summary">
+          <Button type="button" variant="ghost" size="icon-xs" onClick={() => setOpen(false)} aria-label={it ? "Chiudi riepilogo" : "Close summary"}>
             <X />
           </Button>
         </div>
@@ -117,7 +120,7 @@ function AiSummaryInner({
           <div className="flex items-center justify-between gap-3 pt-1">
             <p className="text-[13px] text-destructive">{summarize.error.message}</p>
             <Button size="xs" variant="outline" onClick={() => summarize.mutate(false)}>
-              Retry
+              {it ? "Riprova" : "Retry"}
             </Button>
           </div>
         ) : summary ? (
@@ -135,7 +138,7 @@ function AiSummaryInner({
             )}
             {summary.nextSteps.length > 0 && (
               <div className="rounded-lg bg-surface px-2.5 py-2">
-                <div className="mb-1 font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Next steps</div>
+                <div className="mb-1 font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{it ? "Prossimi passi" : "Next steps"}</div>
                 <ul className="flex flex-col gap-0.5 text-[13px]">
                   {summary.nextSteps.map((s, i) => (
                     <li key={i} className="flex gap-2">

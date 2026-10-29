@@ -6,6 +6,7 @@ import { FormField } from "@/components/settings/settings-ui"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useI18n } from "@/lib/i18n"
 
 export type ServerDraft = { host: string; port: number | ""; secure: boolean; user: string; pass: string }
 
@@ -29,6 +30,7 @@ export function PasswordInput({
   invalid?: boolean
   autoComplete?: string
 }) {
+  const { locale } = useI18n()
   const [visible, setVisible] = useState(false)
   return (
     <InputGroup>
@@ -46,7 +48,7 @@ export function PasswordInput({
         <InputGroupButton
           type="button"
           size="icon-xs"
-          aria-label={visible ? "Hide password" : "Show password"}
+          aria-label={visible ? (locale === "it" ? "Nascondi password" : "Hide password") : (locale === "it" ? "Mostra password" : "Show password")}
           onClick={() => setVisible((v) => !v)}
         >
           {visible ? <EyeOff /> : <Eye />}
@@ -80,6 +82,8 @@ export function ServerFields({
   passwordPlaceholder?: string
   passwordOptional?: boolean
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const id = (f: string) => `${kind}-${f}`
   const err = (f: string) => errors[`${kind}.${f}`]
   const set = (patch: Partial<ServerDraft>) => onChange({ ...value, ...patch })
@@ -92,7 +96,7 @@ export function ServerFields({
 
   const credentials = showCredentials && (
     <div className={hideServer ? "grid gap-3 sm:grid-cols-2" : "grid gap-3 sm:col-span-3 sm:grid-cols-2"}>
-      <FormField label="Username" htmlFor={id("user")} error={err("user")}>
+      <FormField label={it ? "Nome utente" : "Username"} htmlFor={id("user")} error={err("user")}>
         <Input
           id={id("user")}
           value={value.user}
@@ -118,7 +122,7 @@ export function ServerFields({
 
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_6.5rem_8.5rem]">
-      <FormField label={kind === "imap" ? "IMAP server" : "SMTP server"} htmlFor={id("host")} error={err("host")}>
+      <FormField label={kind === "imap" ? (it ? "Server IMAP" : "IMAP server") : (it ? "Server SMTP" : "SMTP server")} htmlFor={id("host")} error={err("host")}>
         <Input
           id={id("host")}
           value={value.host}
@@ -142,7 +146,7 @@ export function ServerFields({
           }}
         />
       </FormField>
-      <FormField label="Security" htmlFor={id("secure")}>
+      <FormField label={it ? "Sicurezza" : "Security"} htmlFor={id("secure")}>
         <Select value={value.secure ? "tls" : "starttls"} onValueChange={(v) => setSecure(v === "tls")}>
           <SelectTrigger id={id("secure")} className="w-full">
             <SelectValue />

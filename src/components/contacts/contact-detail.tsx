@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
+import { it as dateFnsIt } from "date-fns/locale"
 import {
   AtSign,
   Building2,
@@ -50,6 +51,7 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { CustomFieldsEditor, EmailListInput, InlineField, TagInput } from "./contact-fields"
 import {
   displayName,
@@ -66,6 +68,7 @@ export function composeHref(slug: string, email: string) {
 }
 
 export function ConversationLink({ slug, c, compact }: { slug: string; c: ContactConversation; compact?: boolean }) {
+  const { locale } = useI18n()
   return (
     <Link
       href={`/w/${slug}/all/${c.id}`}
@@ -77,14 +80,14 @@ export function ConversationLink({ slug, c, compact }: { slug: string; c: Contac
           {c.subject || "(no subject)"}
         </span>
         <time className="shrink-0 text-[11.5px] text-muted-foreground tabular-nums" dateTime={c.lastActivityAt}>
-          {formatDistanceToNow(new Date(c.lastActivityAt), { addSuffix: false })}
+          {formatDistanceToNow(new Date(c.lastActivityAt), { addSuffix: false, ...(locale === "it" ? { locale: dateFnsIt } : {}) })}
         </time>
       </span>
       {!compact && (
         <span className="flex min-w-0 items-center gap-2 pl-4 text-[12.5px] text-muted-foreground">
           <span className="min-w-0 flex-1 truncate">{c.snippet}</span>
           {c.status === "closed" && (
-            <span className="shrink-0 rounded border px-1 text-[10.5px] font-medium tracking-wide uppercase">Closed</span>
+            <span className="shrink-0 rounded border px-1 text-[10.5px] font-medium tracking-wide uppercase">{locale === "it" ? "Chiusa" : "Closed"}</span>
           )}
         </span>
       )}
@@ -119,17 +122,19 @@ export function ContactDetail({
   tagSuggestions?: string[]
   className?: string
 }) {
+  const { locale } = useI18n()
   const { data, isPending, isError } = useContactDetail(slug, contactId)
   if (isPending) return <DetailSkeleton className={className} />
   if (isError || !data) {
     return (
       <div className={cn("flex flex-1 items-center justify-center p-8 text-center text-sm text-muted-foreground", className)}>
-        This contact no longer exists or you don’t have access to it.
+        {locale === "it" ? "Questo contatto non esiste più o non hai accesso." : "This contact no longer exists or you don’t have access to it."}
       </div>
     )
   }
   return (
-    <ContactDetailBody
+      <ContactDetailBody
+        locale={locale}
       key={data.contact.id}
       slug={slug}
       contact={data.contact}
@@ -144,6 +149,7 @@ export function ContactDetail({
 }
 
 function ContactDetailBody({
+  locale,
   slug,
   contact,
   conversations,
@@ -153,6 +159,7 @@ function ContactDetailBody({
   tagSuggestions,
   className,
 }: {
+  locale: "en" | "it"
   slug: string
   contact: ContactDto
   conversations: ContactConversation[]
@@ -176,7 +183,7 @@ function ContactDetailBody({
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
-      toast.error("Couldn’t copy to the clipboard")
+      toast.error(locale === "it" ? "Impossibile copiare negli appunti" : "Couldn’t copy to the clipboard")
     }
   }
 
@@ -192,8 +199,8 @@ function ContactDetailBody({
               key={contact.name ?? ""}
               defaultValue={contact.name ?? ""}
               readOnly={!editable}
-              placeholder={editable ? "Add a name" : contact.email}
-              aria-label="Name"
+              placeholder={editable ? (locale === "it" ? "Aggiungi un nome" : "Add a name") : contact.email}
+              aria-label={locale === "it" ? "Nome" : "Name"}
               onBlur={(e) => {
                 const v = e.target.value.trim()
                 if (v !== (contact.name ?? "")) patch({ name: v || null })
@@ -207,7 +214,7 @@ function ContactDetailBody({
             <p className="truncate text-[13px] text-muted-foreground">{subtitle || contact.email}</p>
             {contact.isPrivate && (
               <span className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                <Lock className="size-3" /> Private contact
+                <Lock className="size-3" /> {locale === "it" ? "Contatto privato" : "Private contact"}
               </span>
             )}
           </div>
@@ -215,16 +222,16 @@ function ContactDetailBody({
         <div className="flex items-center gap-1.5">
           <Button asChild size="sm" className="flex-1 sm:flex-none">
             <Link href={composeHref(slug, contact.email)}>
-              <SquarePen /> New email
+              <SquarePen /> {locale === "it" ? "Nuova email" : "New email"}
             </Link>
           </Button>
-          <Button variant="outline" size="sm" onClick={copyEmail} aria-label="Copy email address">
+          <Button variant="outline" size="sm" onClick={copyEmail} aria-label={locale === "it" ? "Copia indirizzo email" : "Copy email address"}>
             {copied ? <Check /> : <Copy />}
-            <span className="hidden sm:inline">{copied ? "Copied" : "Copy email"}</span>
+            <span className="hidden sm:inline">{copied ? (locale === "it" ? "Copiata" : "Copied") : (locale === "it" ? "Copia email" : "Copy email")}</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon-sm" aria-label="More actions">
+              <Button variant="outline" size="icon-sm" aria-label={locale === "it" ? "Altre azioni" : "More actions"}>
                 <MoreHorizontal />
               </Button>
             </DropdownMenuTrigger>
@@ -232,115 +239,115 @@ function ContactDetailBody({
               {can("contacts.manage") && (
                 <DropdownMenuItem onSelect={() => patch({ isPrivate: !contact.isPrivate })}>
                   {contact.isPrivate ? <Share2 /> : <Lock />}
-                  {contact.isPrivate ? "Share with workspace" : "Make private"}
+                  {contact.isPrivate ? (locale === "it" ? "Condividi con il workspace" : "Share with workspace") : (locale === "it" ? "Rendi privato" : "Make private")}
                 </DropdownMenuItem>
               )}
               {editable && (
                 <DropdownMenuItem onSelect={() => setMergeOpen(true)}>
-                  <Merge /> Merge duplicate into this…
+                  <Merge /> {locale === "it" ? "Unisci un duplicato a questo…" : "Merge duplicate into this…"}
                 </DropdownMenuItem>
               )}
               {editable && <DropdownMenuSeparator />}
               {editable ? (
                 <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
-                  <Trash2 /> Delete contact
+                  <Trash2 /> {locale === "it" ? "Elimina contatto" : "Delete contact"}
                 </DropdownMenuItem>
               ) : (
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">You can view but not edit this shared contact.</div>
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">{locale === "it" ? "Puoi visualizzare questo contatto condiviso, ma non modificarlo." : "You can view but not edit this shared contact."}</div>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
         <dl className="grid grid-cols-3 gap-2 rounded-lg border bg-surface/60 p-3 text-center">
           <div>
-            <dt className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Conversations</dt>
+            <dt className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{locale === "it" ? "Conversazioni" : "Conversations"}</dt>
             <dd className="text-[15px] font-semibold tabular-nums">{conversationTotal}</dd>
           </div>
           <div>
-            <dt className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Messages</dt>
+            <dt className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{locale === "it" ? "Messaggi" : "Messages"}</dt>
             <dd className="text-[15px] font-semibold tabular-nums">{contact.messageCount}</dd>
           </div>
           <div>
-            <dt className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">Last contact</dt>
+            <dt className="font-mono text-[10px] tracking-wider text-muted-foreground uppercase">{locale === "it" ? "Ultimo contatto" : "Last contact"}</dt>
             <dd className="truncate text-[13px] font-semibold" title={contact.lastContactedAt ?? undefined}>
-              {contact.lastContactedAt ? formatDistanceToNow(new Date(contact.lastContactedAt), { addSuffix: true }) : "Never"}
+      {contact.lastContactedAt ? formatDistanceToNow(new Date(contact.lastContactedAt), { addSuffix: true, ...(locale === "it" ? { locale: dateFnsIt } : {}) }) : locale === "it" ? "Mai" : "Never"}
             </dd>
           </div>
         </dl>
       </header>
 
-      <Section title="Details">
+      <Section title={locale === "it" ? "Dettagli" : "Details"}>
         <div className="flex flex-col gap-0.5">
           <InlineField label="Email" icon={<Mail className="size-3.5" />} type="email" value={contact.email} readOnly={!editable} onCommit={(v) => v && patch({ email: v })} />
           <div className="grid grid-cols-[88px_1fr] items-start gap-2">
             <span className="flex min-h-8 items-center gap-1.5 text-[12.5px] text-muted-foreground">
-              <AtSign className="size-3.5" /> Also
+              <AtSign className="size-3.5" /> {locale === "it" ? "Anche" : "Also"}
             </span>
             <EmailListInput value={contact.alternateEmails} readOnly={!editable} onChange={(alternateEmails) => patch({ alternateEmails })} />
           </div>
-          <InlineField label="Phone" icon={<Phone className="size-3.5" />} type="tel" value={contact.phone} readOnly={!editable} placeholder="Add phone" onCommit={(v) => patch({ phone: v || null })} />
-          <InlineField label="Company" icon={<Building2 className="size-3.5" />} value={contact.company} readOnly={!editable} placeholder="Add company" onCommit={(v) => patch({ company: v || null })} />
-          <InlineField label="Title" icon={<Briefcase className="size-3.5" />} value={contact.title} readOnly={!editable} placeholder="Add job title" onCommit={(v) => patch({ title: v || null })} />
+          <InlineField label={locale === "it" ? "Telefono" : "Phone"} icon={<Phone className="size-3.5" />} type="tel" value={contact.phone} readOnly={!editable} placeholder={locale === "it" ? "Aggiungi telefono" : "Add phone"} onCommit={(v) => patch({ phone: v || null })} />
+          <InlineField label={locale === "it" ? "Azienda" : "Company"} icon={<Building2 className="size-3.5" />} value={contact.company} readOnly={!editable} placeholder={locale === "it" ? "Aggiungi azienda" : "Add company"} onCommit={(v) => patch({ company: v || null })} />
+          <InlineField label={locale === "it" ? "Ruolo" : "Title"} icon={<Briefcase className="size-3.5" />} value={contact.title} readOnly={!editable} placeholder={locale === "it" ? "Aggiungi ruolo" : "Add job title"} onCommit={(v) => patch({ title: v || null })} />
           <div className="grid grid-cols-[88px_1fr] items-start gap-2">
             <span className="flex min-h-8 items-center gap-1.5 text-[12.5px] text-muted-foreground">
-              <Users className="size-3.5" /> Tags
+              <Users className="size-3.5" /> {locale === "it" ? "Etichette" : "Tags"}
             </span>
             <TagInput value={contact.tags} readOnly={!editable} suggestions={tagSuggestions} onChange={(tags) => patch({ tags })} />
           </div>
           <InlineField
-            label="Notes"
+            label={locale === "it" ? "Note" : "Notes"}
             multiline
             value={contact.notes}
             readOnly={!editable}
-            placeholder="Add notes for your team…"
+            placeholder={locale === "it" ? "Aggiungi note per il team…" : "Add notes for your team…"}
             onCommit={(v) => patch({ notes: v || null })}
           />
         </div>
       </Section>
 
       {(editable || Object.keys(contact.customFields).length > 0) && (
-        <Section title="Custom fields">
+        <Section title={locale === "it" ? "Campi personalizzati" : "Custom fields"}>
           <CustomFieldsEditor value={contact.customFields} readOnly={!editable} onChange={(customFields) => patch({ customFields })} />
         </Section>
       )}
 
-      <Section title={`Conversations${conversationTotal ? ` · ${conversationTotal}` : ""}`}>
+      <Section title={`${locale === "it" ? "Conversazioni" : "Conversations"}${conversationTotal ? ` · ${conversationTotal}` : ""}`}>
         {conversations.length ? (
           <div className="flex flex-col">
             {conversations.map((c) => (
               <ConversationLink key={c.id} slug={slug} c={c} />
             ))}
             {conversationTotal > conversations.length && (
-              <p className="pt-2 text-xs text-muted-foreground">Showing the {conversations.length} most recent conversations.</p>
+              <p className="pt-2 text-xs text-muted-foreground">{locale === "it" ? `Mostrate le ${conversations.length} conversazioni più recenti.` : `Showing the ${conversations.length} most recent conversations.`}</p>
             )}
           </div>
         ) : (
-          <p className="text-[13px] text-muted-foreground">No conversations you can see yet.</p>
+          <p className="text-[13px] text-muted-foreground">{locale === "it" ? "Non ci sono ancora conversazioni visibili." : "No conversations you can see yet."}</p>
         )}
       </Section>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {displayName(contact)}?</AlertDialogTitle>
+            <AlertDialogTitle>{locale === "it" ? `Eliminare ${displayName(contact)}?` : `Delete ${displayName(contact)}?`}</AlertDialogTitle>
             <AlertDialogDescription>
-              The contact and its notes are removed{contact.isPrivate ? "" : " for everyone"}. Conversations stay untouched.
+              {locale === "it" ? `Il contatto e le sue note verranno rimossi${contact.isPrivate ? "" : " per tutti"}. Le conversazioni non verranno modificate.` : `The contact and its notes are removed${contact.isPrivate ? "" : " for everyone"}. Conversations stay untouched.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{locale === "it" ? "Annulla" : "Cancel"}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() =>
                 remove.mutate(contact.id, {
                   onSuccess: () => {
-                    toast.success("Contact deleted")
+                    toast.success(locale === "it" ? "Contatto eliminato" : "Contact deleted")
                     onDeleted?.()
                   },
                 })
               }
             >
-              Delete
+              {locale === "it" ? "Elimina" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -356,7 +363,7 @@ function ContactDetailBody({
               { targetId: contact.id, sourceIds: [sourceId] },
               {
                 onSuccess: (merged) => {
-                  toast.success("Contacts merged")
+                  toast.success(locale === "it" ? "Contatti uniti" : "Contacts merged")
                   setMergeOpen(false)
                   onMerged?.(merged.id)
                 },
@@ -380,15 +387,16 @@ function MergeDialog({
   onClose: () => void
   onMerge: (sourceId: string) => void
 }) {
+  const { locale } = useI18n()
   const [q, setQ] = useState(target.name?.split(" ")[0] ?? "")
   const { data } = useContactList(slug, { q: q || undefined, sort: "name" })
   const candidates = (data?.pages.flatMap((p) => p.contacts) ?? []).filter((c) => c.id !== target.id && c.canEdit).slice(0, 30)
   return (
-    <CommandDialog open onOpenChange={(o) => !o && onClose()} title="Merge duplicate" description={`Pick a duplicate to merge into ${displayName(target)}`}>
-      <CommandInput value={q} onValueChange={setQ} placeholder={`Merge a duplicate into ${displayName(target)}…`} />
+    <CommandDialog open onOpenChange={(o) => !o && onClose()} title={locale === "it" ? "Unisci duplicato" : "Merge duplicate"} description={locale === "it" ? `Scegli un duplicato da unire a ${displayName(target)}` : `Pick a duplicate to merge into ${displayName(target)}`}>
+      <CommandInput value={q} onValueChange={setQ} placeholder={locale === "it" ? `Unisci un duplicato a ${displayName(target)}…` : `Merge a duplicate into ${displayName(target)}…`} />
       <CommandList>
-        <CommandEmpty>No other contacts found.</CommandEmpty>
-        <CommandGroup heading="The selected contact is merged into this one and then deleted">
+        <CommandEmpty>{locale === "it" ? "Non sono stati trovati altri contatti." : "No other contacts found."}</CommandEmpty>
+        <CommandGroup heading={locale === "it" ? "Il contatto selezionato verrà unito a questo ed eliminato" : "The selected contact is merged into this one and then deleted"}>
           {candidates.map((c) => (
             <CommandItem key={c.id} value={`${c.name ?? ""} ${c.email} ${c.id}`} onSelect={() => onMerge(c.id)}>
               <UserAvatar name={c.name} email={c.email} size="sm" />
@@ -405,8 +413,9 @@ function MergeDialog({
 }
 
 function DetailSkeleton({ className }: { className?: string }) {
+  const { locale } = useI18n()
   return (
-    <div className={cn("flex flex-col gap-4 p-5", className)} aria-busy aria-label="Loading contact">
+    <div className={cn("flex flex-col gap-4 p-5", className)} aria-busy aria-label={locale === "it" ? "Caricamento contatto" : "Loading contact"}>
       <div className="flex items-center gap-3">
         <Skeleton className="size-12 rounded-full" />
         <div className="flex flex-1 flex-col gap-2">

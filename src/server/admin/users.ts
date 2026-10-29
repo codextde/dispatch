@@ -4,6 +4,7 @@ import { db, schema, type Tx } from "@/server/db"
 import { ApiError } from "@/server/api"
 import { listSessions } from "@/server/auth/session"
 import { isUuid, likePattern, soleOwnedWorkspaces } from "@/server/admin/workspaces"
+import { passwordHash, PASSWORD_MIN_LENGTH } from "@/server/auth/password"
 
 /**
  * Super admin: user directory and account operations. Guards that protect
@@ -198,6 +199,37 @@ export async function revokeAllUserSessions(targetId: string, current: { userId:
       : eq(schema.sessions.userId, targetId)
   const deleted = await db.delete(schema.sessions).where(where).returning({ id: schema.sessions.id })
   return deleted.length
+}
+
+export async function updateUserCredentials(actorId: string, targetId: string, input: { email?: string; password?: string }, currentSessionId?: string) {
+  if (!isUuid(targetId)) throw new ApiError(404, "User not found")
+  const email = input.email?.trim().toLowerCase()
+  if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ApiError(400, "Enter a valid email address.")
+  if (input.password !== undefined && input.password.length < PASSWORD_MIN_LENGTH) {
+    throw new ApiError(400, `Password must contain at least ${PASSWORD_MIN_LENGTH} characters.`)
+  }
+  return db.transaction(async (tx) => {
+    const target = await loadTarget(tx, targetId)
+    if (email && email !== target.email.toLowerCase()) {
+      const duplicate = await tx.query.users.findFirst({ where: sql`lower(${u.email}) = ${email} and ${u.id} <> ${targetId}`, columns: { id: true } })
+      if (duplicate) throw new ApiError(409, "That email address is already in use.")
+    }
+    const [updated] = await tx
+      .update(u)
+      .set({
+        ...(email ? { email } : {}),
+        ...(input.password !== undefined ? { passwordHash: passwordHash(input.password) } : {}),
+      })
+      .where(eq(u.id, targetId))
+      .returning()
+    if (!updated) throw new ApiError(404, "User not found")
+    if (email && email !== target.email.toLowerCase()) {
+      await tx.update(schema.userIdentities).set({ email }).where(eq(schema.userIdentities.userId, targetId))
+    }
+    const sessionWhere = targetId === actorId && currentSessionId ? and(eq(schema.sessions.userId, targetId), ne(schema.sessions.id, currentSessionId)) : eq(schema.sessions.userId, targetId)
+    const revoked = await tx.delete(schema.sessions).where(sessionWhere).returning({ id: schema.sessions.id })
+    return { user: updated, revokedSessions: revoked.length }
+  })
 }
 
 /** Pre-flight for deleting a user (also used by the UI to explain why it's blocked). */

@@ -16,6 +16,7 @@ function first(v: string | string[] | undefined) {
 
 export default async function AdminUsersPage({ searchParams }: PageProps<"/admin/users">) {
   const { user: me } = await requireSuperAdminPage()
+  const it = me.locale === "it"
   const sp = await searchParams
   const q = first(sp.q) ?? ""
   const filter = first(sp.filter)
@@ -26,28 +27,28 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
   return (
     <>
       <AdminPageHeader
-        eyebrow="Instance"
-        title="Users"
-        quiet="and their access"
-        description={`${formatNumber(total)} ${total === 1 ? "account" : "accounts"}${filtered ? " match your filters" : ""}. Grant super admin access, disable accounts, revoke sessions or impersonate to help with support.`}
+        eyebrow={it ? "Istanza" : "Instance"}
+        title={it ? "Utenti" : "Users"}
+        quiet={it ? "e i relativi accessi" : "and their access"}
+        description={it ? `${formatNumber(total)} ${total === 1 ? "account" : "account"}${filtered ? " corrispondenti ai filtri" : ""}. Concedi l’accesso da super amministratore, disattiva account, revoca sessioni o accedi come utente per fornire assistenza.` : `${formatNumber(total)} ${total === 1 ? "account" : "accounts"}${filtered ? " match your filters" : ""}. Grant super admin access, disable accounts, revoke sessions or impersonate to help with support.`}
       />
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <SearchParamInput placeholder="Search name or email…" />
+        <SearchParamInput placeholder={it ? "Cerca nome o email…" : "Search name or email…"} />
         <FilterSelect
           param="filter"
-          label="Show"
+          label={it ? "Mostra" : "Show"}
           options={[
-            { value: "super_admins", label: "Super admins" },
-            { value: "active", label: "Active" },
-            { value: "disabled", label: "Disabled" },
+            { value: "super_admins", label: it ? "Super amministratori" : "Super admins" },
+            { value: "active", label: it ? "Attivi" : "Active" },
+            { value: "disabled", label: it ? "Disattivati" : "Disabled" },
           ]}
         />
       </div>
 
       {rows.length === 0 ? (
         <div className="rounded-lg border border-border bg-card">
-          <EmptyState icon={Users} title={filtered ? "No users match" : "No users yet"} description="Try a different search or clear the filter." />
+          <EmptyState icon={Users} title={filtered ? (it ? "Nessun utente corrisponde" : "No users match") : (it ? "Nessun utente" : "No users yet")} description={it ? "Prova una ricerca diversa o rimuovi il filtro." : "Try a different search or clear the filter."} />
         </div>
       ) : (
         <>
@@ -62,18 +63,18 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="truncate text-sm font-medium">{u.name || u.email}</span>
-                      {u.id === me.id && <span className="text-[11px] text-muted-foreground">(you)</span>}
+                      {u.id === me.id && <span className="text-[11px] text-muted-foreground">({it ? "tu" : "you"})</span>}
                     </div>
                     {u.name && <div className="truncate text-[12.5px] text-muted-foreground">{u.email}</div>}
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       {u.isSuperAdmin && (
                         <StatusBadge tone="brand" dot={false}>
-                          Super admin
+                          {it ? "Super amministratore" : "Super admin"}
                         </StatusBadge>
                       )}
-                      {u.status === "disabled" && <StatusBadge tone="error">Disabled</StatusBadge>}
+                      {u.status === "disabled" && <StatusBadge tone="error">{it ? "Disattivato" : "Disabled"}</StatusBadge>}
                       <span className="text-[12px] text-muted-foreground">
-                        {u.workspaces} {u.workspaces === 1 ? "workspace" : "workspaces"} · seen <LocalTime date={u.lastSeenAt} format="relative" fallback="never" />
+                        {u.workspaces} {it ? (u.workspaces === 1 ? "workspace" : "workspace") : (u.workspaces === 1 ? "workspace" : "workspaces")} · {it ? "visto" : "seen"} <LocalTime date={u.lastSeenAt} format="relative" fallback={it ? "mai" : "never"} />
                       </span>
                     </div>
                   </div>
@@ -86,13 +87,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
           <DataTable className="hidden md:block">
             <thead>
               <tr>
-                <Th>User</Th>
-                <Th className="text-right">Workspaces</Th>
-                <Th>Role</Th>
-                <Th>Status</Th>
-                <Th>Last seen</Th>
-                <Th className="text-right">Sessions</Th>
-                <Th>Created</Th>
+                <Th>{it ? "Utente" : "User"}</Th>
+                <Th className="text-right">Workspace</Th>
+                <Th>{it ? "Ruolo" : "Role"}</Th>
+                <Th>{it ? "Stato" : "Status"}</Th>
+                <Th>{it ? "Ultimo accesso" : "Last seen"}</Th>
+                <Th className="text-right">{it ? "Sessioni" : "Sessions"}</Th>
+                <Th>{it ? "Creato" : "Created"}</Th>
               </tr>
             </thead>
             <tbody>
@@ -107,7 +108,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
                           className="block max-w-[260px] truncate font-medium outline-none after:absolute after:inset-0 focus-visible:underline"
                         >
                           {u.name || u.email}
-                          {u.id === me.id && <span className="ml-1 text-[11px] font-normal text-muted-foreground">(you)</span>}
+                          {u.id === me.id && <span className="ml-1 text-[11px] font-normal text-muted-foreground">({it ? "tu" : "you"})</span>}
                         </Link>
                         {u.name && <div className="max-w-[260px] truncate text-[12px] text-muted-foreground">{u.email}</div>}
                       </div>
@@ -117,17 +118,17 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
                   <Td>
                     {u.isSuperAdmin ? (
                       <StatusBadge tone="brand" dot={false}>
-                        Super admin
+                        {it ? "Super amministratore" : "Super admin"}
                       </StatusBadge>
                     ) : (
-                      <span className="text-[13px] text-muted-foreground">User</span>
+                      <span className="text-[13px] text-muted-foreground">{it ? "Utente" : "User"}</span>
                     )}
                   </Td>
                   <Td>
-                    <StatusBadge tone={u.status === "active" ? "ok" : "error"}>{u.status === "active" ? "Active" : "Disabled"}</StatusBadge>
+                    <StatusBadge tone={u.status === "active" ? "ok" : "error"}>{u.status === "active" ? (it ? "Attivo" : "Active") : (it ? "Disattivato" : "Disabled")}</StatusBadge>
                   </Td>
                   <Td className="text-[13px] whitespace-nowrap text-muted-foreground">
-                    <LocalTime date={u.lastSeenAt} format="relative" titleFormat="datetime" fallback="Never" />
+                    <LocalTime date={u.lastSeenAt} format="relative" titleFormat="datetime" fallback={it ? "Mai" : "Never"} />
                   </Td>
                   <Td className="text-right tabular-nums">{formatNumber(u.sessions)}</Td>
                   <Td className="text-[13px] whitespace-nowrap text-muted-foreground">

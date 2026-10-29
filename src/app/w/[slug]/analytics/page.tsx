@@ -31,6 +31,7 @@ export default async function AnalyticsPage({ params, searchParams }: PageProps<
   const { slug } = await params
   const ctx = await requireOrgPage(slug)
   requirePagePermission(ctx, "analytics.view")
+  const it = ctx.user.locale === "it"
   const sp = await searchParams
 
   const [tz, options, hasData] = await Promise.all([
@@ -69,12 +70,12 @@ export default async function AnalyticsPage({ params, searchParams }: PageProps<
   return (
     <div className={cn("mx-auto w-full max-w-7xl px-4 pt-6 pb-16 sm:px-6 md:pt-8 lg:px-10", vizVars)}>
       <header className="mb-6">
-        <MicroLabel className="mb-2 block">Reports</MicroLabel>
+        <MicroLabel className="mb-2 block">{it ? "Report" : "Reports"}</MicroLabel>
         <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-[28px] sm:leading-tight">
-          Analytics <span className="text-quiet">— how your team is doing</span>
+          {it ? "Analisi" : "Analytics"} <span className="text-quiet">{it ? "— andamento del team" : "— how your team is doing"}</span>
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-pretty text-muted-foreground">
-          Volume, responsiveness and workload across your shared inboxes. Times are shown in{" "}
+          {it ? "Volumi, tempi di risposta e carico di lavoro delle caselle condivise. Orari nel fuso " : "Volume, responsiveness and workload across your shared inboxes. Times are shown in "}
           <span className="font-medium text-foreground">{tz.replace(/_/g, " ")}</span>.
         </p>
       </header>
@@ -82,17 +83,17 @@ export default async function AnalyticsPage({ params, searchParams }: PageProps<
       {!report ? (
         <EmptyState
           icon={<ChartNoAxesColumn />}
-          title={options.accounts.length === 0 ? "Connect a shared inbox to see analytics" : "No conversations yet"}
+          title={options.accounts.length === 0 ? (it ? "Collega una casella condivisa per vedere le analisi" : "Connect a shared inbox to see analytics") : (it ? "Nessuna conversazione" : "No conversations yet")}
           description={
             options.accounts.length === 0
-              ? "Analytics cover your team's shared inboxes. Once a shared inbox is connected and emails arrive, you'll see volume, response times and workload here."
-              : "As soon as emails arrive in your shared inboxes, you'll see volume, response times, busiest hours and per-teammate stats here."
+              ? (it ? "Le analisi riguardano le caselle condivise del team. Collega una casella e, all’arrivo delle email, vedrai qui volumi, tempi di risposta e carico di lavoro." : "Analytics cover your team's shared inboxes. Once a shared inbox is connected and emails arrive, you'll see volume, response times and workload here.")
+              : (it ? "Quando arrivano email nelle caselle condivise, qui vedrai volumi, tempi di risposta, fasce orarie più intense e statistiche per collega." : "As soon as emails arrive in your shared inboxes, you'll see volume, response times, busiest hours and per-teammate stats here.")
           }
           className="py-16"
         >
           {can(ctx, "inboxes.manage") && (
             <Button asChild size="sm">
-              <Link href={`/w/${slug}/settings/inboxes`}>{options.accounts.length === 0 ? "Connect an inbox" : "Manage inboxes"}</Link>
+              <Link href={`/w/${slug}/settings/inboxes`}>{options.accounts.length === 0 ? (it ? "Collega una casella" : "Connect an inbox") : (it ? "Gestisci caselle" : "Manage inboxes")}</Link>
             </Button>
           )}
         </EmptyState>

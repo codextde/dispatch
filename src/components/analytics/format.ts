@@ -16,10 +16,11 @@ export function formatDuration(seconds: number | null | undefined, fallback = "�
 }
 
 /** Compact integer: 1,284 / 12.9K / 4.2M */
-export function formatCount(n: number | null | undefined, fallback = "—"): string {
+export function formatCount(n: number | null | undefined, fallback = "—", locale: "en" | "it" = "en"): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return fallback
-  if (Math.abs(n) < 10_000) return n.toLocaleString("en-US")
-  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n)
+  const intlLocale = locale === "it" ? "it-IT" : "en-US"
+  if (Math.abs(n) < 10_000) return n.toLocaleString(intlLocale)
+  return new Intl.NumberFormat(intlLocale, { notation: "compact", maximumFractionDigits: 1 }).format(n)
 }
 
 /** Parse YYYY-MM-DD as a local calendar date (no timezone shift). */
@@ -50,21 +51,24 @@ export function addDaysYmd(ymd: string, days: number): string {
   return new Date(ymdToUtc(ymd).getTime() + days * 86_400_000).toISOString().slice(0, 10)
 }
 
-const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
-const longDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
-const weekdayDate = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })
-
-export function formatBucket(ymd: string, granularity: "day" | "week", long = false): string {
+export function formatBucket(ymd: string, granularity: "day" | "week", long = false, locale: "en" | "it" = "en"): string {
   const d = ymdToUtc(ymd)
-  if (granularity === "week") return `Week of ${(long ? longDate : shortDate).format(d)}`
+  const intlLocale = locale === "it" ? "it-IT" : "en-US"
+  const shortDate = new Intl.DateTimeFormat(intlLocale, { month: "short", day: "numeric", timeZone: "UTC" })
+  const longDate = new Intl.DateTimeFormat(intlLocale, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+  const weekdayDate = new Intl.DateTimeFormat(intlLocale, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })
+  if (granularity === "week") return locale === "it" ? `Settimana del ${(long ? longDate : shortDate).format(d)}` : `Week of ${(long ? longDate : shortDate).format(d)}`
   return (long ? weekdayDate : shortDate).format(d)
 }
 
 /** "Aug 29 – Sep 27, 2026" for an inclusive-from / exclusive-to range. */
-export function formatRangeLabel(from: string, toExclusive: string): string {
+export function formatRangeLabel(from: string, toExclusive: string, locale: "en" | "it" = "en"): string {
   const a = ymdToUtc(from)
   const b = ymdToUtc(addDaysYmd(toExclusive, -1))
   const sameYear = a.getUTCFullYear() === b.getUTCFullYear()
+  const intlLocale = locale === "it" ? "it-IT" : "en-US"
+  const shortDate = new Intl.DateTimeFormat(intlLocale, { month: "short", day: "numeric", timeZone: "UTC" })
+  const longDate = new Intl.DateTimeFormat(intlLocale, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
   return `${(sameYear ? shortDate : longDate).format(a)} – ${longDate.format(b)}`
 }
 
@@ -85,6 +89,7 @@ export function computeDelta(current: number | null, previous: number | null, lo
 }
 
 export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const
+export const WEEKDAYS_IT = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"] as const
 
 export function formatHour(h: number): string {
   return `${String(h).padStart(2, "0")}:00`

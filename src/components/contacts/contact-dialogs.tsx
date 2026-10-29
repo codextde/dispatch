@@ -16,6 +16,7 @@ import { ApiClientError } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { FIELD_LABELS, guessMapping, parseCsv, rowsToContacts, type ContactField } from "./csv"
 import { useContactMutations, type ContactDto } from "./use-contacts"
+import { useI18n } from "@/lib/i18n"
 
 /* ------------------------------ Create contact ----------------------------- */
 
@@ -52,6 +53,7 @@ function NewContactForm({
   onCreated?: (contact: ContactDto) => void
   onClose: () => void
 }) {
+  const { t, locale } = useI18n()
   const { can } = useOrg()
   const canShare = can("contacts.manage")
   const { create } = useContactMutations(slug)
@@ -81,57 +83,57 @@ function NewContactForm({
         notes: form.notes || null,
         isPrivate,
       })
-      toast.success("Contact added")
+      toast.success(t("contactAdded"))
       onCreated?.(contact)
       onClose()
     } catch (err) {
-      setError(err instanceof ApiClientError || err instanceof Error ? err.message : "Couldn’t save the contact")
+      setError(err instanceof ApiClientError || err instanceof Error ? err.message : t("couldNotSave"))
     }
   }
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <DialogHeader>
-        <DialogTitle>New contact</DialogTitle>
-        <DialogDescription>Add someone to the {isPrivate ? "your private" : "shared"} address book.</DialogDescription>
+        <DialogTitle>{t("newContact")}</DialogTitle>
+        <DialogDescription>{t("addToAddressBook")} ({isPrivate ? t("private") : t("shared")}).</DialogDescription>
       </DialogHeader>
       <div className="grid gap-3">
         <div className="grid gap-1.5">
-          <Label htmlFor="nc-email">Email</Label>
-          <Input id="nc-email" type="email" required autoFocus value={form.email} onChange={set("email")} placeholder="jane@company.com" aria-invalid={Boolean(error)} />
+          <Label htmlFor="nc-email">{locale === "it" ? "Email" : "Email"}</Label>
+          <Input id="nc-email" type="email" required autoFocus value={form.email} onChange={set("email")} placeholder={t("contactEmailPlaceholder")} aria-invalid={Boolean(error)} />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="nc-name">Name</Label>
-          <Input id="nc-name" value={form.name} onChange={set("name")} placeholder="Jane Doe" />
+          <Label htmlFor="nc-name">{locale === "it" ? "Nome" : "Name"}</Label>
+          <Input id="nc-name" value={form.name} onChange={set("name")} placeholder={t("contactNamePlaceholder")} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="nc-company">Company</Label>
+          <Label htmlFor="nc-company">{t("company")}</Label>
             <Input id="nc-company" value={form.company} onChange={set("company")} />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="nc-title">Job title</Label>
+          <Label htmlFor="nc-title">{t("jobTitle")}</Label>
             <Input id="nc-title" value={form.title} onChange={set("title")} />
           </div>
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="nc-phone">Phone</Label>
+          <Label htmlFor="nc-phone">{t("phone")}</Label>
           <Input id="nc-phone" type="tel" value={form.phone} onChange={set("phone")} />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="nc-notes">Notes</Label>
+          <Label htmlFor="nc-notes">{t("notes")}</Label>
           <Textarea id="nc-notes" value={form.notes} onChange={set("notes")} rows={2} />
         </div>
         <label className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
           <span className="flex flex-col">
             <span className="flex items-center gap-1.5 text-[13px] font-medium">
-              <Lock className="size-3.5" /> Private contact
+              <Lock className="size-3.5" /> {t("privateContact")}
             </span>
             <span className="text-xs text-muted-foreground">
-              {canShare ? "Only you can see it." : "You can add private contacts. Shared contacts are managed by admins."}
+              {canShare ? t("onlyYouSee") : t("privateManagedAdmins")}
             </span>
           </span>
-          <Switch checked={isPrivate} onCheckedChange={setIsPrivate} disabled={!canShare} aria-label="Private contact" />
+          <Switch checked={isPrivate} onCheckedChange={setIsPrivate} disabled={!canShare} aria-label={locale === "it" ? "Contatto privato" : "Private contact"} />
         </label>
         {error && (
           <p className="text-[13px] text-destructive" role="alert">
@@ -141,11 +143,11 @@ function NewContactForm({
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" disabled={create.isPending || !form.email.trim()}>
           {create.isPending && <Spinner />}
-          Add contact
+          {t("addContact")}
         </Button>
       </DialogFooter>
     </form>
@@ -165,6 +167,8 @@ export function ImportContactsDialog({ slug, open, onOpenChange }: { slug: strin
 }
 
 function ImportFlow({ slug, onClose }: { slug: string; onClose: () => void }) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
   const { can } = useOrg()
   const canShare = can("contacts.manage")
   const { importContacts } = useContactMutations(slug)
@@ -186,40 +190,40 @@ function ImportFlow({ slug, onClose }: { slug: string; onClose: () => void }) {
 
   const load = async (file: File) => {
     setError(null)
-    if (file.size > 10 * 1024 * 1024) return setError("That file is larger than 10 MB.")
+    if (file.size > 10 * 1024 * 1024) return setError(it ? "Il file supera i 10 MB." : "That file is larger than 10 MB.")
     const text = await file.text()
     const parsed = parseCsv(text)
-    if (parsed.length < 2) return setError("The file needs a header row and at least one contact.")
+    if (parsed.length < 2) return setError(it ? "Il file deve contenere una riga d’intestazione e almeno un contatto." : "The file needs a header row and at least one contact.")
     const [head, ...body] = parsed
-    if (body.length > 5000) return setError("You can import up to 5,000 contacts at a time. Split the file and try again.")
+    if (body.length > 5000) return setError(it ? "Puoi importare al massimo 5.000 contatti alla volta. Dividi il file e riprova." : "You can import up to 5,000 contacts at a time. Split the file and try again.")
     const guessed = guessMapping(head!)
     setFileName(file.name)
     setHeaders(head!)
     setRows(body)
     setMapping(guessed)
-    if (!guessed.includes("email")) setError("We couldn’t find an email column. Pick it below.")
+    if (!guessed.includes("email")) setError(it ? "Non è stata trovata una colonna email. Selezionala qui sotto." : "We couldn’t find an email column. Pick it below.")
   }
 
   const submit = async () => {
     setError(null)
     try {
       const r = await importContacts.mutateAsync({ contacts, isPrivate, mode })
-      const parts = [`${r.created} added`]
-      if (r.updated) parts.push(`${r.updated} updated`)
-      if (r.skipped) parts.push(`${r.skipped} skipped`)
-      if (r.invalid) parts.push(`${r.invalid} invalid`)
-      toast.success("Import finished", { description: parts.join(" · ") })
+      const parts = [`${r.created} ${it ? "aggiunti" : "added"}`]
+      if (r.updated) parts.push(`${r.updated} ${it ? "aggiornati" : "updated"}`)
+      if (r.skipped) parts.push(`${r.skipped} ${it ? "ignorati" : "skipped"}`)
+      if (r.invalid) parts.push(`${r.invalid} ${it ? "non validi" : "invalid"}`)
+      toast.success(it ? "Importazione completata" : "Import finished", { description: parts.join(" · ") })
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Import failed")
+      setError(err instanceof Error ? err.message : (it ? "Importazione non riuscita" : "Import failed"))
     }
   }
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <DialogHeader>
-        <DialogTitle>Import contacts</DialogTitle>
-        <DialogDescription>Upload a CSV exported from Google Contacts, Outlook, HubSpot or a spreadsheet.</DialogDescription>
+        <DialogTitle>{t("importContacts")}</DialogTitle>
+        <DialogDescription>{t("uploadCsvDescription")}</DialogDescription>
       </DialogHeader>
 
       {!headers.length ? (
@@ -245,8 +249,8 @@ function ImportFlow({ slug, onClose }: { slug: string; onClose: () => void }) {
           <span className="flex size-10 items-center justify-center rounded-full bg-muted">
             <FileUp className="size-5 text-muted-foreground" />
           </span>
-          <span className="text-sm font-medium">Drop a CSV file here or click to browse</span>
-          <span className="text-xs text-muted-foreground">Needs a header row and an email column · up to 5,000 contacts</span>
+          <span className="text-sm font-medium">{t("dropCsv")}</span>
+          <span className="text-xs text-muted-foreground">{t("csvRequirements")}</span>
         </button>
       ) : (
         <div className="flex min-w-0 flex-col gap-3">
@@ -265,7 +269,7 @@ function ImportFlow({ slug, onClose }: { slug: string; onClose: () => void }) {
                 setError(null)
               }}
             >
-              Choose another file
+              {t("chooseAnotherFile")}
             </Button>
           </div>
           <div className="max-h-72 overflow-auto rounded-lg border">
@@ -289,7 +293,7 @@ function ImportFlow({ slug, onClose }: { slug: string; onClose: () => void }) {
                         <SelectContent>
                           {FIELD_OPTIONS.map((f) => (
                             <SelectItem key={f} value={f} className="text-xs">
-                              {f === "skip" ? (extraAsCustom ? "Custom field" : "Don’t import") : FIELD_LABELS[f]}
+                              {f === "skip" ? (extraAsCustom ? t("customField") : t("doNotImport")) : it ? ({ name: "Nome completo", firstName: "Nome", lastName: "Cognome", company: "Azienda", title: "Ruolo", phone: "Telefono", notes: "Note", email: "Email", tags: "Etichette" }[f]) : FIELD_LABELS[f]}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -313,19 +317,19 @@ function ImportFlow({ slug, onClose }: { slug: string; onClose: () => void }) {
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
-              <span className="text-[13px]">Import unmapped columns as custom fields</span>
-              <Switch checked={extraAsCustom} onCheckedChange={setExtraAsCustom} aria-label="Import unmapped columns as custom fields" />
+              <span className="text-[13px]">{t("importUnmapped")}</span>
+              <Switch checked={extraAsCustom} onCheckedChange={setExtraAsCustom} aria-label={it ? "Importa le colonne non abbinate come campi personalizzati" : "Import unmapped columns as custom fields"} />
             </label>
             <label className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
-              <span className="text-[13px]">Update contacts that already exist</span>
-              <Switch checked={mode === "update"} onCheckedChange={(v) => setMode(v ? "update" : "skip")} aria-label="Update existing contacts" />
+              <span className="text-[13px]">{t("updateExisting")}</span>
+              <Switch checked={mode === "update"} onCheckedChange={(v) => setMode(v ? "update" : "skip")} aria-label={it ? "Aggiorna i contatti esistenti" : "Update existing contacts"} />
             </label>
             <label className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 sm:col-span-2">
               <span className="flex flex-col">
-                <span className="text-[13px]">Import as private contacts</span>
-                {!canShare && <span className="text-xs text-muted-foreground">Only admins can import into the shared address book.</span>}
+                <span className="text-[13px]">{t("importPrivate")}</span>
+                {!canShare && <span className="text-xs text-muted-foreground">{t("adminsOnlyShared")}</span>}
               </span>
-              <Switch checked={isPrivate} onCheckedChange={setIsPrivate} disabled={!canShare} aria-label="Import as private contacts" />
+              <Switch checked={isPrivate} onCheckedChange={setIsPrivate} disabled={!canShare} aria-label={it ? "Importa come contatti privati" : "Import as private contacts"} />
             </label>
           </div>
         </div>
@@ -349,11 +353,11 @@ function ImportFlow({ slug, onClose }: { slug: string; onClose: () => void }) {
       )}
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button onClick={submit} disabled={!contacts.length || importContacts.isPending}>
           {importContacts.isPending ? <Spinner /> : <Upload />}
-          Import {contacts.length ? contacts.length.toLocaleString() : ""} contacts
+          {t("import")} {contacts.length ? contacts.length.toLocaleString() : ""} {t("contactsCount")}
         </Button>
       </DialogFooter>
     </div>

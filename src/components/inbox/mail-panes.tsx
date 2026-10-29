@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { usePersistentState } from "@/hooks/inbox/use-persistent-state"
 import { ConversationList } from "./list/conversation-list"
 import { ResizeHandle } from "./resize-handle"
+import { useI18n } from "@/lib/i18n"
 
 const LIST = { min: 300, max: 640, default: 380 }
 
@@ -15,6 +16,7 @@ const LIST = { min: 300, max: 640, default: 380 }
  * with a back button).
  */
 export function MailPanes({ box, children }: { box: string; children: React.ReactNode }) {
+  const { locale } = useI18n()
   const params = useParams<{ conversationId?: string }>()
   const open = !!params.conversationId
   const [width, setWidth] = usePersistentState("dispatch:list:width", LIST.default)
@@ -22,7 +24,7 @@ export function MailPanes({ box, children }: { box: string; children: React.Reac
   return (
     <div className="flex h-full min-h-0">
       <section
-        aria-label="Conversations"
+        aria-label={locale === "it" ? "Conversazioni" : "Conversations"}
         className={cn(
           "h-full min-w-0 flex-col bg-card md:flex md:w-[min(var(--list-width),46vw)] md:shrink-0 md:border-r",
           open ? "hidden" : "flex w-full"
@@ -33,8 +35,8 @@ export function MailPanes({ box, children }: { box: string; children: React.Reac
           <ConversationList box={box} />
         </Suspense>
       </section>
-      <ResizeHandle className="hidden md:block" value={width} onChange={setWidth} min={LIST.min} max={LIST.max} defaultValue={LIST.default} label="Resize conversation list" />
-      <section aria-label="Conversation" className={cn("h-full min-w-0 flex-1 flex-col", open ? "flex" : "hidden md:flex")}>
+      <ResizeHandle className="hidden md:block" value={width} onChange={setWidth} min={LIST.min} max={LIST.max} defaultValue={LIST.default} label={locale === "it" ? "Ridimensiona elenco conversazioni" : "Resize conversation list"} />
+      <section aria-label={locale === "it" ? "Conversazione" : "Conversation"} className={cn("h-full min-w-0 flex-1 flex-col", open ? "flex" : "hidden md:flex")}>
         {children}
       </section>
     </div>

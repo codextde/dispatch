@@ -15,6 +15,7 @@ import { createRoleAction, updateRoleAction } from "@/server/workspace/actions/r
 import type { RoleRow } from "@/server/workspace/queries/roles"
 import { ALL_PERMISSIONS, PERMISSION_GROUPS, PERMISSIONS, type Permission } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export type RoleEditorTarget =
   | { mode: "create"; from?: RoleRow }
@@ -67,6 +68,8 @@ function RoleEditorBody({
   const [color, setColor] = useState(source?.color ?? "#64748b")
   const [perms, setPerms] = useState<Set<string>>(() => new Set(source?.permissions ?? []))
   const { pending, run, fieldErrors, setFieldErrors } = useServerAction()
+  const { locale } = useI18n()
+  const it = locale === "it"
 
   const grantSet = useMemo(() => (grantable ? new Set(grantable) : null), [grantable])
   const original = useMemo(() => new Set(editing?.permissions ?? []), [editing])
@@ -162,7 +165,7 @@ function RoleEditorBody({
 
         <div className="flex flex-col gap-4 px-5 py-5">
           <div className="flex items-center justify-between">
-            <MicroLabel>Permissions</MicroLabel>
+            <MicroLabel>{it ? "Permessi" : "Permissions"}</MicroLabel>
             <span className="text-xs text-muted-foreground tabular-nums">
               {perms.size} of {ALL_PERMISSIONS.length}
             </span>
@@ -242,14 +245,14 @@ function RoleEditorBody({
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t bg-surface/60 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <span className="text-xs text-muted-foreground">Changes apply immediately to everyone with this role.</span>
+        <span className="text-xs text-muted-foreground">{it ? "Le modifiche si applicano subito a tutte le persone con questo ruolo." : "Changes apply immediately to everyone with this role."}</span>
         <div className="flex shrink-0 gap-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
-            Cancel
+            {it ? "Annulla" : "Cancel"}
           </Button>
           <Button type="submit" disabled={pending}>
             {pending && <Loader2 className="animate-spin" />}
-            {editing ? "Save role" : "Create role"}
+            {editing ? (it ? "Salva ruolo" : "Save role") : (it ? "Crea ruolo" : "Create role")}
           </Button>
         </div>
       </div>

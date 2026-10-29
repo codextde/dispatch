@@ -14,6 +14,7 @@ import { createLabel, updateLabel } from "@/server/workspace/actions/labels"
 import { cn } from "@/lib/utils"
 import { LabelChip } from "./label-chip"
 import { descendantIds, flattenLabels, MAX_LABEL_DEPTH, subtreeHeight, type LabelItem } from "./label-utils"
+import { useI18n } from "@/lib/i18n"
 
 export type LabelDialogState =
   | { mode: "create"; visibility: "shared" | "private"; parentId: string | null }
@@ -49,6 +50,7 @@ export function LabelDialog({
   labels: LabelItem[]
   canManageShared: boolean
 }) {
+  const { t } = useI18n()
   const [form, setForm] = useState<FormState>(() => initialForm(state))
   const { pending, run, fieldErrors } = useServerAction()
   const editing = state.mode === "edit" ? state.label : null
@@ -62,7 +64,7 @@ export function LabelDialog({
     const scoped = labels.filter((l) => l.visibility === form.visibility)
     const blocked = editing ? descendantIds(editing.id, scoped) : new Set<string>()
     const height = editing ? subtreeHeight(editing.id, scoped) : 1
-    const opts: ComboOption[] = [{ value: "__root__", label: "No parent (top level)" }]
+    const opts: ComboOption[] = [{ value: "__root__", label: t("lblNoParent") }]
     for (const l of flattenLabels(scoped)) {
       if (editing && (l.id === editing.id || blocked.has(l.id))) continue
       const tooDeep = l.depth + height > MAX_LABEL_DEPTH
@@ -70,7 +72,7 @@ export function LabelDialog({
         value: l.id,
         label: l.path,
         disabled: tooDeep,
-        hint: tooDeep ? "too deep" : undefined,
+        hint: tooDeep ? t("lblTooDeep") : undefined,
         icon: <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: l.color }} aria-hidden />,
       })
     }
@@ -84,7 +86,7 @@ export function LabelDialog({
     if (!canSave) return
     const payload = { slug, ...form, name: form.name.trim() }
     void run(() => (editing ? updateLabel({ ...payload, id: editing.id }) : createLabel(payload)), {
-      success: editing ? "Label saved" : "Label created",
+      success: editing ? t("lblSave") : t("lblCreate"),
       onSuccess: onClose,
     })
   }
@@ -120,9 +122,9 @@ export function LabelDialog({
     <Dialog open onOpenChange={(o) => !o && !pending && onClose()}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edit label" : "New label"}</DialogTitle>
+          <DialogTitle>{editing ? t("lblEdit") : t("lblNew")}</DialogTitle>
           <DialogDescription>
-            {editing ? "Changes apply everywhere this label is used." : "Use labels to group conversations across inboxes."}
+            {editing ? t("lblEditDesc") : t("lblNewDesc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -133,7 +135,7 @@ export function LabelDialog({
             save()
           }}
         >
-          <FormField label="Name" htmlFor="label-name" error={nameError}>
+          <FormField label={t("lblName")} htmlFor="label-name" error={nameError}>
             <div className="flex items-center gap-2">
               <Input
                 id="label-name"
@@ -144,37 +146,37 @@ export function LabelDialog({
                 aria-invalid={Boolean(nameError)}
                 onChange={(e) => set("name", e.target.value)}
               />
-              <LabelChip name={form.name.trim() || "Preview"} color={form.color} className="hidden max-w-40 shrink-0 sm:inline-flex" />
+              <LabelChip name={form.name.trim() || t("lblPreview")} color={form.color} className="hidden max-w-40 shrink-0 sm:inline-flex" />
             </div>
           </FormField>
 
-          <FormField label="Color">
+          <FormField label={t("lblColor")}>
             <ColorSwatches value={form.color} onChange={(c) => set("color", c)} />
           </FormField>
 
           <FormField
-            label="Visibility"
+            label={t("lblVisibility")}
             description={
               visibilityLocked && editing?.parentId
-                ? "Nested labels share their parent's visibility."
+                ? t("lblNestedVisibility")
                 : !canManageShared
-                  ? "You can create private labels. Ask an admin to add workspace labels."
+                  ? t("lblPrivateHelp")
                   : hasChildren
-                    ? "Nested labels move along when you change visibility."
+                    ? t("lblNestedMove")
                     : undefined
             }
           >
-            <div role="radiogroup" aria-label="Visibility" className="flex flex-col gap-2 sm:flex-row">
-              {scopeCard("shared", "Workspace", "Everyone can use it", Globe)}
-              {scopeCard("private", "Private", "Only visible to you", Lock)}
+            <div role="radiogroup" aria-label={t("lblVisibility")} className="flex flex-col gap-2 sm:flex-row">
+              {scopeCard("shared", t("lblWorkspace"), t("lblEveryone"), Globe)}
+              {scopeCard("private", t("lblPrivate"), t("lblOnlyYou"), Lock)}
             </div>
           </FormField>
 
           <FormField
-            label="Parent label"
+            label={t("lblParent")}
             htmlFor="label-parent"
             optional
-            description={`Nest labels up to ${MAX_LABEL_DEPTH} levels deep.`}
+            description={t("lblNestHelp").replace("{depth}", String(MAX_LABEL_DEPTH))}
             error={fieldErrors.parentId}
           >
             <Combobox
@@ -183,25 +185,25 @@ export function LabelDialog({
               value={form.parentId ?? "__root__"}
               onChange={(v) => set("parentId", !v || v === "__root__" ? null : v)}
               disabled={Boolean(editing) && form.visibility !== editing?.visibility}
-              searchPlaceholder="Search labels…"
+              searchPlaceholder={t("lblSearch")}
             />
           </FormField>
 
           <label className="flex items-start justify-between gap-4 rounded-lg border p-3">
             <span className="min-w-0">
-              <span className="block text-[13px] font-medium">Show in sidebar</span>
-              <span className="block text-xs text-muted-foreground">List this label as its own mailbox in the inbox sidebar.</span>
+              <span className="block text-[13px] font-medium">{t("lblSidebar")}</span>
+              <span className="block text-xs text-muted-foreground">{t("lblSidebarDesc")}</span>
             </span>
-            <Switch checked={form.showInSidebar} onCheckedChange={(v) => set("showInSidebar", v)} aria-label="Show in sidebar" />
+            <Switch checked={form.showInSidebar} onCheckedChange={(v) => set("showInSidebar", v)} aria-label={t("lblSidebar")} />
           </label>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
-              Cancel
+              {t("lblCancel")}
             </Button>
             <Button type="submit" disabled={!canSave}>
               {pending && <Loader2 className="animate-spin" />}
-              {editing ? "Save label" : "Create label"}
+              {editing ? t("lblSave") : t("lblCreate")}
             </Button>
           </DialogFooter>
         </form>

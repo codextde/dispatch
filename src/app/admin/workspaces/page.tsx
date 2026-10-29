@@ -23,7 +23,8 @@ function first(v: string | string[] | undefined) {
 }
 
 export default async function AdminWorkspacesPage({ searchParams }: PageProps<"/admin/workspaces">) {
-  await requireSuperAdminPage()
+  const { user } = await requireSuperAdminPage()
+  const it = user.locale === "it"
   const sp = await searchParams
   const q = first(sp.q) ?? ""
   const plan = first(sp.plan)
@@ -35,22 +36,22 @@ export default async function AdminWorkspacesPage({ searchParams }: PageProps<"/
   return (
     <>
       <AdminPageHeader
-        eyebrow="Instance"
-        title="Workspaces"
-        quiet="on this instance"
-        description={`${formatNumber(total)} ${total === 1 ? "workspace" : "workspaces"}${filtered ? " match your filters" : ""}. Manage plans, subscriptions, suspensions and ownership.`}
+        eyebrow={it ? "Istanza" : "Instance"}
+        title="Workspace"
+        quiet={it ? "in questa istanza" : "on this instance"}
+        description={it ? `${formatNumber(total)} workspace${filtered ? " corrispondenti ai filtri" : ""}. Gestisci piani, abbonamenti, sospensioni e proprietà.` : `${formatNumber(total)} ${total === 1 ? "workspace" : "workspaces"}${filtered ? " match your filters" : ""}. Manage plans, subscriptions, suspensions and ownership.`}
       />
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <SearchParamInput placeholder="Search name, slug or owner email…" />
+        <SearchParamInput placeholder={it ? "Cerca nome, slug o email del proprietario…" : "Search name, slug or owner email…"} />
         <div className="grid grid-cols-2 gap-2 sm:flex">
-          <FilterSelect param="plan" label="Plan" options={PLAN_OPTIONS.map((p) => ({ value: p.value, label: p.label }))} />
+          <FilterSelect param="plan" label={it ? "Piano" : "Plan"} options={PLAN_OPTIONS.map((p) => ({ value: p.value, label: it ? ({ Free: "Gratuito", Cloud: "Cloud", "Self-hosted": "Installato in autonomia", Comped: "Gratuito" }[p.label] ?? p.label) : p.label }))} />
           <FilterSelect
             param="status"
-            label="Status"
+            label={it ? "Stato" : "Status"}
             options={[
-              ...SUBSCRIPTION_STATUS_OPTIONS.filter((s) => s.value !== "incomplete").map((s) => ({ value: s.value, label: s.label })),
-              { value: "suspended", label: "Suspended" },
+              ...SUBSCRIPTION_STATUS_OPTIONS.filter((s) => s.value !== "incomplete").map((s) => ({ value: s.value, label: it ? (({ Active: "Attivo", Trial: "Prova", Trialing: "In prova", None: "Nessuno", "Past due": "Pagamento in ritardo", Canceled: "Annullato", Unpaid: "Non pagato", "No subscription": "Nessun abbonamento" } as Record<string, string>)[s.label] ?? s.label) : s.label })),
+              { value: "suspended", label: it ? "Sospeso" : "Suspended" },
             ]}
           />
         </div>
@@ -60,9 +61,9 @@ export default async function AdminWorkspacesPage({ searchParams }: PageProps<"/
         <div className="rounded-lg border border-border bg-card">
           <EmptyState
             icon={Building2}
-            title={filtered ? "No workspaces match" : "No workspaces yet"}
+            title={filtered ? (it ? "Nessun workspace corrispondente" : "No workspaces match") : (it ? "Nessun workspace" : "No workspaces yet")}
             description={
-              filtered ? "Try a different search or clear the filters." : "Workspaces appear here as soon as someone creates one."
+              filtered ? (it ? "Prova una ricerca diversa o rimuovi i filtri." : "Try a different search or clear the filters.") : (it ? "I workspace compariranno qui appena ne verrà creato uno." : "Workspaces appear here as soon as someone creates one.")
             }
           />
         </div>
@@ -86,30 +87,30 @@ export default async function AdminWorkspacesPage({ searchParams }: PageProps<"/
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <StatusBadge tone={planTone(w.plan)} dot={false}>
-                      {planLabel(w.plan)}
+                      {it ? ({ free: "Gratuito", cloud: "Cloud", self_hosted: "Installato in autonomia", comped: "Gratuito" }[w.plan] ?? planLabel(w.plan)) : planLabel(w.plan)}
                     </StatusBadge>
                     {w.suspendedAt ? (
-                      <StatusBadge tone="error">Suspended</StatusBadge>
+                      <StatusBadge tone="error">{it ? "Sospeso" : "Suspended"}</StatusBadge>
                     ) : (
                       w.subscriptionStatus !== "none" && (
                         <StatusBadge tone={subscriptionTone(w.subscriptionStatus)}>{subscriptionLabel(w.subscriptionStatus)}</StatusBadge>
                       )
                     )}
-                    {w.inboxErrors > 0 && <StatusBadge tone="error">{w.inboxErrors} inbox errors</StatusBadge>}
+                    {w.inboxErrors > 0 && <StatusBadge tone="error">{w.inboxErrors} {it ? "errori caselle" : "inbox errors"}</StatusBadge>}
                   </div>
                   <div className="mt-2.5 grid grid-cols-3 gap-2 text-[12px] text-muted-foreground">
                     <span>
-                      <span className="font-medium text-foreground tabular-nums">{formatNumber(w.members)}</span> members
+                      <span className="font-medium text-foreground tabular-nums">{formatNumber(w.members)}</span> {it ? "membri" : "members"}
                     </span>
                     <span>
-                      <span className="font-medium text-foreground tabular-nums">{formatNumber(w.inboxes)}</span> inboxes
+                      <span className="font-medium text-foreground tabular-nums">{formatNumber(w.inboxes)}</span> {it ? "caselle" : "inboxes"}
                     </span>
                     <span>
-                      <span className="font-medium text-foreground tabular-nums">{formatNumber(w.conversations)}</span> convos
+                      <span className="font-medium text-foreground tabular-nums">{formatNumber(w.conversations)}</span> {it ? "conversazioni" : "convos"}
                     </span>
                   </div>
                   <div className="mt-2 truncate text-[12px] text-muted-foreground">
-                    {w.ownerEmail ?? "No owner"} · created <LocalTime date={w.createdAt} format="relative" />
+                    {w.ownerEmail ?? (it ? "Nessun proprietario" : "No owner")} · {it ? "creato" : "created"} <LocalTime date={w.createdAt} format="relative" />
                   </div>
                 </Link>
               </li>
@@ -121,14 +122,14 @@ export default async function AdminWorkspacesPage({ searchParams }: PageProps<"/
             <thead>
               <tr>
                 <Th>Workspace</Th>
-                <Th>Owner</Th>
-                <Th className="text-right">Members</Th>
-                <Th className="text-right">Inboxes</Th>
-                <Th className="text-right">Convos</Th>
-                <Th>Plan</Th>
-                <Th>Subscription</Th>
-                <Th>Trial ends</Th>
-                <Th>Created</Th>
+                <Th>{it ? "Proprietario" : "Owner"}</Th>
+                <Th className="text-right">{it ? "Membri" : "Members"}</Th>
+                <Th className="text-right">{it ? "Caselle" : "Inboxes"}</Th>
+                <Th className="text-right">{it ? "Conversazioni" : "Convos"}</Th>
+                <Th>{it ? "Piano" : "Plan"}</Th>
+                <Th>{it ? "Abbonamento" : "Subscription"}</Th>
+                <Th>{it ? "Fine prova" : "Trial ends"}</Th>
+                <Th>{it ? "Creato" : "Created"}</Th>
               </tr>
             </thead>
             <tbody>
@@ -163,12 +164,12 @@ export default async function AdminWorkspacesPage({ searchParams }: PageProps<"/
                   <Td className="text-right tabular-nums">{formatNumber(w.conversations)}</Td>
                   <Td>
                     <StatusBadge tone={planTone(w.plan)} dot={false}>
-                      {planLabel(w.plan)}
+                      {it ? ({ free: "Gratuito", cloud: "Cloud", self_hosted: "Installato in autonomia", comped: "Gratuito" }[w.plan] ?? planLabel(w.plan)) : planLabel(w.plan)}
                     </StatusBadge>
                   </Td>
                   <Td>
                     {w.suspendedAt ? (
-                      <StatusBadge tone="error">Suspended</StatusBadge>
+                      <StatusBadge tone="error">{it ? "Sospeso" : "Suspended"}</StatusBadge>
                     ) : (
                       <StatusBadge tone={subscriptionTone(w.subscriptionStatus)}>{subscriptionLabel(w.subscriptionStatus)}</StatusBadge>
                     )}

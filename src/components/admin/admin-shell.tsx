@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ADMIN_NAV, SETTINGS_SECTIONS, isActivePath } from "@/components/admin/nav"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export type AdminShellProps = {
   instanceName: string
@@ -34,6 +35,8 @@ export type AdminShellProps = {
 
 /** Chrome of the super admin panel: sidebar (desktop), sheet navigation (mobile), top bar. */
 export function AdminShell({ instanceName, productName, homePath, user, children }: AdminShellProps) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [open, setOpen] = useState(false)
   return (
     <div className="flex min-h-dvh bg-background">
@@ -46,13 +49,13 @@ export function AdminShell({ instanceName, productName, homePath, user, children
           <div className="flex h-12 items-center gap-2 px-3 md:px-6">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label="Open navigation">
+                <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label={it ? "Apri navigazione" : "Open navigation"}>
                   <Menu />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-72 gap-0 bg-sidebar p-0">
                 <SheetHeader className="sr-only">
-                  <SheetTitle>Admin navigation</SheetTitle>
+                  <SheetTitle>{it ? "Navigazione amministrazione" : "Admin navigation"}</SheetTitle>
                 </SheetHeader>
                 <SidebarContents productName={productName} homePath={homePath} onNavigate={() => setOpen(false)} />
               </SheetContent>
@@ -61,13 +64,13 @@ export function AdminShell({ instanceName, productName, homePath, user, children
             <div className="flex min-w-0 items-center gap-2 text-sm">
               <span className="truncate font-medium">{instanceName}</span>
               <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Instance admin</span>
+              <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{it ? "Amministrazione istanza" : "Instance admin"}</span>
             </div>
 
             <div className="ml-auto flex items-center gap-1.5">
               <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
                 <a href={homePath}>
-                  Open app <ArrowUpRight />
+                  {it ? "Apri Dispatch" : "Open app"} <ArrowUpRight />
                 </a>
               </Button>
               <AdminUserMenu user={user} homePath={homePath} />
@@ -93,6 +96,10 @@ function SidebarContents({
   onNavigate?: () => void
 }) {
   const pathname = usePathname()
+  const { locale } = useI18n()
+  const it = locale === "it"
+  const navLabel = (label: string) => it ? ({ Instance: "Istanza", Overview: "Panoramica", Workspaces: "Workspace", Users: "Utenti", Operations: "Operazioni", "Audit log": "Registro attività", System: "Sistema" }[label] ?? label) : label
+  const settingsLabel = (slug: string, label: string) => it ? ({ general: "Generale", authentication: "Accesso", email: "Invio email", oauth: "App OAuth", billing: "Fatturazione", storage: "Archiviazione", ai: "IA", branding: "Marchio", security: "Sicurezza", legal: "Note legali" }[slug] ?? label) : label
   const settingsActive = isActivePath(pathname, "/admin/settings")
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -105,19 +112,19 @@ function SidebarContents({
         </span>
       </div>
 
-      <nav className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-2 py-4" aria-label="Admin">
+      <nav className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-2 py-4" aria-label={it ? "Amministrazione" : "Admin"}>
         {ADMIN_NAV.slice(0, 1).map((group) => (
-          <NavGroup key={group.label} label={group.label}>
+          <NavGroup key={group.label} label={navLabel(group.label)}>
             {group.items.map((item) => (
-              <NavLink key={item.href} {...item} active={isActivePath(pathname, item.href, item.exact)} onNavigate={onNavigate} />
+              <NavLink key={item.href} {...item} label={navLabel(item.label)} active={isActivePath(pathname, item.href, item.exact)} onNavigate={onNavigate} />
             ))}
           </NavGroup>
         ))}
 
-        <NavGroup label="Configuration">
+        <NavGroup label={it ? "Configurazione" : "Configuration"}>
           <NavLink
             href="/admin/settings/general"
-            label="Settings"
+            label={it ? "Impostazioni" : "Settings"}
             icon={Settings}
             active={settingsActive}
             onNavigate={onNavigate}
@@ -138,7 +145,7 @@ function SidebarContents({
                         active && "bg-sidebar-accent font-medium text-foreground"
                       )}
                     >
-                      {s.label}
+                      {settingsLabel(s.slug, s.label)}
                     </Link>
                   </li>
                 )
@@ -148,9 +155,9 @@ function SidebarContents({
         </NavGroup>
 
         {ADMIN_NAV.slice(1).map((group) => (
-          <NavGroup key={group.label} label={group.label}>
+          <NavGroup key={group.label} label={navLabel(group.label)}>
             {group.items.map((item) => (
-              <NavLink key={item.href} {...item} active={isActivePath(pathname, item.href, item.exact)} onNavigate={onNavigate} />
+              <NavLink key={item.href} {...item} label={navLabel(item.label)} active={isActivePath(pathname, item.href, item.exact)} onNavigate={onNavigate} />
             ))}
           </NavGroup>
         ))}
@@ -162,7 +169,7 @@ function SidebarContents({
           className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground outline-none transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowUpRight className="size-4" />
-          Back to your workspace
+          {it ? "Torna al workspace" : "Back to your workspace"}
         </a>
       </div>
     </div>
@@ -211,34 +218,36 @@ function NavLink({
 
 function AdminUserMenu({ user, homePath }: { user: AdminShellProps["user"]; homePath: string }) {
   const { theme, setTheme } = useTheme()
+  const { locale } = useI18n()
+  const it = locale === "it"
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Account menu"
+        aria-label={it ? "Menu account" : "Account menu"}
       >
         <UserAvatar name={user.name} email={user.email} src={user.avatarUrl} size="sm" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel className="font-normal">
-          <div className="truncate text-sm font-medium">{user.name || "Instance owner"}</div>
+          <div className="truncate text-sm font-medium">{user.name || (it ? "Proprietario istanza" : "Instance owner")}</div>
           <div className="truncate text-xs text-muted-foreground">{user.email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <a href={homePath}>
-            <ArrowUpRight /> Open app
+            <ArrowUpRight /> {it ? "Apri Dispatch" : "Open app"}
           </a>
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            {theme === "dark" ? <Moon /> : theme === "light" ? <Sun /> : <Monitor />} Theme
+            {theme === "dark" ? <Moon /> : theme === "light" ? <Sun /> : <Monitor />} {it ? "Tema" : "Theme"}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             {[
-              { v: "light", label: "Light", icon: Sun },
-              { v: "dark", label: "Dark", icon: Moon },
-              { v: "system", label: "System", icon: Monitor },
+              { v: "light", label: it ? "Chiaro" : "Light", icon: Sun },
+              { v: "dark", label: it ? "Scuro" : "Dark", icon: Moon },
+              { v: "system", label: it ? "Sistema" : "System", icon: Monitor },
             ].map((t) => (
               <DropdownMenuItem key={t.v} onClick={() => setTheme(t.v)}>
                 <t.icon /> {t.label}
@@ -249,7 +258,7 @@ function AdminUserMenu({ user, homePath }: { user: AdminShellProps["user"]; home
         </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} variant="destructive">
-          <LogOut /> Sign out
+          <LogOut /> {it ? "Esci" : "Sign out"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

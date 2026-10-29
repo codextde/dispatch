@@ -17,6 +17,7 @@ import { UserAvatar } from "@/components/app/user-avatar"
 import { memberName } from "@/lib/inbox/format"
 import type { MemberSummary } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 /** Shared typography for editors and rendered comments/messages written in Dispatch. */
 export const PROSE =
@@ -54,7 +55,7 @@ function fileProps(get: () => ((files: File[]) => void) | undefined) {
 
 export function useEmailEditor({
   content,
-  placeholder = "Write your reply…",
+  placeholder,
   onChange,
   onSubmit,
   onFiles,
@@ -67,6 +68,7 @@ export function useEmailEditor({
   onFiles?: (files: File[]) => void
   autofocus?: boolean
 }) {
+  const { t, locale } = useI18n()
   const cb = useRef({ onChange, onSubmit, onFiles })
   useEffect(() => {
     cb.current = { onChange, onSubmit, onFiles }
@@ -82,7 +84,7 @@ export function useEmailEditor({
         link: { openOnClick: false, autolink: true, defaultProtocol: "https", HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" } },
       }),
       Image.configure({ inline: true, allowBase64: false }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: placeholder ?? (locale === "it" ? "Scrivi la tua risposta…" : "Write your reply…") }),
       Extension.create({
         name: "dispatchSend",
         // Before StarterKit's own Mod-Enter (hard break).
@@ -100,8 +102,8 @@ export function useEmailEditor({
       // eslint-disable-next-line react-hooks/refs
       ...fileProps(() => cb.current.onFiles),
       attributes: {
-        class: cn(PROSE, PLACEHOLDER, "min-h-[120px] px-3 py-2.5 outline-none max-md:min-h-[40dvh]"),
-        "aria-label": "Message body",
+        class: cn(PROSE, PLACEHOLDER, "min-h-[240px] flex-1 px-3 py-2.5 outline-none max-sm:min-h-[40dvh]"),
+        "aria-label": t("inboxUiMessageBody"),
         role: "textbox",
         "aria-multiline": "true",
       },
@@ -124,6 +126,7 @@ function ToolbarButton({ label, active, onClick, children }: { label: string; ac
 }
 
 function LinkButton({ editor }: { editor: Editor }) {
+  const { t, locale } = useI18n()
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState("")
   const active = useEditorState({ editor, selector: ({ editor }) => editor.isActive("link") })
@@ -136,7 +139,7 @@ function LinkButton({ editor }: { editor: Editor }) {
       }}
     >
       <PopoverTrigger asChild>
-        <Toggle size="sm" pressed={active} aria-label="Link" className="size-7 min-w-7 p-0 [&_svg]:size-3.5">
+        <Toggle size="sm" pressed={active} aria-label={locale === "it" ? "Collegamento" : t("inboxUiLink")} className="size-7 min-w-7 p-0 [&_svg]:size-3.5">
           <Link2 />
         </Toggle>
       </PopoverTrigger>
@@ -152,9 +155,9 @@ function LinkButton({ editor }: { editor: Editor }) {
             setOpen(false)
           }}
         >
-          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className="h-8" autoFocus aria-label="Link URL" />
+          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className="h-8" autoFocus aria-label={t("inboxUiLinkUrl")} />
           <Button type="submit" size="sm" className="h-8">
-            {url.trim() ? "Save" : "Remove"}
+            {url.trim() ? t("inboxUiSave") : t("inboxUiRemove")}
           </Button>
         </form>
       </PopoverContent>
@@ -163,6 +166,7 @@ function LinkButton({ editor }: { editor: Editor }) {
 }
 
 export function EditorToolbar({ editor, className }: { editor: Editor | null; className?: string }) {
+  const { t, locale } = useI18n()
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) =>
@@ -184,34 +188,34 @@ export function EditorToolbar({ editor, className }: { editor: Editor | null; cl
   const active = state ?? { bold: false, italic: false, underline: false, strike: false, bullet: false, ordered: false, quote: false, code: false }
   const chain = () => editor.chain().focus()
   return (
-    <div className={cn("flex flex-wrap items-center gap-0.5", className)} role="toolbar" aria-label="Formatting">
-      <ToolbarButton label="Bold" active={active.bold} onClick={() => chain().toggleBold().run()}>
+    <div className={cn("flex flex-wrap items-center gap-0.5", className)} role="toolbar" aria-label={t("inboxUiFormatting")}>
+      <ToolbarButton label={t("inboxUiBold")} active={active.bold} onClick={() => chain().toggleBold().run()}>
         <Bold />
       </ToolbarButton>
-      <ToolbarButton label="Italic" active={active.italic} onClick={() => chain().toggleItalic().run()}>
+      <ToolbarButton label={t("inboxUiItalic")} active={active.italic} onClick={() => chain().toggleItalic().run()}>
         <Italic />
       </ToolbarButton>
-      <ToolbarButton label="Underline" active={active.underline} onClick={() => chain().toggleUnderline().run()}>
+      <ToolbarButton label={locale === "it" ? "Sottolineato" : "Underline"} active={active.underline} onClick={() => chain().toggleUnderline().run()}>
         <Underline />
       </ToolbarButton>
-      <ToolbarButton label="Strikethrough" active={active.strike} onClick={() => chain().toggleStrike().run()}>
+      <ToolbarButton label={t("inboxUiStrike")} active={active.strike} onClick={() => chain().toggleStrike().run()}>
         <Strikethrough />
       </ToolbarButton>
       <span className="mx-1 h-4 w-px bg-border" aria-hidden />
-      <ToolbarButton label="Bulleted list" active={active.bullet} onClick={() => chain().toggleBulletList().run()}>
+      <ToolbarButton label={t("inboxUiBulleted")} active={active.bullet} onClick={() => chain().toggleBulletList().run()}>
         <List />
       </ToolbarButton>
-      <ToolbarButton label="Numbered list" active={active.ordered} onClick={() => chain().toggleOrderedList().run()}>
+      <ToolbarButton label={t("inboxUiNumbered")} active={active.ordered} onClick={() => chain().toggleOrderedList().run()}>
         <ListOrdered />
       </ToolbarButton>
-      <ToolbarButton label="Quote" active={active.quote} onClick={() => chain().toggleBlockquote().run()}>
+      <ToolbarButton label={t("inboxUiQuote")} active={active.quote} onClick={() => chain().toggleBlockquote().run()}>
         <Quote />
       </ToolbarButton>
-      <ToolbarButton label="Code" active={active.code} onClick={() => chain().toggleCode().run()}>
+      <ToolbarButton label={t("inboxUiCode")} active={active.code} onClick={() => chain().toggleCode().run()}>
         <Code />
       </ToolbarButton>
       <LinkButton editor={editor} />
-      <ToolbarButton label="Clear formatting" onClick={() => chain().unsetAllMarks().clearNodes().run()}>
+      <ToolbarButton label={locale === "it" ? "Rimuovi formattazione" : "Clear formatting"} onClick={() => chain().unsetAllMarks().clearNodes().run()}>
         <RemoveFormatting />
       </ToolbarButton>
     </div>
@@ -224,6 +228,7 @@ export type MentionListHandle = { onKeyDown: (props: SuggestionKeyDownProps) => 
 type MentionListProps = SuggestionProps<MemberSummary, { id: string; label: string }>
 
 const MentionList = forwardRef<MentionListHandle, MentionListProps>(function MentionList({ items, command }, ref) {
+  const { t } = useI18n()
   const [index, setIndex] = useState(0)
   const [prevItems, setPrevItems] = useState(items)
   if (prevItems !== items) {
@@ -253,10 +258,10 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>(function Men
     },
   }))
   if (!items.length) {
-    return <div className="rounded-lg bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md ring-1 ring-foreground/10">No teammates found</div>
+    return <div className="rounded-lg bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md ring-1 ring-foreground/10">{t("inboxUiNoTeammatesMention")}</div>
   }
   return (
-    <div role="listbox" aria-label="Mention a teammate" className="max-h-64 w-72 overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+    <div role="listbox" aria-label={t("inboxUiMentionTeammate")} className="max-h-64 w-72 overflow-y-auto rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
       {items.map((m, i) => (
         <button
           key={m.id}
@@ -325,7 +330,7 @@ function mentionSuggestion(getMembers: () => MemberSummary[], activeRef: { curre
 
 export function useCommentEditor({
   members,
-  placeholder = "Comment or @mention…",
+  placeholder,
   content = "",
   onSubmit,
   onChange,
@@ -345,6 +350,8 @@ export function useCommentEditor({
   onReady?: (editor: Editor) => void
   autofocus?: boolean
 }) {
+  const { t, locale } = useI18n()
+  const editorPlaceholder = placeholder ?? (locale === "it" ? "Commenta o @menziona…" : "Comment or @mention…")
   const cb = useRef({ onSubmit, onChange, onFiles, onEscape, members, onReady })
   useEffect(() => {
     cb.current = { onSubmit, onChange, onFiles, onEscape, members, onReady }
@@ -361,7 +368,7 @@ export function useCommentEditor({
         horizontalRule: false,
         link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
       }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: editorPlaceholder }),
       Mention.configure({
         HTMLAttributes: { class: "mention" },
         // The suggestion plugin reads members / its active flag while typing, never during render.
@@ -402,7 +409,7 @@ export function useCommentEditor({
       ...fileProps(() => cb.current.onFiles),
       attributes: {
         class: cn(PROSE, PLACEHOLDER, "max-h-60 min-h-[22px] overflow-y-auto outline-none"),
-        "aria-label": "Comment",
+        "aria-label": t("comment"),
         role: "textbox",
         "aria-multiline": "true",
       },

@@ -11,6 +11,7 @@ import { ChoiceCards } from "@/components/admin/choice-cards"
 import { SecretInput } from "@/components/admin/secret-input"
 import { testEmailAction } from "@/app/admin/settings/actions"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export type EmailDeliveryValue = {
   provider: "log" | "smtp" | "ses"
@@ -86,11 +87,13 @@ export function EmailDeliveryFields({
   defaultFromEmail?: string
   fieldErrors?: Record<string, string>
 }) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
   const err = (k: string) => fieldErrors?.[k] ?? fieldErrors?.[`values.${k}`] ?? fieldErrors?.[`config.${k}`]
   return (
     <div className="grid gap-5">
       <ChoiceCards
-        aria-label="Email provider"
+        aria-label={t("emailProvider")}
         columns={3}
         value={value.provider}
         onChange={(provider) =>
@@ -101,23 +104,22 @@ export function EmailDeliveryFields({
           )
         }
         options={[
-          { value: "ses", title: "Amazon SES", description: "Reliable, low-cost delivery via the SES SMTP interface.", icon: Cloud },
-          { value: "smtp", title: "SMTP server", description: "Postmark, Mailgun, Resend, Brevo or your own server.", icon: Server },
-          { value: "log", title: "Log only", description: "Print emails to the server logs. Fine for trying things out.", icon: Terminal },
+          { value: "ses", title: "Amazon SES", description: t("amazonSesDescription"), icon: Cloud },
+          { value: "smtp", title: t("smtpServer"), description: t("smtpDescription"), icon: Server },
+          { value: "log", title: t("logOnly"), description: t("logDescription"), icon: Terminal },
         ]}
       />
 
       {value.provider === "log" && (
         <div className="rounded-lg border border-dashed border-border bg-surface/60 p-4 text-[13px] leading-relaxed text-muted-foreground">
-          Emails are not delivered. Sign-in links, codes and invitations are printed to the server output — view them with{" "}
-          <code className="rounded bg-muted px-1 py-0.5 font-mono text-[12px] text-foreground">docker compose logs -f app</code>. Anyone
-          who needs to sign in will need you to relay their code, so configure a provider before inviting your team.
+          {t("emailNotDelivered")} {" "}
+          <code className="rounded bg-muted px-1 py-0.5 font-mono text-[12px] text-foreground">docker compose logs -f app</code>. {it ? "Chi deve accedere avrà bisogno che tu gli comunichi il codice: configura un provider prima di invitare il team." : "Anyone who needs to sign in will need you to relay their code, so configure a provider before inviting your team."}
         </div>
       )}
 
       {value.provider === "ses" && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <FieldRow label="AWS region" htmlFor="email-ses-region" hint="The region where your SES identity is verified.">
+          <FieldRow label={t("awsRegion")} htmlFor="email-ses-region" hint={it ? "La regione in cui è verificata la tua identità SES." : "The region where your SES identity is verified."}>
             <Select value={value.sesRegion} onValueChange={(sesRegion) => onChange({ sesRegion })}>
               <SelectTrigger id="email-ses-region" className="w-full">
                 <SelectValue />
@@ -131,7 +133,7 @@ export function EmailDeliveryFields({
               </SelectContent>
             </Select>
           </FieldRow>
-          <FieldRow label="Port" htmlFor="email-ses-port" hint="587 uses STARTTLS, 465 uses implicit TLS.">
+          <FieldRow label={it ? "Porta" : "Port"} htmlFor="email-ses-port" hint={it ? "La porta 587 usa STARTTLS, la 465 usa TLS implicito." : "587 uses STARTTLS, 465 uses implicit TLS."}>
             <Select
               value={String(value.port === 465 ? 465 : value.port === 2587 ? 2587 : 587)}
               onValueChange={(p) => onChange({ port: Number(p), secure: p === "465" })}
@@ -147,11 +149,11 @@ export function EmailDeliveryFields({
             </Select>
           </FieldRow>
           <FieldRow
-            label="SMTP username"
+            label={t("smtpUsername")}
             htmlFor="email-user"
             hint={
               <>
-                Create SMTP credentials in the SES console → <em>SMTP settings</em>. These are not your AWS access keys.
+                {it ? "Crea le credenziali SMTP nella console SES → " : "Create SMTP credentials in the SES console → "}<em>SMTP settings</em>{it ? ". Non sono le chiavi di accesso AWS." : ". These are not your AWS access keys."}
               </>
             }
           >
@@ -166,7 +168,7 @@ export function EmailDeliveryFields({
               aria-invalid={Boolean(err("user"))}
             />
           </FieldRow>
-          <FieldRow label="SMTP password" htmlFor="email-password">
+          <FieldRow label={t("smtpPassword")} htmlFor="email-password">
             <SecretInput id="email-password" preview={passwordPreview} value={password} onChange={onPasswordChange} />
           </FieldRow>
         </div>
@@ -174,7 +176,7 @@ export function EmailDeliveryFields({
 
       {value.provider === "smtp" && (
         <div className="grid gap-4 sm:grid-cols-[1fr_120px_170px]">
-          <FieldRow label="Host" htmlFor="email-host">
+          <FieldRow label={t("emailHost")} htmlFor="email-host">
             <Input
               id="email-host"
               value={value.host}
@@ -197,7 +199,7 @@ export function EmailDeliveryFields({
               aria-invalid={Boolean(err("port"))}
             />
           </FieldRow>
-          <FieldRow label="Security" htmlFor="email-security">
+          <FieldRow label={t("emailSecurity")} htmlFor="email-security">
             <Select value={value.secure ? "tls" : "starttls"} onValueChange={(v) => onChange({ secure: v === "tls" })}>
               <SelectTrigger id="email-security" className="w-full">
                 <SelectValue />
@@ -208,7 +210,7 @@ export function EmailDeliveryFields({
               </SelectContent>
             </Select>
           </FieldRow>
-          <FieldRow label="Username" htmlFor="email-user" className="sm:col-span-1">
+          <FieldRow label={t("username")} htmlFor="email-user" className="sm:col-span-1">
             <Input
               id="email-user"
               value={value.user}
@@ -218,7 +220,7 @@ export function EmailDeliveryFields({
               aria-invalid={Boolean(err("user"))}
             />
           </FieldRow>
-          <FieldRow label="Password" htmlFor="email-password" className="sm:col-span-2">
+          <FieldRow label={t("password")} htmlFor="email-password" className="sm:col-span-2">
             <SecretInput id="email-password" preview={passwordPreview} value={password} onChange={onPasswordChange} />
           </FieldRow>
         </div>
@@ -226,7 +228,7 @@ export function EmailDeliveryFields({
 
       {value.provider !== "log" && (
         <div className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
-          <FieldRow label="From name" htmlFor="email-from-name">
+          <FieldRow label={t("fromName")} htmlFor="email-from-name">
             <Input
               id="email-from-name"
               value={value.fromName}
@@ -235,7 +237,7 @@ export function EmailDeliveryFields({
             />
           </FieldRow>
           <FieldRow
-            label="From email"
+            label={t("fromEmail")}
             htmlFor="email-from-email"
             hint={value.provider === "ses" ? "Must be a verified identity in SES." : "Use an address your provider may send from."}
           >
@@ -249,7 +251,7 @@ export function EmailDeliveryFields({
             />
           </FieldRow>
           {showReplyTo && (
-            <FieldRow label="Reply-to (optional)" htmlFor="email-reply-to" className="sm:col-span-2 sm:max-w-[calc(50%-0.5rem)]">
+            <FieldRow label={t("replyTo")} htmlFor="email-reply-to" className="sm:col-span-2 sm:max-w-[calc(50%-0.5rem)]">
               <Input
                 id="email-reply-to"
                 type="email"
@@ -278,6 +280,7 @@ export function TestEmailPanel({
   defaultTo: string
   className?: string
 }) {
+  const { t } = useI18n()
   const [to, setTo] = useState(defaultTo)
   const [pending, setPending] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null)
@@ -289,7 +292,7 @@ export function TestEmailPanel({
       const res = await testEmailAction({ config, password, to })
       setResult(res.ok ? { ok: true, message: res.data.message } : { ok: false, message: res.error })
     } catch {
-      setResult({ ok: false, message: "Could not reach the server." })
+      setResult({ ok: false, message: t("couldNotReachServer") })
     } finally {
       setPending(false)
     }
@@ -299,7 +302,7 @@ export function TestEmailPanel({
     <div className={cn("rounded-lg border border-border bg-surface/60 p-3.5", className)}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Label htmlFor="test-email-to" className="shrink-0 text-[13px] sm:w-28">
-          Send a test to
+          {t("sendTestTo")}
         </Label>
         <Input
           id="test-email-to"
@@ -309,7 +312,7 @@ export function TestEmailPanel({
           className="min-w-0 flex-1 bg-card"
         />
         <Button type="button" variant="outline" onClick={send} disabled={pending || !to}>
-          {pending ? <Spinner /> : <Send />} Send test email
+          {pending ? <Spinner /> : <Send />} {t("sendTestEmail")}
         </Button>
       </div>
       {result && (

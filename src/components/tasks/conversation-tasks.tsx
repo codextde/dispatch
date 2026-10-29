@@ -11,6 +11,7 @@ import { parseQuickAdd } from "./quick-add"
 import { AssigneeAvatar, AssigneePicker, DueBadge, DuePicker, StatusIcon } from "./task-fields"
 import { TaskDetailSheet } from "./task-detail-sheet"
 import { useTaskMutations, useTaskOptions, useTasks, type TaskDto, type TaskOptions, type TaskPatch } from "./use-tasks"
+import { useI18n } from "@/lib/i18n"
 
 /**
  * Compact task list for the conversation sidebar: shows the conversation's
@@ -27,6 +28,8 @@ export function ConversationTasks({
   className?: string
   defaultCollapsed?: boolean
 }) {
+  const { locale } = useI18n()
+  const tx = (en: string, it: string) => locale === "it" ? it : en
   const { user } = useOrg()
   const { data: tasks, isPending } = useTasks(slug, { conversationId })
   const { data: options } = useTaskOptions(slug)
@@ -66,7 +69,7 @@ export function ConversationTasks({
   }
 
   return (
-    <section className={cn("flex flex-col", className)} aria-label="Tasks">
+    <section className={cn("flex flex-col", className)} aria-label={tx("Tasks", "Attività")}>
       <div className="flex h-8 items-center gap-1">
         <button
           type="button"
@@ -75,14 +78,14 @@ export function ConversationTasks({
           className="flex min-w-0 items-center gap-1.5 rounded-md py-1 font-mono text-[11px] tracking-wider text-muted-foreground uppercase outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ChevronRight className={cn("size-3 transition-transform", !collapsed && "rotate-90")} />
-          Tasks
+          {tx("Tasks", "Attività")}
           {open.length > 0 && <span className="tabular-nums">· {open.length}</span>}
         </button>
         <Link
           href={`/w/${slug}/tasks`}
           className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Open all tasks"
-          title="Open all tasks"
+          aria-label={tx("Open all tasks", "Apri tutte le attività")}
+          title={tx("Open all tasks", "Apri tutte le attività")}
         >
           <ArrowUpRight className="size-3.5" />
         </Link>
@@ -90,8 +93,8 @@ export function ConversationTasks({
           type="button"
           onClick={startAdding}
           className="flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Add task"
-          title="Add task"
+          aria-label={tx("Add task", "Aggiungi attività")}
+          title={tx("Add task", "Aggiungi attività")}
         >
           <Plus className="size-3.5" />
         </button>
@@ -135,7 +138,7 @@ export function ConversationTasks({
                   onClick={() => setShowDone((s) => !s)}
                   className="self-start rounded px-1 py-1 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  {showDone ? "Hide completed" : `${done.length} completed`}
+                  {showDone ? tx("Hide completed", "Nascondi completate") : `${done.length} ${tx("completed", "completate")}`}
                 </button>
               )}
               {open.length === 0 && done.length === 0 && !adding && (
@@ -144,7 +147,7 @@ export function ConversationTasks({
                   onClick={startAdding}
                   className="flex items-center gap-2 rounded-md py-1.5 text-left text-[13px] text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <Plus className="size-3.5" /> Add a follow-up task
+                  <Plus className="size-3.5" /> {tx("Add a follow-up task", "Aggiungi un’attività di follow-up")}
                 </button>
               )}
               {adding && (
@@ -166,8 +169,8 @@ export function ConversationTasks({
                       }
                     }}
                     onBlur={() => !draft.trim() && setAdding(false)}
-                    placeholder="Follow up @me fri"
-                    aria-label="New task for this conversation"
+                    placeholder={tx("Follow up @me fri", "Ricontatta @me ven")}
+                    aria-label={tx("New task for this conversation", "Nuova attività per questa conversazione")}
                     maxLength={300}
                     className="h-8 min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
                   />
@@ -176,9 +179,9 @@ export function ConversationTasks({
               )}
               {adding && draft.trim() && (parsed.assignee || parsed.dueAt) && (
                 <p className="mt-1 text-[11.5px] text-muted-foreground">
-                  {parsed.assignee && <>For {parsed.assignee.id === user.id ? "you" : parsed.assignee.name}</>}
+                  {parsed.assignee && <>{tx("For", "Per")} {parsed.assignee.id === user.id ? tx("you", "te") : parsed.assignee.name}</>}
                   {parsed.assignee && parsed.dueAt && " · "}
-                  {parsed.dueAt && <>due {parsed.dueLabel?.toLowerCase() ?? parsed.dueAt.toLocaleDateString()}</>}
+                  {parsed.dueAt && <>{tx("due", "scadenza")} {parsed.dueLabel?.toLowerCase() ?? parsed.dueAt.toLocaleDateString(locale === "it" ? "it-IT" : "en-US")}</>}
                 </p>
               )}
             </>
@@ -213,6 +216,7 @@ function CompactTask({
   onOpen: () => void
   onUpdate: (patch: TaskPatch) => void
 }) {
+  const { locale } = useI18n()
   const done = task.status === "done"
   return (
     <li className="group/task -mx-1.5 flex min-h-8 items-center gap-2 rounded-md px-1.5 hover:bg-accent/60">
@@ -221,7 +225,7 @@ function CompactTask({
         disabled={!task.canEdit}
         onClick={() => onUpdate({ status: done ? "todo" : "done" })}
         className="flex size-5 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={done ? `Reopen “${task.title}”` : `Complete “${task.title}”`}
+        aria-label={done ? `${locale === "it" ? "Riapri" : "Reopen"} “${task.title}”` : `${locale === "it" ? "Completa" : "Complete"} “${task.title}”`}
       >
         <StatusIcon status={task.status} className="size-3.5" />
       </button>
@@ -238,7 +242,7 @@ function CompactTask({
       </button>
       {task.dueAt ? (
         <DuePicker value={task.dueAt} onChange={(iso) => onUpdate({ dueAt: iso })} disabled={!task.canEdit} align="end">
-          <button type="button" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Change due date">
+          <button type="button" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={locale === "it" ? "Modifica scadenza" : "Change due date"}>
             <DueBadge dueAt={task.dueAt} status={task.status} />
           </button>
         </DuePicker>
@@ -256,7 +260,7 @@ function CompactTask({
           <button
             type="button"
             className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={task.assignee ? `Assigned to ${task.assignee.name || task.assignee.email}` : "Assign"}
+            aria-label={task.assignee ? `${locale === "it" ? "Assegnata a" : "Assigned to"} ${task.assignee.name || task.assignee.email}` : locale === "it" ? "Assegna" : "Assign"}
           >
             <AssigneeAvatar assignee={task.assignee} />
           </button>

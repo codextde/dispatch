@@ -8,6 +8,7 @@ import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { acceptPendingInvitationAction } from "@/app/onboarding/actions"
+import { useI18n } from "@/lib/i18n"
 
 export type PendingInvitation = {
   id: string
@@ -20,6 +21,8 @@ export type PendingInvitation = {
 
 /** Invitations waiting for the signed-in user (by email), each with a "Join" button. */
 export function PendingInvitations({ invitations }: { invitations: PendingInvitation[] }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [joining, setJoining] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
@@ -33,7 +36,7 @@ export function PendingInvitations({ invitations }: { invitations: PendingInvita
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium">{inv.orgName}</span>
             <span className="block truncate text-xs text-muted-foreground">
-              {inv.inviterName ? `Invited by ${inv.inviterName}` : "Invitation"} · {inv.roleName}
+              {inv.inviterName ? (it ? `Invitato da ${inv.inviterName}` : `Invited by ${inv.inviterName}`) : (it ? "Invito" : "Invitation")} · {inv.roleName}
             </span>
           </span>
           <Button
@@ -53,7 +56,7 @@ export function PendingInvitations({ invitations }: { invitations: PendingInvita
               })
             }}
           >
-            {joining === inv.id ? <Spinner /> : null} Join <ArrowRight />
+            {joining === inv.id ? <Spinner /> : null} {it ? "Entra" : "Join"} <ArrowRight />
           </Button>
         </li>
       ))}

@@ -10,6 +10,7 @@ import { ChoiceCards } from "@/components/admin/choice-cards"
 import { SecretInput } from "@/components/admin/secret-input"
 import { GRID_FIELD, SettingField, SettingsFormShell, SwitchField, TestResult, useSettingsForm } from "@/components/admin/settings/form"
 import { testAiAction } from "@/app/admin/settings/actions"
+import { useI18n } from "@/lib/i18n"
 
 export type AiSettingsValue = {
   enabled: boolean
@@ -23,6 +24,8 @@ export type AiSettingsValue = {
 const ANTHROPIC_MODELS = ["claude-sonnet-5", "claude-opus-5", "claude-haiku-4-5"]
 
 export function AiSettingsForm({ initial }: { initial: AiSettingsValue }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const form = useSettingsForm("ai", initial)
   const v = form.values
   const [testing, setTesting] = useState(false)
@@ -40,7 +43,7 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValue }) {
           : { ok: false, message: res.error }
       )
     } catch {
-      setResult({ ok: false, message: "Could not reach the server." })
+      setResult({ ok: false, message: it ? "Impossibile raggiungere il server." : "Could not reach the server." })
     } finally {
       setTesting(false)
     }
@@ -49,43 +52,43 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValue }) {
   return (
     <SettingsFormShell form={form}>
       <Panel
-        title="AI features"
-        description="AI assistance inside workspaces, such as drafting replies and summarizing conversations. Conversation content is sent to the provider you configure."
+        title={it ? "Funzioni IA" : "AI features"}
+        description={it ? "Assistenza IA negli spazi di lavoro, per esempio per preparare risposte e riassumere conversazioni. I contenuti delle conversazioni vengono inviati al provider configurato." : "AI assistance inside workspaces, such as drafting replies and summarizing conversations. Conversation content is sent to the provider you configure."}
         actions={
-          form.baseline.enabled ? <StatusBadge tone="ok">Enabled</StatusBadge> : <StatusBadge tone="neutral">Disabled</StatusBadge>
+          form.baseline.enabled ? <StatusBadge tone="ok">{it ? "Attiva" : "Enabled"}</StatusBadge> : <StatusBadge tone="neutral">{it ? "Disattivata" : "Disabled"}</StatusBadge>
         }
       >
         <div className="divide-y divide-border">
           <SwitchField
             id="ai-enabled"
-            label="Enable AI features"
-            description="Uses the instance key below for every workspace (unless a workspace brings its own)."
+            label={it ? "Attiva le funzioni IA" : "Enable AI features"}
+            description={it ? "Usa la chiave dell’istanza qui sotto per ogni spazio di lavoro, a meno che non ne venga fornita una propria." : "Uses the instance key below for every workspace (unless a workspace brings its own)."}
             checked={v.enabled}
             onCheckedChange={(enabled) => form.set({ enabled })}
           />
           <SwitchField
             id="ai-org-keys"
-            label="Let workspaces bring their own key"
-            description="Workspace admins can enter their own provider key in workspace settings; usage is then billed to them."
+            label={it ? "Consenti agli spazi di lavoro di usare una propria chiave" : "Let workspaces bring their own key"}
+            description={it ? "Gli amministratori possono inserire la chiave del provider nelle impostazioni dello spazio di lavoro; i costi saranno a loro carico." : "Workspace admins can enter their own provider key in workspace settings; usage is then billed to them."}
             checked={v.allowOrgKeys}
             onCheckedChange={(allowOrgKeys) => form.set({ allowOrgKeys })}
           />
         </div>
       </Panel>
 
-      <Panel title="Provider" description="Anthropic Claude, or any OpenAI-compatible API (OpenAI, Azure, OpenRouter, Ollama, vLLM …).">
+      <Panel title="Provider" description={it ? "Anthropic Claude o qualsiasi API compatibile con OpenAI (OpenAI, Azure, OpenRouter, Ollama, vLLM …)." : "Anthropic Claude, or any OpenAI-compatible API (OpenAI, Azure, OpenRouter, Ollama, vLLM …)."}>
         <ChoiceCards
-          aria-label="AI provider"
+          aria-label={it ? "Provider IA" : "AI provider"}
           value={v.provider}
           onChange={(provider) => form.set({ provider })}
           options={[
-            { value: "anthropic", title: "Anthropic Claude", description: "Recommended. Uses the Messages API.", icon: Sparkles },
-            { value: "openai", title: "OpenAI-compatible", description: "Any /chat/completions endpoint.", icon: Boxes },
+            { value: "anthropic", title: "Anthropic Claude", description: it ? "Consigliato. Usa la Messages API." : "Recommended. Uses the Messages API.", icon: Sparkles },
+            { value: "openai", title: "Compatibile con OpenAI", description: it ? "Qualsiasi endpoint /chat/completions." : "Any /chat/completions endpoint.", icon: Boxes },
           ]}
         />
         <div className="mt-4 grid gap-x-6 border-t border-border pt-4 sm:grid-cols-2">
           <SettingField
-            label="API key"
+            label="Chiave API"
             htmlFor="ai-key"
             className={`${GRID_FIELD} sm:col-span-2`}
             description={
@@ -103,7 +106,7 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValue }) {
                   .
                 </>
               ) : (
-                "Optional for local servers such as Ollama."
+                it ? "Facoltativa per server locali come Ollama." : "Optional for local servers such as Ollama."
               )
             }
           >
@@ -117,11 +120,11 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValue }) {
             />
           </SettingField>
           <SettingField
-            label="Model"
+            label={it ? "Modello" : "Model"}
             htmlFor="ai-model"
             className={GRID_FIELD}
             error={form.error("model")}
-            description={v.provider === "anthropic" ? "Default: claude-sonnet-5." : "The model id exactly as your provider names it."}
+            description={v.provider === "anthropic" ? "Predefinito: claude-sonnet-5." : it ? "Inserisci l’ID del modello esattamente come indicato dal provider." : "The model id exactly as your provider names it."}
           >
             <Input
               id="ai-model"
@@ -140,14 +143,14 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValue }) {
             </datalist>
           </SettingField>
           <SettingField
-            label="Base URL (optional)"
+            label={it ? "URL di base (facoltativo)" : "Base URL (optional)"}
             htmlFor="ai-base-url"
             className={GRID_FIELD}
             error={form.error("baseUrl")}
             description={
               v.provider === "anthropic"
-                ? "Only for proxies/gateways. Default: https://api.anthropic.com"
-                : "Including /v1. Default: https://api.openai.com/v1"
+                ? it ? "Solo per proxy o gateway. Predefinito: https://api.anthropic.com" : "Only for proxies/gateways. Default: https://api.anthropic.com"
+                : it ? "Includi /v1. Predefinito: https://api.openai.com/v1" : "Including /v1. Default: https://api.openai.com/v1"
             }
           >
             <Input
@@ -163,12 +166,12 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValue }) {
         </div>
       </Panel>
 
-      <Panel title="Test connection" description="Sends a one-word prompt with the values above — including unsaved changes.">
+      <Panel title={it ? "Prova connessione" : "Test connection"} description={it ? "Invia una richiesta di una parola usando i valori sopra, incluse le modifiche non salvate." : "Sends a one-word prompt with the values above — including unsaved changes."}>
         <div className="flex flex-wrap items-center gap-3">
           <Button type="button" variant="outline" onClick={runTest} disabled={testing || !v.model.trim() || (!hasKey && v.provider === "anthropic")}>
-            {testing ? <Spinner /> : <Zap />} Test AI provider
+            {testing ? <Spinner /> : <Zap />} {it ? "Prova provider IA" : "Test AI provider"}
           </Button>
-          {!hasKey && v.provider === "anthropic" && <span className="text-[13px] text-muted-foreground">Add an API key to test.</span>}
+          {!hasKey && v.provider === "anthropic" && <span className="text-[13px] text-muted-foreground">{it ? "Aggiungi una chiave API per eseguire la prova." : "Add an API key to test."}</span>}
         </div>
         <div className="mt-2.5">
           <TestResult result={result} />

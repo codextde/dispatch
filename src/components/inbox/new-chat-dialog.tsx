@@ -19,14 +19,16 @@ import { memberName } from "@/lib/inbox/format"
 import { inboxKeys } from "@/hooks/inbox/queries"
 import { inboxUI, useInboxUI } from "@/hooks/inbox/store"
 import { useInbox } from "./inbox-provider"
+import { useI18n } from "@/lib/i18n"
 
 /** Start a direct message (one teammate) or a group chat (two or more). */
 export function NewChatDialog() {
   const open = useInboxUI((s) => s.newChatOpen)
   const isMobile = useIsMobile()
   const close = () => inboxUI.set({ newChatOpen: false })
-  const title = "New chat"
-  const description = "Pick one teammate for a direct message, or several for a group chat."
+  const { t } = useI18n()
+  const title = t("newChat")
+  const description = t("newChatDescription")
 
   if (isMobile) {
     return (
@@ -56,6 +58,7 @@ export function NewChatDialog() {
 
 function NewChatForm({ onDone, Footer, autoFocus }: { onDone: () => void; Footer: React.ComponentType<React.ComponentProps<"div">>; autoFocus: boolean }) {
   const { slug, members, meId } = useInbox()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const qc = useQueryClient()
   const [selected, setSelected] = useState<string[]>([])
@@ -75,7 +78,7 @@ function NewChatForm({ onDone, Footer, autoFocus }: { onDone: () => void; Footer
       onDone()
       router.push(`/w/${slug}/chats/${id}`)
     },
-    onError: (err) => toast.error(err.message || "Could not start the chat"),
+    onError: (err) => toast.error(err.message || t("couldNotStartChat")),
   })
 
   const toggle = (id: string) => setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -90,7 +93,7 @@ function NewChatForm({ onDone, Footer, autoFocus }: { onDone: () => void; Footer
     >
       <div className="flex min-h-0 flex-col gap-3 px-4 pb-4">
         {selected.length > 0 && (
-          <ul className="flex flex-wrap gap-1.5" aria-label="Selected teammates">
+          <ul className="flex flex-wrap gap-1.5" aria-label={t("selectedTeammates")}>
             {selected.map((id) => {
               const m = members.find((x) => x.id === id)
               return (
@@ -101,7 +104,7 @@ function NewChatForm({ onDone, Footer, autoFocus }: { onDone: () => void; Footer
                     <button
                       type="button"
                       onClick={() => toggle(id)}
-                      aria-label={`Remove ${memberName(m)}`}
+                      aria-label={`${locale === "it" ? "Rimuovi" : "Remove"} ${memberName(m)}`}
                       className="flex size-5 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <X className="size-3" />
@@ -114,9 +117,9 @@ function NewChatForm({ onDone, Footer, autoFocus }: { onDone: () => void; Footer
         )}
 
         <Command className="rounded-lg! border bg-transparent p-0" loop>
-          <CommandInput placeholder="Search teammates…" aria-label="Search teammates" autoFocus={autoFocus} />
+          <CommandInput placeholder={t("searchTeammates")} aria-label={t("searchTeammates")} autoFocus={autoFocus} />
           <CommandList className="max-h-[min(18rem,40dvh)]">
-            <CommandEmpty>No teammates found.</CommandEmpty>
+            <CommandEmpty>{t("noTeammatesFound")}</CommandEmpty>
             <CommandGroup>
               {teammates.map((m) => {
                 const checked = selected.includes(m.id)
@@ -144,20 +147,20 @@ function NewChatForm({ onDone, Footer, autoFocus }: { onDone: () => void; Footer
         {isGroup && (
           <div className="grid gap-1.5">
             <Label htmlFor="new-chat-name" className="text-xs text-muted-foreground">
-              Group name <span className="font-normal">(optional)</span>
+              {t("groupName")} <span className="font-normal">({t("optional")})</span>
             </Label>
-            <Input id="new-chat-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. launch-week" maxLength={80} />
+            <Input id="new-chat-name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("groupChatNamePlaceholder")} maxLength={80} />
           </div>
         )}
       </div>
 
       <Footer className="m-0 rounded-b-xl">
         <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button type="submit" disabled={!selected.length || create.isPending}>
           {create.isPending ? <LoaderCircle className="animate-spin" /> : <MessagesSquare />}
-          {isGroup ? "Create group chat" : "Open direct message"}
+          {isGroup ? t("createGroupChat") : t("openDirectMessage")}
         </Button>
       </Footer>
     </form>

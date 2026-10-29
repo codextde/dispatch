@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { format, isToday, isYesterday } from "date-fns"
+import { it } from "date-fns/locale"
 import { MessageSquare } from "lucide-react"
 import type { ConversationThread, ThreadComment, ThreadEvent, ThreadMessage } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { useInbox } from "../inbox-provider"
 import { CommentItem } from "./comment-item"
 import { EventItem } from "./event-item"
@@ -18,17 +20,17 @@ type Entry =
 /** Events that are noise in the timeline (the message itself shows them). */
 const HIDDEN_EVENTS = new Set(["scheduled"])
 
-function dayLabel(d: Date) {
-  if (isToday(d)) return "Today"
-  if (isYesterday(d)) return "Yesterday"
-  return format(d, d.getFullYear() === new Date().getFullYear() ? "EEEE, d MMMM" : "d MMMM yyyy")
+function dayLabel(d: Date, locale: "en" | "it", today: string, yesterday: string) {
+  if (isToday(d)) return today
+  if (isYesterday(d)) return yesterday
+  return format(d, d.getFullYear() === new Date().getFullYear() ? "EEEE, d MMMM" : "d MMMM yyyy", locale === "it" ? { locale: it } : undefined)
 }
 
-function DaySeparator({ date }: { date: Date }) {
+function DaySeparator({ date, locale, today, yesterday }: { date: Date; locale: "en" | "it"; today: string; yesterday: string }) {
   return (
     <div className="flex items-center gap-3 py-2" role="separator">
       <span className="h-px flex-1 bg-border" />
-      <span className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">{dayLabel(date)}</span>
+      <span className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">{dayLabel(date, locale, today, yesterday)}</span>
       <span className="h-px flex-1 bg-border" />
     </div>
   )
@@ -40,6 +42,7 @@ function DaySeparator({ date }: { date: Date }) {
  */
 export function Thread({ thread, highlightId }: { thread: ConversationThread; highlightId?: string | null }) {
   const { meId } = useInbox()
+  const { t, locale } = useI18n()
   const conv = thread.conversation
   const isChat = conv.kind === "chat"
   const canReply = conv.level !== "read" && !isChat
@@ -124,7 +127,7 @@ export function Thread({ thread, highlightId }: { thread: ConversationThread; hi
         <span className="mb-3 flex size-10 items-center justify-center rounded-full bg-muted">
           <MessageSquare className="size-5" />
         </span>
-        <p className="text-sm">{isChat ? "Say hello 👋" : "No messages yet."}</p>
+        <p className="text-sm">{isChat ? t("convSayHello") : t("convNoMessages")}</p>
       </div>
     )
   }
@@ -134,7 +137,7 @@ export function Thread({ thread, highlightId }: { thread: ConversationThread; hi
       {/* Mentions of the current user stand out. meId is a UUID (safe to interpolate). */}
       <style>{`.comment-body .mention[data-id="${meId}"]{background:color-mix(in oklch,var(--brand) 38%,transparent);color:var(--foreground)}`}</style>
       {rows.map(({ entry: e, newDay, compact }) => {
-        const separator = newDay ? <DaySeparator key={`day-${e.at}`} date={new Date(e.at)} /> : null
+        const separator = newDay ? <DaySeparator key={`day-${e.at}`} date={new Date(e.at)} locale={locale} today={t("convToday")} yesterday={t("convYesterday")} /> : null
         let node: React.ReactNode
         if (e.kind === "message") {
           node = (

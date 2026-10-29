@@ -11,17 +11,8 @@ import { MicroLabel, SettingsSection, StatusBadge } from "@/components/settings/
 import { syncBillingStatus } from "@/server/workspace/actions/billing"
 import type { BillingOverview } from "@/server/workspace/queries/billing"
 import { cn } from "@/lib/utils"
+import { localizeDictionaryText, useI18n } from "@/lib/i18n"
 
-const INCLUDED = [
-  "Unlimited teammates — no per-seat pricing",
-  "Unlimited shared & personal inboxes (Gmail, Outlook, any IMAP)",
-  "Internal comments, @mentions and assignments",
-  "Rules, canned responses and signatures",
-  "Team chat, tasks and shared contacts",
-  "Analytics and security audit log",
-  "REST API and webhooks",
-  "Custom roles & permissions",
-]
 
 type CloudOverview = Extract<BillingOverview, { mode: "cloud" }>
 
@@ -45,33 +36,36 @@ function daysUntil(date: Date | string | null, now: number) {
 }
 
 function StatusPill({ overview, now }: { overview: CloudOverview; now: number }) {
+  const { t } = useI18n()
   const { status } = overview
   if (status === "trialing") {
     const left = daysUntil(overview.trialEndsAt, now)
-    if (left !== null && left <= 0) return <StatusBadge tone="danger">Trial ended</StatusBadge>
+    if (left !== null && left <= 0) return <StatusBadge tone="danger">{t("billTrialEnded")}</StatusBadge>
     return (
       <StatusBadge tone="info">
-        Trial{left !== null ? ` · ${left} day${left === 1 ? "" : "s"} left` : ""}
+        {left !== null ? t("billTrialWithDays").replace("{days}", String(left)) : t("billTrial")}
       </StatusBadge>
     )
   }
-  if (status === "active") return <StatusBadge tone="success">Active</StatusBadge>
-  if (status === "past_due") return <StatusBadge tone="warning">Past due</StatusBadge>
-  if (status === "canceled") return <StatusBadge tone="neutral">Canceled</StatusBadge>
-  if (status === "unpaid") return <StatusBadge tone="danger">Unpaid</StatusBadge>
-  if (status === "incomplete") return <StatusBadge tone="warning">Incomplete</StatusBadge>
-  return <StatusBadge tone="neutral">No subscription</StatusBadge>
+  if (status === "active") return <StatusBadge tone="success">{t("billActiveStatus")}</StatusBadge>
+  if (status === "past_due") return <StatusBadge tone="warning">{t("billPastDue")}</StatusBadge>
+  if (status === "canceled") return <StatusBadge tone="neutral">{t("billCanceled")}</StatusBadge>
+  if (status === "unpaid") return <StatusBadge tone="danger">{t("billUnpaid")}</StatusBadge>
+  if (status === "incomplete") return <StatusBadge tone="warning">{t("billIncomplete")}</StatusBadge>
+  return <StatusBadge tone="neutral">{t("billNoSubscription")}</StatusBadge>
 }
 
 function IncludedList({ className }: { className?: string }) {
+  const { t } = useI18n()
+  const included = ["billUnlimitedTeammates", "billUnlimitedInboxes", "billCommentsAssignments", "billRulesResponses", "billChatTasks", "billAnalyticsAudit", "billApiWebhooks", "billRolesPermissions"] as const
   return (
     <ul className={cn("grid gap-x-6 gap-y-2.5 sm:grid-cols-2", className)}>
-      {INCLUDED.map((item) => (
-        <li key={item} className="flex items-start gap-2.5 text-[13px]">
+      {included.map((key) => (
+        <li key={key} className="flex items-start gap-2.5 text-[13px]">
           <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
             <Check className="size-3" strokeWidth={3} />
           </span>
-          <span className="text-pretty">{item}</span>
+          <span className="text-pretty">{t(key)}</span>
         </li>
       ))}
     </ul>
@@ -92,6 +86,7 @@ function StripeButton({
   variant?: "default" | "outline"
   disabled?: boolean
 }) {
+  const { locale } = useI18n()
   const [submitting, setSubmitting] = useState(false)
   useEffect(() => {
     // Reset when the user comes back via the browser's back button (bfcache)
@@ -103,7 +98,7 @@ function StripeButton({
     <form method="post" action={`/api/billing/${kind}?slug=${encodeURIComponent(slug)}`} onSubmit={() => setSubmitting(true)}>
       <Button type="submit" variant={variant} disabled={disabled || submitting} className="w-full sm:w-auto">
         {submitting ? <Loader2 className="animate-spin" /> : kind === "portal" ? <ExternalLink /> : <CreditCard />}
-        {children}
+        {localizeDictionaryText(children, locale)}
       </Button>
     </form>
   )
@@ -122,6 +117,7 @@ function Notice({
   children?: React.ReactNode
   onDismiss?: () => void
 }) {
+  const { locale } = useI18n()
   return (
     <div
       role={tone === "info" ? "status" : "alert"}
@@ -141,11 +137,11 @@ function Notice({
         )}
       />
       <div className="min-w-0 flex-1">
-        <p className="font-medium">{title}</p>
-        {children && <div className="mt-0.5 text-pretty text-muted-foreground">{children}</div>}
+        <p className="font-medium">{localizeDictionaryText(title, locale)}</p>
+        {children && <div className="mt-0.5 text-pretty text-muted-foreground">{localizeDictionaryText(children, locale)}</div>}
       </div>
       {onDismiss && (
-        <Button variant="ghost" size="icon-xs" onClick={onDismiss} aria-label="Dismiss">
+        <Button variant="ghost" size="icon-xs" onClick={onDismiss} aria-label={locale === "it" ? "Chiudi" : "Dismiss"}>
           <X />
         </Button>
       )}
@@ -168,6 +164,7 @@ export function BillingView({
   now: number
 }) {
   const { productName } = useOrg()
+  const { t } = useI18n()
   const router = useRouter()
   const pathname = usePathname()
   const [dismissedError, setDismissedError] = useState(false)
@@ -177,16 +174,16 @@ export function BillingView({
     if (!checkout || handled.current) return
     handled.current = true
     if (checkout === "canceled") {
-      toast("Checkout canceled — no changes were made.")
+      toast(t("billCheckoutCanceled"))
       router.replace(pathname, { scroll: false })
       return
     }
-    toast.success("Thanks for subscribing! Your workspace is all set.")
+    toast.success(t("billCheckoutSuccess"))
     void syncBillingStatus({ slug }).finally(() => {
       router.replace(pathname, { scroll: false })
       router.refresh()
     })
-  }, [checkout, pathname, router, slug])
+  }, [checkout, pathname, router, slug, t])
 
   const dismissError = () => {
     setDismissedError(true)
@@ -203,18 +200,17 @@ export function BillingView({
               <Server className="size-5" />
             </span>
             <div className="min-w-0">
-              <MicroLabel>Current plan</MicroLabel>
+              <MicroLabel>{t("billCurrentPlan")}</MicroLabel>
               <h2 className="mt-1 text-xl font-semibold tracking-tight">
-                Self-hosted <span className="text-quiet">— free forever</span>
+                {t("billSelfHosted")} <span className="text-quiet">{t("billFreeForever")}</span>
               </h2>
               <p className="mt-1.5 max-w-lg text-[13px] text-pretty text-muted-foreground">
-                This instance runs {productName} on your own infrastructure. Every feature is included, with no limits on users or
-                inboxes — nothing to pay, nothing to manage here.
+                {t("billSelfHostedInstance").replace("{product}", productName)}
               </p>
             </div>
           </div>
           <div className="rounded-lg border bg-surface/50 p-4">
-            <MicroLabel className="mb-3 block">Everything included</MicroLabel>
+            <MicroLabel className="mb-3 block">{t("billEverythingIncluded")}</MicroLabel>
             <IncludedList />
           </div>
         </div>
@@ -232,23 +228,23 @@ export function BillingView({
   return (
     <div className="flex flex-col gap-6">
       {error && !dismissedError && (
-        <Notice tone="danger" icon={AlertTriangle} title="Something went wrong" onDismiss={dismissError}>
+          <Notice tone="danger" icon={AlertTriangle} title={t("billError")} onDismiss={dismissError}>
           {error}
         </Notice>
       )}
       {!o.configured && !freePlan && (
-        <Notice tone="info" icon={Sparkles} title="Billing isn't set up yet">
-          The instance administrator still needs to connect Stripe. Until then subscriptions can&apos;t be started.
+        <Notice tone="info" icon={Sparkles} title={t("billNotSetUp")}>
+          {t("billAdminStripe")}
         </Notice>
       )}
       {o.locked && o.locked.reason === "billing" && (
-        <Notice tone="danger" icon={Lock} title="This workspace is read-only">
-          {o.locked.message} Subscribe to restore full access — your data is safe.
+        <Notice tone="danger" icon={Lock} title={t("billReadOnly")}>
+          {o.locked.message} {t("billRestoreAccess")}
         </Notice>
       )}
       {o.status === "past_due" && (
-        <Notice tone="warning" icon={AlertTriangle} title="Your last payment failed">
-          Update your payment method to avoid interruption. Stripe retries the charge automatically.
+        <Notice tone="warning" icon={AlertTriangle} title={t("billPaymentFailed")}>
+          {t("billPaymentFailedDescription")}
         </Notice>
       )}
 
@@ -257,17 +253,17 @@ export function BillingView({
           freePlan ? undefined : (
             <>
               <span className="flex items-center gap-1.5">
-                <Lock className="size-3.5" /> Payments are processed securely by Stripe.
+                <Lock className="size-3.5" /> {t("billStripePayments")}
               </span>
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                 {canManage && (
                   <StripeButton slug={slug} kind="portal" variant={canSubscribe ? "outline" : "default"} disabled={!o.configured}>
-                    Manage billing
+                    {t("billManage")}
                   </StripeButton>
                 )}
                 {canSubscribe && (
                   <StripeButton slug={slug} kind="checkout" disabled={!o.configured}>
-                    {o.status === "canceled" ? "Resubscribe" : "Subscribe"}
+                    {o.status === "canceled" ? t("billResubscribe") : t("billSubscribe")}
                   </StripeButton>
                 )}
               </div>
@@ -278,11 +274,11 @@ export function BillingView({
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <MicroLabel>Current plan</MicroLabel>
+            <MicroLabel>{t("billCurrentPlan")}</MicroLabel>
               <h2 className="mt-1 text-xl font-semibold tracking-tight">
                 {freePlan ? (
                   <>
-                    {o.plan === "comped" ? "Complimentary" : "Free"} <span className="text-quiet">plan</span>
+                    {o.plan === "comped" ? t("billComplimentary") : t("billFree")} <span className="text-quiet">{t("billPlan")}</span>
                   </>
                 ) : (
                   <>
@@ -292,38 +288,36 @@ export function BillingView({
               </h2>
               {freePlan ? (
                 <p className="mt-1.5 max-w-lg text-[13px] text-pretty text-muted-foreground">
-                  {o.plan === "comped"
-                    ? "This workspace is provided free of charge by the instance administrator. Every feature is included."
-                    : "This workspace isn't billed. Every feature is included."}
+                  {o.plan === "comped" ? t("billCompedDescription") : t("billFreeDescription")}
                 </p>
               ) : (
                 <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
                   <span className="text-3xl font-semibold tracking-tight tabular-nums">{price}</span>
-                  <span className="text-sm text-muted-foreground">/ {o.price.interval} · unlimited users</span>
+                  <span className="text-sm text-muted-foreground">/ {o.price.interval} · {t("billUnlimitedUsers")}</span>
                 </p>
               )}
             </div>
             {!freePlan && <StatusPill overview={o} now={now} />}
-            {freePlan && <StatusBadge tone="success">Active</StatusBadge>}
+            {freePlan && <StatusBadge tone="success">{t("billActiveStatus")}</StatusBadge>}
           </div>
 
           {!freePlan && (
             <dl className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-3">
               <div className="bg-card px-4 py-3">
-                <dt className="text-xs text-muted-foreground">Status</dt>
+                <dt className="text-xs text-muted-foreground">{t("billStatus")}</dt>
                 <dd className="mt-1 text-sm font-medium">
                   {o.status === "trialing"
-                    ? "Free trial"
+                    ? t("billTrialStatus")
                     : o.status === "none"
-                      ? "Not subscribed"
+                      ? t("billNotSubscribed")
                       : o.status === "past_due"
-                        ? "Payment overdue"
+                        ? t("billPaymentOverdue")
                         : o.status.charAt(0).toUpperCase() + o.status.slice(1)}
                 </dd>
               </div>
               <div className="bg-card px-4 py-3">
                 <dt className="text-xs text-muted-foreground">
-                  {o.status === "trialing" ? "Trial ends" : o.status === "canceled" ? "Access ended" : "Renews on"}
+                  {o.status === "trialing" ? t("billTrialEnds") : o.status === "canceled" ? t("billAccessEnded") : t("billRenewsOn")}
                 </dt>
                 <dd className="mt-1 text-sm font-medium tabular-nums">
                   {o.status === "trialing" ? (
@@ -336,7 +330,7 @@ export function BillingView({
                 </dd>
               </div>
               <div className="bg-card px-4 py-3">
-                <dt className="text-xs text-muted-foreground">Billing</dt>
+                <dt className="text-xs text-muted-foreground">{t("billBilling")}</dt>
                 <dd className="mt-1 text-sm font-medium">
                   {price} per {o.price.interval}
                 </dd>
@@ -347,14 +341,14 @@ export function BillingView({
           {!freePlan && o.status === "trialing" && !o.hasLiveSubscription && trialLeft !== null && trialLeft > 0 && (
             <p className="text-[13px] text-pretty text-muted-foreground">
               {trialLeft >= 3
-                ? `You're on a free trial with full access. Subscribe any time — the remaining ${trialLeft} days of your trial carry over and you're only charged when it ends.`
-                : "Your free trial ends soon. Subscribe now to keep full access without interruption."}
+                ? t("billTrialFullAccess").replace("{days}", String(trialLeft))
+                : t("billTrialEndsSoon")}
             </p>
           )}
         </div>
       </SettingsSection>
 
-      <SettingsSection title="What's included" description="One flat price per workspace. Add as many teammates and inboxes as you need.">
+      <SettingsSection title={t("billIncluded")} description={t("billDescription")}>
         <IncludedList />
       </SettingsSection>
     </div>

@@ -19,7 +19,8 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities"
 import { Inbox, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AssigneeAvatar, DueBadge, STATUS_META, STATUS_ORDER, StatusIcon } from "./task-fields"
+import { AssigneeAvatar, DueBadge, STATUS_META, STATUS_ORDER, StatusIcon, statusLabel } from "./task-fields"
+import { useI18n } from "@/lib/i18n"
 import type { TaskDto, TaskPatch, TaskStatus } from "./use-tasks"
 
 type Columns = Record<TaskStatus, string[]>
@@ -32,6 +33,7 @@ function buildColumns(tasks: TaskDto[]): Columns {
 }
 
 function TaskCard({ task, overlay, onOpen }: { task: TaskDto; overlay?: boolean; onOpen?: (id: string) => void }) {
+  const { locale } = useI18n()
   const done = task.status === "done"
   return (
     <div
@@ -72,6 +74,7 @@ function TaskCard({ task, overlay, onOpen }: { task: TaskDto; overlay?: boolean;
 }
 
 function SortableCard({ task, onOpen }: { task: TaskDto; onOpen: (id: string) => void }) {
+  const { locale } = useI18n()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     disabled: !task.canEdit,
@@ -84,7 +87,7 @@ function SortableCard({ task, onOpen }: { task: TaskDto; onOpen: (id: string) =>
       className={cn("touch-manipulation outline-none focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring", isDragging && "opacity-40")}
       {...attributes}
       {...listeners}
-      aria-label={`${task.title}, ${STATUS_META[task.status].label}. Press space to move, enter to open.`}
+      aria-label={`${task.title}, ${statusLabel(task.status, locale)}. ${locale === "it" ? "Premi spazio per spostarla, Invio per aprirla." : "Press space to move, enter to open."}`}
       onKeyDown={(e) => {
         if (e.key === "Enter") onOpen(task.id)
         listeners?.onKeyDown?.(e)
@@ -108,21 +111,23 @@ function Column({
   onOpen: (id: string) => void
   onAdd: (defaults: TaskPatch) => void
 }) {
+  const { locale } = useI18n()
+  const label = statusLabel(status, locale)
   const { setNodeRef, isOver } = useDroppable({ id: `column:${status}`, data: { status } })
   return (
     <section
-      aria-label={STATUS_META[status].label}
+      aria-label={label}
       className="flex w-[85vw] max-w-sm shrink-0 snap-start flex-col rounded-xl bg-surface/70 sm:w-80 dark:bg-surface"
     >
       <div className="flex h-11 items-center gap-2 px-3">
         <StatusIcon status={status} className="size-3.5" />
-        <h2 className="text-[13px] font-semibold">{STATUS_META[status].label}</h2>
+        <h2 className="text-[13px] font-semibold">{label}</h2>
         <span className="text-xs text-muted-foreground tabular-nums">{ids.length}</span>
         <button
           type="button"
           onClick={() => onAdd({ status })}
           className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={`Add task to ${STATUS_META[status].label}`}
+          aria-label={`${locale === "it" ? "Aggiungi attività a" : "Add task to"} ${label}`}
         >
           <Plus className="size-3.5" />
         </button>

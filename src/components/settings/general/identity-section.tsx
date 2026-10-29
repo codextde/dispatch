@@ -18,6 +18,7 @@ import {
   updateWorkspaceProfile,
   uploadWorkspaceLogo,
 } from "@/server/workspace/actions/general"
+import { useI18n } from "@/lib/i18n"
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){1,39}$/
 
@@ -36,6 +37,8 @@ export function IdentitySection({
   appUrl: string
   reservedSlugs: string[]
 }) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
   const [saved, setSaved] = useState({ name: initialName, timezone: initialTimezone })
   const [form, setForm] = useState(saved)
   const dirty = form.name !== saved.name || form.timezone !== saved.timezone
@@ -43,24 +46,24 @@ export function IdentitySection({
 
   return (
     <SettingsSection
-      title="Workspace"
-      description="How your workspace appears to members, in emails and in the workspace switcher."
+      title={it ? "Workspace" : "Workspace"}
+      description={it ? "Come appare il workspace ai membri, nelle email e nel selettore dei workspace." : "How your workspace appears to members, in emails and in the workspace switcher."}
       footer={
-        <SectionFooter hint="Changes are visible to everyone in the workspace.">
+        <SectionFooter hint={t("genChangesVisible")}>
           {dirty && (
             <Button variant="ghost" size="sm" onClick={() => setForm(saved)} disabled={pending}>
-              Reset
+              {t("reset")}
             </Button>
           )}
           <Button
             size="sm"
             disabled={!dirty || pending}
             onClick={() =>
-              run(() => updateWorkspaceProfile({ slug, ...form }), { success: "Workspace updated", onSuccess: () => setSaved(form) })
+              run(() => updateWorkspaceProfile({ slug, ...form }), { success: t("genWorkspaceUpdated"), onSuccess: () => setSaved(form) })
             }
           >
             {pending && <Loader2 className="animate-spin" />}
-            Save
+            {t("saveChanges")}
           </Button>
         </SectionFooter>
       }
@@ -68,7 +71,7 @@ export function IdentitySection({
       <div className="flex flex-col gap-6">
         <LogoField slug={slug} name={form.name} logoUrl={logoUrl} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Workspace name" htmlFor="ws-name" error={fieldErrors.name}>
+          <FormField label={it ? "Nome workspace" : "Workspace name"} htmlFor="ws-name" error={fieldErrors.name}>
             <Input
               id="ws-name"
               value={form.name}
@@ -77,7 +80,7 @@ export function IdentitySection({
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </FormField>
-          <FormField label="Timezone" htmlFor="ws-tz" description="Default for members, business hours and analytics.">
+          <FormField label={it ? "Fuso orario" : "Timezone"} htmlFor="ws-tz" description={it ? "Predefinito per i membri, gli orari di attività e le analisi." : "Default for members, business hours and analytics."}>
             <TimezoneSelect id="ws-tz" className="w-full" value={form.timezone} onChange={(tz) => tz && setForm({ ...form, timezone: tz })} />
           </FormField>
         </div>
@@ -88,6 +91,8 @@ export function IdentitySection({
 }
 
 function LogoField({ slug, name, logoUrl }: { slug: string; name: string; logoUrl: string | null }) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
   const input = useRef<HTMLInputElement>(null)
   const [preparing, setPreparing] = useState(false)
   const [urlOpen, setUrlOpen] = useState(false)
@@ -102,13 +107,13 @@ function LogoField({ slug, name, logoUrl }: { slug: string; name: string; logoUr
     try {
       prepared = await prepareImage(file, { size: 256, fit: "contain" })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't read that image.")
+      toast.error(err instanceof Error ? err.message : t("profileImageReadError"))
       return
     } finally {
       setPreparing(false)
       if (input.current) input.current.value = ""
     }
-    await run(() => uploadWorkspaceLogo({ slug, file: prepared }), { success: "Logo updated" })
+    await run(() => uploadWorkspaceLogo({ slug, file: prepared }), { success: t("genLogoUpdated") })
   }
 
   return (
@@ -129,12 +134,12 @@ function LogoField({ slug, name, logoUrl }: { slug: string; name: string; logoUr
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => input.current?.click()}>
-            <ImagePlus /> Upload logo
+            <ImagePlus /> {t("genUploadLogo")}
           </Button>
           <Popover open={urlOpen} onOpenChange={setUrlOpen}>
             <PopoverTrigger asChild>
               <Button type="button" variant="ghost" size="sm" disabled={busy}>
-                <Link2 /> Use URL
+                <Link2 /> {t("genUseUrl")}
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-80 p-2">
@@ -142,16 +147,16 @@ function LogoField({ slug, name, logoUrl }: { slug: string; name: string; logoUr
                 className="flex items-center gap-1.5"
                 onSubmit={async (e) => {
                   e.preventDefault()
-                  const res = await run(() => setWorkspaceLogoUrl({ slug, url: url.trim() }), { success: "Logo updated" })
+                  const res = await run(() => setWorkspaceLogoUrl({ slug, url: url.trim() }), { success: t("genLogoUpdated") })
                   if (res.ok) {
                     setUrl("")
                     setUrlOpen(false)
                   }
                 }}
               >
-                <Input autoFocus placeholder="https://…/logo.png" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="Logo URL" />
+                <Input autoFocus placeholder={t("genLogoPlaceholder")} value={url} onChange={(e) => setUrl(e.target.value)} aria-label={t("genLogoUrl")} />
                 <Button type="submit" size="sm" disabled={!url.trim().startsWith("https://") || pending}>
-                  Save
+                  {t("saveChanges")}
                 </Button>
               </form>
             </PopoverContent>
@@ -162,20 +167,20 @@ function LogoField({ slug, name, logoUrl }: { slug: string; name: string; logoUr
               variant="ghost"
               size="sm"
               disabled={busy}
-              onClick={() => run(() => setWorkspaceLogoUrl({ slug, url: null }), { success: "Logo removed" })}
+              onClick={() => run(() => setWorkspaceLogoUrl({ slug, url: null }), { success: t("genLogoRemoved") })}
             >
-              <Trash2 /> Remove
+              <Trash2 /> {t("genRemove")}
             </Button>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">Square logos look best. PNG, JPEG, WebP or GIF.</p>
+        <p className="text-xs text-muted-foreground">{it ? "I loghi quadrati rendono meglio. Formati PNG, JPEG, WebP o GIF." : "Square logos look best. PNG, JPEG, WebP or GIF."}</p>
         <input
           ref={input}
           type="file"
           accept={ACCEPTED_IMAGE_TYPES}
           className="sr-only"
           tabIndex={-1}
-          aria-label="Upload workspace logo"
+          aria-label={it ? "Carica il logo del workspace" : "Upload workspace logo"}
           onChange={(e) => void onFile(e.target.files?.[0])}
         />
       </div>
@@ -184,20 +189,22 @@ function LogoField({ slug, name, logoUrl }: { slug: string; name: string; logoUr
 }
 
 function SlugField({ slug, appUrl, reservedSlugs }: { slug: string; appUrl: string; reservedSlugs: string[] }) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState(slug)
   const { pending, run } = useServerAction()
   const host = appUrl.replace(/^https?:\/\//, "")
   const clientError = !SLUG_RE.test(value)
-    ? "Use 2–40 lowercase letters, numbers and single dashes."
+    ? t("genInvalidSlug")
     : reservedSlugs.includes(value)
-      ? "This URL is reserved."
+      ? t("genReservedSlug")
       : null
 
   return (
     <>
-      <FormField label="Workspace URL" description="Changing it breaks existing bookmarks and shared links.">
+      <FormField label={it ? "URL workspace" : "Workspace URL"} description={it ? "La modifica interrompe il funzionamento dei segnalibri e dei link condivisi esistenti." : "Changing it breaks existing bookmarks and shared links."}>
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-8 min-w-0 flex-1 items-center rounded-lg border bg-surface/60 px-2.5 font-mono text-[13px]">
             <span className="truncate text-muted-foreground">{host}/w/</span>
@@ -211,16 +218,16 @@ function SlugField({ slug, appUrl, reservedSlugs }: { slug: string; appUrl: stri
               setOpen(true)
             }}
           >
-            <Pencil /> Change
+            <Pencil /> {t("genChange")}
           </Button>
         </div>
       </FormField>
       <Dialog open={open} onOpenChange={(o) => !pending && setOpen(o)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Change workspace URL</DialogTitle>
+            <DialogTitle>{it ? "Modifica URL workspace" : "Change workspace URL"}</DialogTitle>
             <DialogDescription>
-              Members are redirected automatically when they next open Dispatch, but old links and bookmarks stop working.
+              {it ? "I membri verranno reindirizzati automaticamente al prossimo accesso a Dispatch, ma i vecchi link e segnalibri non funzioneranno più." : "Members are redirected automatically when they next open Dispatch, but old links and bookmarks stop working."}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -229,7 +236,7 @@ function SlugField({ slug, appUrl, reservedSlugs }: { slug: string; appUrl: stri
             onSubmit={async (e) => {
               e.preventDefault()
               if (clientError || value === slug) return
-              const res = await run(() => changeWorkspaceSlug({ slug, newSlug: value }), { success: "Workspace URL changed" })
+              const res = await run(() => changeWorkspaceSlug({ slug, newSlug: value }), { success: t("genWorkspaceUrlChanged") })
               if (res.ok) {
                 setOpen(false)
                 router.replace(`/w/${res.data.slug}/settings/general`)
@@ -237,7 +244,7 @@ function SlugField({ slug, appUrl, reservedSlugs }: { slug: string; appUrl: stri
             }}
           >
             <label htmlFor="new-slug" className="text-[13px] font-medium">
-              New URL
+              {t("genNewUrlLabel")}
             </label>
             <div className="flex h-8 items-center rounded-lg border border-input focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/30">
               <span className="shrink-0 pl-2.5 font-mono text-[13px] text-muted-foreground">/w/</span>
@@ -259,11 +266,11 @@ function SlugField({ slug, appUrl, reservedSlugs }: { slug: string; appUrl: stri
           </form>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-              Cancel
+              {t("genCancel")}
             </Button>
             <Button type="submit" form="slug-form" disabled={pending || Boolean(clientError) || value === slug}>
               {pending && <Loader2 className="animate-spin" />}
-              Change URL
+              {t("genUrlChangeAction")}
             </Button>
           </DialogFooter>
         </DialogContent>

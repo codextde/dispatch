@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { SaveBar, SettingsRow, SettingsRows, SettingsSection, StatusBadge } from "@/components/settings/settings-ui"
 import { useServerAction } from "@/components/settings/use-server-action"
 import { updateNotificationPreferences } from "@/server/workspace/actions/personal"
+import { useI18n } from "@/lib/i18n"
 
 export type NotificationPrefs = {
   email: boolean
@@ -48,6 +49,7 @@ function useNotificationPermission() {
 }
 
 export function NotificationsForm({ slug, initial, userEmail }: { slug: string; initial: NotificationPrefs; userEmail: string }) {
+  const { t } = useI18n()
   const [saved, setSaved] = useState(initial)
   const [form, setForm] = useState(initial)
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
@@ -57,7 +59,7 @@ export function NotificationsForm({ slug, initial, userEmail }: { slug: string; 
 
   const save = () =>
     run(() => updateNotificationPreferences({ slug, ...form }), {
-      success: "Notification settings saved",
+      success: t("notificationSettingsSaved"),
       onSuccess: () => setSaved(form),
     })
 
@@ -67,32 +69,32 @@ export function NotificationsForm({ slug, initial, userEmail }: { slug: string; 
     refresh()
     if (result === "granted") {
       set("desktop", true)
-      new Notification("Desktop notifications are on", { body: "You'll see new mentions and assignments here.", icon: "/icon.svg" })
+      new Notification(t("desktopNotificationsOn"), { body: t("desktopNotificationHelp"), icon: "/icon.svg" })
     } else if (result === "denied") {
-      toast.error("Notifications are blocked. Allow them in your browser's site settings.")
+      toast.error(t("notificationsBlocked"))
     }
   }
 
   return (
     <>
       <SettingsSection
-        title="Email"
+        title={t("emailSettings")}
         description={
           <>
-            Sent to <span className="font-medium text-foreground">{userEmail}</span> when you&apos;re not active in Dispatch.
+            {t("sentWhenInactive")} <span className="font-medium text-foreground">{userEmail}</span> {t("whenInactive")}
           </>
         }
-        action={<Switch checked={form.email} onCheckedChange={(v) => set("email", v)} aria-label="Email notifications" />}
+            action={<Switch checked={form.email} onCheckedChange={(v) => set("email", v)} aria-label={t("emailNotifications")} />}
       >
         <SettingsRows className={form.email ? undefined : "pointer-events-none opacity-50"}>
           <SettingsRow
             htmlFor="n-mentions"
             label={
               <span className="flex items-center gap-2">
-                <AtSign className="size-4 text-muted-foreground" /> Mentions
+                <AtSign className="size-4 text-muted-foreground" /> {t("mentionsSetting")}
               </span>
             }
-            description="Someone @mentions you in a comment or chat."
+            description={t("mentionDescription")}
           >
             <Switch id="n-mentions" checked={form.mentions} disabled={!form.email} onCheckedChange={(v) => set("mentions", v)} />
           </SettingsRow>
@@ -100,10 +102,10 @@ export function NotificationsForm({ slug, initial, userEmail }: { slug: string; 
             htmlFor="n-assignments"
             label={
               <span className="flex items-center gap-2">
-                <UserCheck className="size-4 text-muted-foreground" /> Assignments
+                <UserCheck className="size-4 text-muted-foreground" /> {t("assignmentsSetting")}
               </span>
             }
-            description="A conversation is assigned to you."
+            description={t("assignmentDescription")}
           >
             <Switch
               id="n-assignments"
@@ -115,13 +117,13 @@ export function NotificationsForm({ slug, initial, userEmail }: { slug: string; 
         </SettingsRows>
       </SettingsSection>
 
-      <SettingsSection title="New messages" description="Which incoming customer emails should notify you in the app and on desktop.">
+      <SettingsSection title={t("newMessages")} description={t("newMessagesDescription")}>
         <SettingsRows>
           <SettingsRow
             htmlFor="n-new"
             label={
               <span className="flex items-center gap-2">
-                <Mail className="size-4 text-muted-foreground" /> Notify me about
+                <Mail className="size-4 text-muted-foreground" /> {t("notifyMeAbout")}
               </span>
             }
           >
@@ -130,9 +132,9 @@ export function NotificationsForm({ slug, initial, userEmail }: { slug: string; 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All inboxes I can access</SelectItem>
-                <SelectItem value="assigned">Conversations assigned to me</SelectItem>
-                <SelectItem value="none">Nothing</SelectItem>
+                <SelectItem value="all">{t("allAccessibleInboxes")}</SelectItem>
+                <SelectItem value="assigned">{t("assignedConversations")}</SelectItem>
+                <SelectItem value="none">{t("nothing")}</SelectItem>
               </SelectContent>
             </Select>
           </SettingsRow>
@@ -140,8 +142,8 @@ export function NotificationsForm({ slug, initial, userEmail }: { slug: string; 
       </SettingsSection>
 
       <SettingsSection
-        title="Desktop"
-        description="Show system notifications while Dispatch is open in a browser tab."
+        title={t("desktop")}
+        description={t("desktopDescription")}
         action={
           <Switch
             checked={form.desktop}
@@ -160,33 +162,33 @@ export function NotificationsForm({ slug, initial, userEmail }: { slug: string; 
             <BellRing className="size-4 shrink-0 text-muted-foreground" />
             <div className="text-[13px]">
               <div className="flex items-center gap-2 font-medium">
-                Browser permission
-                {permission === "granted" && <StatusBadge tone="success">Allowed</StatusBadge>}
-                {permission === "denied" && <StatusBadge tone="danger">Blocked</StatusBadge>}
-                {permission === "default" && <StatusBadge tone="neutral">Not requested</StatusBadge>}
-                {permission === "unsupported" && <StatusBadge tone="neutral">Not supported</StatusBadge>}
+                {t("browserPermission")}
+                {permission === "granted" && <StatusBadge tone="success">{t("allowed")}</StatusBadge>}
+                {permission === "denied" && <StatusBadge tone="danger">{t("blocked")}</StatusBadge>}
+                {permission === "default" && <StatusBadge tone="neutral">{t("notRequested")}</StatusBadge>}
+                {permission === "unsupported" && <StatusBadge tone="neutral">{t("notSupported")}</StatusBadge>}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {permission === "denied"
-                  ? "Allow notifications for this site in your browser settings, then reload."
+                  ? t("allowSiteNotifications")
                   : permission === "unsupported"
-                    ? "This browser doesn't support desktop notifications."
-                    : "Each browser and device asks separately."}
+                    ? t("browserNoNotifications")
+                    : t("browsersAskSeparately")}
               </p>
             </div>
           </div>
           {permission === "default" && (
             <Button size="sm" variant="outline" onClick={() => void requestPermission()}>
-              Allow notifications
+              {t("allowNotifications")}
             </Button>
           )}
           {permission === "granted" && (
             <Button
               size="sm"
               variant="outline"
-              onClick={() => new Notification("Test notification", { body: "Desktop notifications work on this device.", icon: "/icon.svg" })}
+              onClick={() => new Notification(t("testNotification"), { body: t("desktopWorks"), icon: "/icon.svg" })}
             >
-              Send test
+              {t("sendTest")}
             </Button>
           )}
         </div>

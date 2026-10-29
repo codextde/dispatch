@@ -33,6 +33,7 @@ import { AttachmentList } from "../attachments"
 import { EmojiPickerPopover } from "../emoji-picker"
 import { useInbox } from "../inbox-provider"
 import { EditorContent, PROSE, isEditorEmpty, useCommentEditor } from "../composer/editor"
+import { useI18n } from "@/lib/i18n"
 
 function useThreadCache(conversationId: string) {
   const { slug } = useInbox()
@@ -62,6 +63,7 @@ function useThreadCache(conversationId: string) {
 }
 
 function EditForm({ comment, onDone }: { comment: ThreadComment; onDone: () => void }) {
+  const { t } = useI18n()
   const { slug, members } = useInbox()
   const qc = useQueryClient()
   const save = useMutation({
@@ -76,16 +78,16 @@ function EditForm({ comment, onDone }: { comment: ThreadComment; onDone: () => v
     if (!editor || isEditorEmpty(editor)) return
     save.mutate(editor.getHTML())
   }
-  const editor = useCommentEditor({ members, content: comment.body, autofocus: true, onSubmit: submit, onEscape: onDone, placeholder: "Edit comment…" })
+  const editor = useCommentEditor({ members, content: comment.body, autofocus: true, onSubmit: submit, onEscape: onDone, placeholder: t("commentEditPlaceholder") })
   return (
     <div className="mt-1 rounded-lg border bg-card px-3 py-2">
       <EditorContent editor={editor} />
       <div className="mt-2 flex justify-end gap-2">
         <Button variant="ghost" size="xs" onClick={onDone}>
-          Cancel
+          {t("cancel")}
         </Button>
         <Button size="xs" onClick={submit} disabled={save.isPending}>
-          Save
+          {t("saveChanges")}
         </Button>
       </div>
     </div>
@@ -110,6 +112,7 @@ export function CommentItem({
   highlighted?: boolean
   variant?: "comment" | "chat"
 }) {
+  const { t, locale } = useI18n()
   const { slug, member, meId } = useInbox()
   const cache = useThreadCache(conversationId)
   const [editing, setEditing] = useState(false)
@@ -151,7 +154,7 @@ export function CommentItem({
   const copyLink = () => {
     const url = `${window.location.origin}${window.location.pathname}#comment-${comment.id}`
     void navigator.clipboard.writeText(url)
-    toast.success("Link copied")
+    toast.success(t("copied"))
   }
 
   return (
@@ -170,16 +173,16 @@ export function CommentItem({
       <div className="min-w-0 flex-1">
         {!compact && (
           <div className="flex items-baseline gap-2">
-            <span className="text-[13px] font-semibold">{memberName(author, "Former member")}</span>
+            <span className="text-[13px] font-semibold">{memberName(author, t("formerMember"))}</span>
             <Tooltip>
               <TooltipTrigger asChild>
                 <time className="font-mono text-[10.5px] text-muted-foreground" dateTime={comment.createdAt}>
-                  {threadTime(comment.createdAt)}
+                  {threadTime(comment.createdAt, locale)}
                 </time>
               </TooltipTrigger>
-              <TooltipContent>{fullTime(comment.createdAt)}</TooltipContent>
+              <TooltipContent>{fullTime(comment.createdAt, locale)}</TooltipContent>
             </Tooltip>
-            {comment.editedAt && <span className="text-[10.5px] text-muted-foreground">(edited)</span>}
+            {comment.editedAt && <span className="text-[10.5px] text-muted-foreground">({t("commentEdited")})</span>}
           </div>
         )}
         {editing ? (
@@ -232,28 +235,28 @@ export function CommentItem({
       {!editing && !optimistic && (
         <div className="absolute -top-3 right-2 flex items-center gap-0.5 rounded-lg border bg-popover p-0.5 opacity-0 shadow-sm transition-opacity group-hover/comment:opacity-100 focus-within:opacity-100 max-md:hidden">
           <EmojiPickerPopover onPick={(emoji) => react.mutate(emoji)} side="top" align="end">
-            <Button variant="ghost" size="icon-xs" aria-label="Add reaction">
+            <Button variant="ghost" size="icon-xs" aria-label={t("commentAddReaction")}>
               <FaceSlightlySmilingPlus />
             </Button>
           </EmojiPickerPopover>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-xs" aria-label="Comment actions">
+              <Button variant="ghost" size="icon-xs" aria-label={t("commentActions")}>
                 <Ellipsis />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={copyLink}>
-                <Link2 /> Copy link
+                <Link2 /> {t("commentCopyLink")}
               </DropdownMenuItem>
               {mine && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => setEditing(true)}>
-                    <Pencil /> Edit
+                    <Pencil /> {t("edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive" onSelect={() => setConfirm(true)}>
-                    <Trash2 /> Delete
+                    <Trash2 /> {t("commentDelete")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -265,27 +268,27 @@ export function CommentItem({
         <div className="absolute top-1 right-1 md:hidden">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Comment actions" className="size-8 text-muted-foreground">
+              <Button variant="ghost" size="icon-sm" aria-label={t("commentActions")} className="size-8 text-muted-foreground">
                 <Ellipsis />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {["👍", "❤️", "😂", "🎉", "🙏"].map((e) => (
                 <DropdownMenuItem key={e} onSelect={() => react.mutate(e)}>
-                  <span className="text-base">{e}</span> React
+                  <span className="text-base">{e}</span> {t("commentReact")}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={copyLink}>
-                <Link2 /> Copy link
+                <Link2 /> {t("commentCopyLink")}
               </DropdownMenuItem>
               {mine && (
                 <>
                   <DropdownMenuItem onSelect={() => setEditing(true)}>
-                    <Pencil /> Edit
+                    <Pencil /> {t("edit")}
                   </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive" onSelect={() => setConfirm(true)}>
-                    <Trash2 /> Delete
+                    <Trash2 /> {t("commentDelete")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -297,13 +300,13 @@ export function CommentItem({
       <AlertDialog open={confirm} onOpenChange={setConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this {variant === "chat" ? "message" : "comment"}?</AlertDialogTitle>
-            <AlertDialogDescription>It will be removed for everyone.</AlertDialogDescription>
+            <AlertDialogTitle>{t("commentDeleteQuestion").replace("{kind}", variant === "chat" ? t("message") : t("comment"))}</AlertDialogTitle>
+            <AlertDialogDescription>{t("commentRemovedForEveryone")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={() => del.mutate()}>
-              Delete
+              {t("commentDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

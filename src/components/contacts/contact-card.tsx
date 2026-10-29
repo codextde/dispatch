@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
+import { it as dateFnsIt } from "date-fns/locale"
 import { ArrowUpRight, Check, Copy, Lock, Pencil, Phone, SquarePen, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 import { useOrg } from "@/components/app/org-provider"
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { composeHref, ConversationLink } from "./contact-detail"
 import { EmailListInput, InlineField, TagInput } from "./contact-fields"
 import { displayName, useContactLookup, useContactMutations, type ContactInput } from "./use-contacts"
@@ -35,6 +37,8 @@ export function ContactCard({
   excludeConversationId?: string
   className?: string
 }) {
+  const { locale } = useI18n()
+  const tx = (en: string, it: string) => locale === "it" ? it : en
   const { can } = useOrg()
   const { data, isPending, isError } = useContactLookup(slug, email)
   const { create, update } = useContactMutations(slug)
@@ -43,7 +47,7 @@ export function ContactCard({
 
   if (isPending) {
     return (
-      <div className={cn("flex flex-col gap-3", className)} aria-busy aria-label="Loading contact">
+      <div className={cn("flex flex-col gap-3", className)} aria-busy aria-label={tx("Loading contact", "Caricamento contatto")}>
         <div className="flex items-center gap-3">
           <Skeleton className="size-10 rounded-full" />
           <div className="flex flex-1 flex-col gap-1.5">
@@ -73,7 +77,7 @@ export function ContactCard({
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
-      toast.error("Couldn’t copy to the clipboard")
+      toast.error(tx("Couldn’t copy to the clipboard", "Impossibile copiare negli appunti"))
     }
   }
 
@@ -82,7 +86,7 @@ export function ContactCard({
       { email, name: name?.trim() || null, isPrivate: !can("contacts.manage") },
       {
         onSuccess: () => {
-          toast.success("Added to contacts")
+          toast.success(tx("Added to contacts", "Contatto aggiunto"))
           setEditing(true)
         },
         onError: (err) => toast.error(err.message),
@@ -90,7 +94,7 @@ export function ContactCard({
     )
 
   return (
-    <section className={cn("flex flex-col gap-3", className)} aria-label={`Contact: ${label}`}>
+    <section className={cn("flex flex-col gap-3", className)} aria-label={`${tx("Contact", "Contatto")}: ${label}`}>
       <div className="flex items-start gap-3">
         <UserAvatar name={contact?.name ?? name} email={email} src={contact?.avatarUrl} size="lg" />
         <div className="min-w-0 flex-1">
@@ -98,14 +102,14 @@ export function ContactCard({
             <h3 className="truncate text-[14px] font-semibold tracking-tight" title={label}>
               {label}
             </h3>
-            {contact?.isPrivate && <Lock className="size-3 shrink-0 text-muted-foreground" aria-label="Private contact" />}
+            {contact?.isPrivate && <Lock className="size-3 shrink-0 text-muted-foreground" aria-label={tx("Private contact", "Contatto privato")} />}
           </div>
           {subtitle ? (
             <p className="truncate text-[12.5px] text-muted-foreground" title={subtitle}>
               {subtitle}
             </p>
           ) : (
-            <p className="truncate text-[12.5px] text-muted-foreground">{contact ? "No company yet" : "Not in your contacts"}</p>
+            <p className="truncate text-[12.5px] text-muted-foreground">{contact ? tx("No company yet", "Nessuna azienda") : tx("Not in your contacts", "Non presente nei contatti")}</p>
           )}
         </div>
         {contact && (
@@ -113,22 +117,22 @@ export function ContactCard({
             {contact.canEdit && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon-xs" onClick={() => setEditing((e) => !e)} aria-pressed={editing} aria-label="Edit contact">
+                  <Button variant="ghost" size="icon-xs" onClick={() => setEditing((e) => !e)} aria-pressed={editing} aria-label={tx("Edit contact", "Modifica contatto")}>
                     {editing ? <Check /> : <Pencil />}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{editing ? "Done" : "Edit contact"}</TooltipContent>
+                <TooltipContent>{editing ? tx("Done", "Fine") : tx("Edit contact", "Modifica contatto")}</TooltipContent>
               </Tooltip>
             )}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button asChild variant="ghost" size="icon-xs" aria-label="Open in contacts">
+                <Button asChild variant="ghost" size="icon-xs" aria-label={tx("Open in contacts", "Apri nei contatti")}>
                   <Link href={`/w/${slug}/contacts?c=${contact.id}`}>
                     <ArrowUpRight />
                   </Link>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Open in contacts</TooltipContent>
+              <TooltipContent>{tx("Open in contacts", "Apri nei contatti")}</TooltipContent>
             </Tooltip>
           </div>
         )}
@@ -136,19 +140,19 @@ export function ContactCard({
 
       {editing && contact ? (
         <div className="flex flex-col gap-0.5 rounded-lg border bg-surface/50 p-1.5">
-          <InlineField label="Name" value={contact.name} placeholder="Add name" onCommit={(v) => patch({ name: v || null })} />
-          <InlineField label="Company" value={contact.company} placeholder="Add company" onCommit={(v) => patch({ company: v || null })} />
-          <InlineField label="Title" value={contact.title} placeholder="Add job title" onCommit={(v) => patch({ title: v || null })} />
-          <InlineField label="Phone" type="tel" value={contact.phone} placeholder="Add phone" onCommit={(v) => patch({ phone: v || null })} />
+          <InlineField label={tx("Name", "Nome")} value={contact.name} placeholder={tx("Add name", "Aggiungi nome")} onCommit={(v) => patch({ name: v || null })} />
+          <InlineField label={tx("Company", "Azienda")} value={contact.company} placeholder={tx("Add company", "Aggiungi azienda")} onCommit={(v) => patch({ company: v || null })} />
+          <InlineField label={tx("Title", "Ruolo")} value={contact.title} placeholder={tx("Add job title", "Aggiungi ruolo")} onCommit={(v) => patch({ title: v || null })} />
+          <InlineField label={tx("Phone", "Telefono")} type="tel" value={contact.phone} placeholder={tx("Add phone", "Aggiungi telefono")} onCommit={(v) => patch({ phone: v || null })} />
           <div className="grid grid-cols-[88px_1fr] items-start gap-2">
-            <span className="flex min-h-8 items-center text-[12.5px] text-muted-foreground">Other emails</span>
-            <EmailListInput value={contact.alternateEmails} onChange={(alternateEmails) => patch({ alternateEmails })} placeholder="Add email" />
+            <span className="flex min-h-8 items-center text-[12.5px] text-muted-foreground">{tx("Other emails", "Altre email")}</span>
+            <EmailListInput value={contact.alternateEmails} onChange={(alternateEmails) => patch({ alternateEmails })} placeholder={tx("Add email", "Aggiungi email")} />
           </div>
           <div className="grid grid-cols-[88px_1fr] items-start gap-2">
-            <span className="flex min-h-8 items-center text-[12.5px] text-muted-foreground">Tags</span>
+            <span className="flex min-h-8 items-center text-[12.5px] text-muted-foreground">{tx("Tags", "Etichette")}</span>
             <TagInput value={contact.tags} onChange={(tags) => patch({ tags })} />
           </div>
-          <InlineField label="Notes" multiline value={contact.notes} placeholder="Add notes for your team…" onCommit={(v) => patch({ notes: v || null })} />
+          <InlineField label={tx("Notes", "Note")} multiline value={contact.notes} placeholder={tx("Add notes for your team…", "Aggiungi note per il team…")} onCommit={(v) => patch({ notes: v || null })} />
         </div>
       ) : (
         <div className="flex flex-col gap-1.5 text-[13px]">
@@ -160,14 +164,14 @@ export function ContactCard({
               type="button"
               onClick={copy}
               className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 outline-none group-hover/email:opacity-100 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label="Copy email address"
+              aria-label={tx("Copy email address", "Copia indirizzo email")}
             >
               {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
             </button>
           </div>
           {otherAddresses.length > 0 && (
             <p className="flex min-w-0 flex-wrap gap-x-1.5 text-[12px] text-muted-foreground">
-              <span>Also</span>
+              <span>{tx("Also", "Anche")}</span>
               {otherAddresses.map((a, i) => (
                 <a key={a} href={`mailto:${a}`} className="max-w-full truncate hover:text-foreground hover:underline" title={a}>
                   {a}
@@ -197,7 +201,7 @@ export function ContactCard({
               disabled={!contact.canEdit}
               onClick={() => setEditing(true)}
               className="mt-1 rounded-md border-l-2 border-amber-400/70 bg-amber-500/5 px-2.5 py-1.5 text-left text-[12.5px] leading-relaxed whitespace-pre-line text-foreground/80 outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
-              title={contact.canEdit ? "Edit notes" : undefined}
+              title={contact.canEdit ? tx("Edit notes", "Modifica note") : undefined}
             >
               <span className="line-clamp-4">{contact.notes}</span>
             </button>
@@ -209,9 +213,9 @@ export function ContactCard({
         <div className="flex gap-1.5">
           <Button size="sm" variant="outline" className="flex-1" onClick={addContact} disabled={create.isPending}>
             {create.isPending ? <Spinner /> : <UserPlus />}
-            Add to contacts
+            {tx("Add to contacts", "Aggiungi ai contatti")}
           </Button>
-          <Button asChild size="sm" variant="ghost" aria-label={`New email to ${email}`}>
+          <Button asChild size="sm" variant="ghost" aria-label={`${tx("New email to", "Nuova email a")} ${email}`}>
             <Link href={composeHref(slug, email)}>
               <SquarePen />
             </Link>
@@ -222,8 +226,8 @@ export function ContactCard({
       {(data.conversationTotal > 0 || contact?.lastContactedAt) && (
         <div className="flex flex-col gap-1 border-t pt-3">
           <p className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">
-            {otherCount > 0 ? `${otherCount} other conversation${otherCount === 1 ? "" : "s"}` : "No other conversations"}
-            {contact?.lastContactedAt && <> · last {formatDistanceToNow(new Date(contact.lastContactedAt), { addSuffix: true })}</>}
+            {otherCount > 0 ? (locale === "it" ? `${otherCount} ${otherCount === 1 ? "altra conversazione" : "altre conversazioni"}` : `${otherCount} other conversation${otherCount === 1 ? "" : "s"}`) : tx("No other conversations", "Nessun’altra conversazione")}
+            {contact?.lastContactedAt && <> · {tx("last", "ultimo contatto")} {formatDistanceToNow(new Date(contact.lastContactedAt), { addSuffix: true, ...(locale === "it" ? { locale: dateFnsIt } : {}) })}</>}
           </p>
           {recent.length > 0 && (
             <div className="flex flex-col">
@@ -234,7 +238,7 @@ export function ContactCard({
           )}
           {contact && otherCount > recent.length && (
             <Link href={`/w/${slug}/contacts?c=${contact.id}`} className="self-start pt-0.5 text-xs text-muted-foreground hover:text-foreground">
-              View all conversations →
+              {tx("View all conversations →", "Vedi tutte le conversazioni →")}
             </Link>
           )}
         </div>

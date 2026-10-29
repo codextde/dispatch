@@ -1,7 +1,7 @@
 "use server"
 
 import { redirect, RedirectType } from "next/navigation"
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { z } from "zod"
 import { db, schema } from "@/server/db"
 import { action } from "@/server/action"
@@ -12,8 +12,11 @@ import { clearSessionCookie } from "@/server/auth/session"
 import { hashToken } from "@/server/crypto"
 import { acceptInvitation } from "@/server/orgs"
 import { getRequestMeta } from "@/server/request"
+import { PASSWORD_MIN_LENGTH, passwordHash } from "@/server/auth/password"
+import { establishSession } from "@/app/login/complete-login"
 
 const tokenSchema = z.object({ token: z.string().min(20).max(200) })
+const passwordInviteSchema = tokenSchema.extend({ password: z.string().min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`).max(4000) })
 
 async function findInvitation(token: string) {
   return db.query.invitations.findFirst({ where: eq(schema.invitations.tokenHash, hashToken(token)) })
@@ -45,6 +48,30 @@ export const acceptInviteAction = action(tokenSchema, async ({ token }) => {
     .set({ preferences: { ...s.user.preferences, lastOrgSlug: org.slug } })
     .where(eq(schema.users.id, s.user.id))
   redirect(`/w/${org.slug}/inbox`, RedirectType.replace)
+})
+
+/** Create/set a local password directly from a valid invitation, then join and sign in. */
+export const setInvitePasswordAction = action(passwordInviteSchema, async ({ token, password }) => {
+  const inv = await findInvitation(token)
+  if (!inv || inv.revokedAt) throw new ApiError(404, "This invitation is no longer valid.")
+  if (inv.acceptedAt) throw new ApiError(410, "This invitation has already been used.")
+  if (inv.expiresAt < new Date()) throw new ApiError(410, "This invitation has expired. Ask for a new one.")
+  const email = inv.email.toLowerCase()
+  let user = await db.query.users.findFirst({ where: sql`lower(${schema.users.email}) = ${email}` })
+  if (!user) {
+    const [created] = await db.insert(schema.users).values({ email, name: null, passwordHash: passwordHash(password) }).returning()
+    user = created
+  } else {
+    const [updated] = await db.update(schema.users).set({ passwordHash: passwordHash(password), status: "active" }).where(eq(schema.users.id, user.id)).returning()
+    user = updated
+  }
+  if (!user) throw new ApiError(500, "Could not create the account.")
+  await acceptInvitation(inv, user.id)
+  const org = await db.query.organizations.findFirst({ where: eq(schema.organizations.id, inv.orgId) })
+  if (!org) throw new ApiError(404, "This workspace no longer exists.")
+  await db.update(schema.users).set({ preferences: { ...user.preferences, lastOrgSlug: org.slug } }).where(eq(schema.users.id, user.id))
+  const redirectTo = await establishSession({ userId: user.id, email: user.email, method: "password", redirectTo: `/w/${org.slug}/inbox` })
+  redirect(redirectTo, RedirectType.replace)
 })
 
 /** Signed in with a different account: sign out this device and continue with the invited email. */

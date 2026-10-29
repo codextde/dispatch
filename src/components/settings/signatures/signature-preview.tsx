@@ -3,14 +3,16 @@
 import { fillSampleVariables, RichTextPreview } from "@/components/settings/rich-text-editor"
 import { cn } from "@/lib/utils"
 import { isBlankHtml } from "../responses/text"
+import { useI18n } from "@/lib/i18n"
 
 export type PreviewUser = { name: string; title: string; email: string }
 
 /** Signature rendered below a mock message, with the viewer's details filled in. */
 export function SignaturePreview({ body, user, className, compact }: { body: string; user: PreviewUser; className?: string; compact?: boolean }) {
+  const { t } = useI18n()
   const filled = fillSampleVariables(body, {
     "user.name": user.name,
-    "user.title": user.title || "Your title",
+    "user.title": user.title || t("jobTitle"),
     "user.email": user.email,
   })
   return (
@@ -23,7 +25,7 @@ export function SignaturePreview({ body, user, className, compact }: { body: str
       )}
       <div className={cn(!compact && "border-t border-dashed pt-3")}>
         {isBlankHtml(body) ? (
-          <p className="text-sm text-muted-foreground">Your signature preview appears here.</p>
+          <p className="text-sm text-muted-foreground">{t("signaturePreview")}</p>
         ) : (
           <RichTextPreview html={filled} className={cn(compact && "line-clamp-4 text-[13px]")} />
         )}

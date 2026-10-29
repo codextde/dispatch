@@ -12,13 +12,16 @@ import { CodeBlock, prettyJson } from "@/components/settings/integrations/code-b
 import { getWebhookDeliveries, redeliverWebhookDelivery, sendTestWebhook } from "@/server/workspace/actions/integrations"
 import type { WebhookDeliveryRow, WebhookRow } from "@/server/workspace/queries/integrations"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export function DeliveryStatus({ d }: { d: Pick<WebhookDeliveryRow, "status" | "attempts"> }) {
-  if (d.status === "success") return <StatusBadge tone="success">Delivered</StatusBadge>
-  if (d.status === "failed") return <StatusBadge tone="danger">Failed</StatusBadge>
+  const { locale } = useI18n()
+  const it = locale === "it"
+  if (d.status === "success") return <StatusBadge tone="success">{it ? "Consegnato" : "Delivered"}</StatusBadge>
+  if (d.status === "failed") return <StatusBadge tone="danger">{it ? "Non riuscito" : "Failed"}</StatusBadge>
   return (
     <StatusBadge tone={d.attempts > 0 ? "warning" : "neutral"} pulse>
-      {d.attempts > 0 ? "Retrying" : "Pending"}
+      {d.attempts > 0 ? (it ? "Nuovo tentativo" : "Retrying") : (it ? "In attesa" : "Pending")}
     </StatusBadge>
   )
 }
@@ -34,6 +37,8 @@ export function DeliveriesSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [rows, setRows] = useState<WebhookDeliveryRow[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -82,7 +87,7 @@ export function DeliveriesSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-2xl">
         <SheetHeader className="border-b px-5 pt-5 pb-4">
-          <MicroLabel>Webhook deliveries</MicroLabel>
+          <MicroLabel>{it ? "Invii webhook" : "Webhook deliveries"}</MicroLabel>
           <SheetTitle className="text-base font-semibold tracking-tight">{webhook?.name}</SheetTitle>
           <SheetDescription className="truncate font-mono text-xs">{webhook?.url}</SheetDescription>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -93,15 +98,15 @@ export function DeliveriesSheet({
               onClick={() =>
                 webhook &&
                 void run(() => sendTestWebhook({ slug, id: webhook.id }), {
-                  success: (d) => (d.enabled ? "Test event queued" : "Test event queued — the endpoint is paused, so it won't be sent until you enable it"),
+                  success: (d) => (d.enabled ? (it ? "Evento di prova in coda" : "Test event queued") : it ? "Evento di prova in coda: l’endpoint è in pausa e non verrà inviato finché non lo riattivi." : "Test event queued — the endpoint is paused, so it won't be sent until you enable it"),
                   onSuccess: () => void load(),
                 })
               }
             >
-              {pending ? <Loader2 className="animate-spin" /> : <Send />} Send test event
+              {pending ? <Loader2 className="animate-spin" /> : <Send />} {it ? "Invia evento di prova" : "Send test event"}
             </Button>
             <Button size="sm" variant="ghost" disabled={loading} onClick={() => void load()}>
-              <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
+              <RefreshCw className={cn(loading && "animate-spin")} /> {it ? "Aggiorna" : "Refresh"}
             </Button>
           </div>
         </SheetHeader>
@@ -109,24 +114,24 @@ export function DeliveriesSheet({
         <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
           {rows === null ? (
             <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" /> Loading deliveries…
+              <Loader2 className="size-4 animate-spin" /> {it ? "Caricamento invii…" : "Loading deliveries…"}
             </div>
           ) : rows.length === 0 ? (
             <div className="p-5">
               <EmptyState
                 icon={<Inbox />}
-                title="No deliveries yet"
-                description="Deliveries show up here as events happen. Send a test event to check your endpoint."
+                title={it ? "Nessun invio" : "No deliveries yet"}
+                description={it ? "Gli invii appariranno qui quando si verificano gli eventi. Invia un evento di prova per verificare l’endpoint." : "Deliveries show up here as events happen. Send a test event to check your endpoint."}
               />
             </div>
           ) : (
             <ul className="divide-y">
               <li className="hidden grid-cols-[7rem_1fr_4.5rem_4rem_7.5rem] gap-3 bg-surface/60 px-5 py-2 sm:grid">
-                <MicroLabel>Status</MicroLabel>
-                <MicroLabel>Event</MicroLabel>
-                <MicroLabel>Code</MicroLabel>
-                <MicroLabel>Tries</MicroLabel>
-                <MicroLabel className="text-right">Time</MicroLabel>
+                <MicroLabel>{it ? "Stato" : "Status"}</MicroLabel>
+                <MicroLabel>{it ? "Evento" : "Event"}</MicroLabel>
+                <MicroLabel>{it ? "Codice" : "Code"}</MicroLabel>
+                <MicroLabel>{it ? "Tentativi" : "Tries"}</MicroLabel>
+                <MicroLabel className="text-right">{it ? "Ora" : "Time"}</MicroLabel>
               </li>
               {rows.map((d) => {
                 const isOpen = expanded === d.id
@@ -153,33 +158,33 @@ export function DeliveriesSheet({
                       <div className="flex flex-col gap-3 border-t bg-surface/30 px-5 py-4">
                         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-4">
                           <div>
-                            <dt className="text-muted-foreground">Response</dt>
+                            <dt className="text-muted-foreground">{it ? "Risposta" : "Response"}</dt>
                             <dd className="font-mono">{d.responseStatus ?? "—"}</dd>
                           </div>
                           <div>
-                            <dt className="text-muted-foreground">Attempts</dt>
+                            <dt className="text-muted-foreground">{it ? "Tentativi" : "Attempts"}</dt>
                             <dd className="tabular-nums">{d.attempts}</dd>
                           </div>
                           <div>
-                            <dt className="text-muted-foreground">Created</dt>
+                            <dt className="text-muted-foreground">{it ? "Creato" : "Created"}</dt>
                             <dd>
                               <LocalTime date={d.createdAt} />
                             </dd>
                           </div>
                           <div>
-                            <dt className="text-muted-foreground">{d.status === "pending" ? "Next attempt" : "Delivered"}</dt>
+                            <dt className="text-muted-foreground">{d.status === "pending" ? (it ? "Prossimo tentativo" : "Next attempt") : (it ? "Consegnato" : "Delivered")}</dt>
                             <dd>
                               <LocalTime date={d.status === "pending" ? d.nextAttemptAt : d.deliveredAt} />
                             </dd>
                           </div>
                         </dl>
                         <div className="flex flex-col gap-1.5">
-                          <MicroLabel>Payload</MicroLabel>
+                          <MicroLabel>{it ? "Contenuto" : "Payload"}</MicroLabel>
                           <CodeBlock code={prettyJson(d.payload)} maxHeight={280} />
                         </div>
                         {d.responseBody && (
                           <div className="flex flex-col gap-1.5">
-                            <MicroLabel>Response body</MicroLabel>
+                            <MicroLabel>{it ? "Corpo della risposta" : "Response body"}</MicroLabel>
                             <CodeBlock code={prettyJson(d.responseBody)} maxHeight={200} />
                           </div>
                         )}
@@ -191,12 +196,12 @@ export function DeliveriesSheet({
                               disabled={pending}
                               onClick={() =>
                                 void run(() => redeliverWebhookDelivery({ slug, id: webhook.id, deliveryId: d.id }), {
-                                  success: "Delivery queued again",
+                                  success: it ? "Invio rimesso in coda" : "Delivery queued again",
                                   onSuccess: () => void load(),
                                 })
                               }
                             >
-                              <RotateCcw /> Redeliver
+                              <RotateCcw /> {it ? "Invia di nuovo" : "Redeliver"}
                             </Button>
                           </div>
                         )}

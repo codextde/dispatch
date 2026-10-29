@@ -130,6 +130,30 @@ export function safeEqual(a: string, b: string): boolean {
 }
 
 /**
+ * Password hashing without an extra native dependency. The salt is stored
+ * alongside the derived key; scrypt is deliberately expensive and suitable
+ * for the low-volume login path.
+ */
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16)
+  const derived = crypto.scryptSync(password, salt, 32, { N: 16_384, r: 8, p: 1 })
+  return `scrypt$v1$${salt.toString("hex")}$${derived.toString("hex")}`
+}
+
+export function verifyPassword(password: string, encoded: string | null | undefined): boolean {
+  if (!encoded) return false
+  const [algorithm, version, saltHex, hashHex] = encoded.split("$")
+  if (algorithm !== "scrypt" || version !== "v1" || !saltHex || !hashHex) return false
+  try {
+    const expected = Buffer.from(hashHex, "hex")
+    const actual = crypto.scryptSync(password, Buffer.from(saltHex, "hex"), expected.length, { N: 16_384, r: 8, p: 1 })
+    return expected.length > 0 && safeEqual(actual.toString("hex"), expected.toString("hex"))
+  } catch {
+    return false
+  }
+}
+
+/**
  * Mask a secret for display. Only well-known key prefixes and the last 4
  * characters of long secrets are shown ("sk_live_••••a1b2"); short secrets
  * such as passwords are fully masked.

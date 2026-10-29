@@ -26,6 +26,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { pluralize } from "@/components/settings/format"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { flattenLabels, MAX_LABEL_DEPTH, type FlatLabel, type LabelItem } from "./label-utils"
 
 export type TreeHandlers = {
@@ -48,6 +49,8 @@ function LabelRow({
   handlers: TreeHandlers
   dragging?: boolean
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: label.id,
     disabled: !editable,
@@ -97,11 +100,11 @@ function LabelRow({
         {!label.showInSidebar && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="shrink-0 text-muted-foreground" aria-label="Hidden from sidebar">
+              <span className="shrink-0 text-muted-foreground" aria-label={it ? "Nascosta dalla barra laterale" : "Hidden from sidebar"}>
                 <EyeOff className="size-3.5" />
               </span>
             </TooltipTrigger>
-            <TooltipContent>Hidden from the inbox sidebar</TooltipContent>
+            <TooltipContent>{it ? "Nascosta dalla barra laterale della posta" : "Hidden from the inbox sidebar"}</TooltipContent>
           </Tooltip>
         )}
       </div>
@@ -130,17 +133,17 @@ function LabelRow({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem onClick={() => handlers.onEdit(label)}>
-                <Pencil /> Edit
+                <Pencil /> {it ? "Modifica" : "Edit"}
               </DropdownMenuItem>
               <DropdownMenuItem disabled={label.depth >= MAX_LABEL_DEPTH} onClick={() => handlers.onAddChild(label)}>
-                <Plus /> Add nested label
+                <Plus /> {it ? "Aggiungi etichetta annidata" : "Add nested label"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handlers.onToggleSidebar(label)}>
-                <EyeOff /> {label.showInSidebar ? "Hide from sidebar" : "Show in sidebar"}
+                <EyeOff /> {label.showInSidebar ? (it ? "Nascondi dalla barra laterale" : "Hide from sidebar") : (it ? "Mostra nella barra laterale" : "Show in sidebar")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => handlers.onDelete(label)}>
-                <Trash2 /> Delete
+                <Trash2 /> {it ? "Elimina" : "Delete"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

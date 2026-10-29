@@ -10,6 +10,7 @@ import type { ConversationListItem } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import { useNow } from "@/hooks/inbox/use-now"
 import { useInbox } from "../inbox-provider"
+import { useI18n } from "@/lib/i18n"
 
 const SWIPE_TRIGGER = 88
 
@@ -27,19 +28,20 @@ export type RowProps = {
 
 function Senders({ item }: { item: ConversationListItem }) {
   const { account } = useInbox()
+  const { t } = useI18n()
   const names = item.participants.slice(0, 3).map((p) => (item.participants.length > 1 ? shortName(p) : participantName(p)))
   if (names.length) {
     const more = item.participants.length - names.length
     return (
       <>
-        {item.lastDirection === "outbound" && <span className="font-normal text-muted-foreground">To: </span>}
+        {item.lastDirection === "outbound" && <span className="font-normal text-muted-foreground">{t("inboxUiTo")}</span>}
         {names.join(", ")}
         {more > 0 && <span className="font-normal text-muted-foreground"> +{more}</span>}
       </>
     )
   }
   if (item.lastFrom) return <>{participantName(item.lastFrom)}</>
-  return <>{account(item.accountId)?.name ?? "Draft"}</>
+  return <>{account(item.accountId)?.name ?? t("inboxUiDraft")}</>
 }
 
 export const ConversationRow = memo(function ConversationRow({
@@ -54,6 +56,7 @@ export const ConversationRow = memo(function ConversationRow({
   onSwipe,
 }: RowProps) {
   const { member, label, account, meId } = useInbox()
+  const { t, locale } = useI18n()
   const [dx, setDx] = useState(0)
   const gesture = useRef<{ x: number; y: number; id: number; horizontal: boolean | null } | null>(null)
   const swiped = useRef(false)
@@ -67,7 +70,7 @@ export const ConversationRow = memo(function ConversationRow({
   const lead = item.participants[0] ?? item.lastFrom
 
   const directMember = isChat && !item.subject ? member(item.chatMemberIds.find((id) => id !== meId)) : undefined
-  const chatTitle = isChat ? (item.subject ? item.subject : memberName(directMember, "Direct message")) : ""
+  const chatTitle = isChat ? (item.subject ? item.subject : memberName(directMember, locale === "it" ? "Messaggio diretto" : "Direct message")) : ""
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType !== "touch" || !onSwipe) return
@@ -114,11 +117,11 @@ export const ConversationRow = memo(function ConversationRow({
           {dx > 0 ? (
             <span className="flex items-center gap-2">
               {item.status === "closed" ? <RotateCcw className="size-5" /> : <CircleCheck className="size-5" />}
-              {item.status === "closed" ? "Reopen" : "Close"}
+              {item.status === "closed" ? t("inboxUiReopen") : t("inboxUiClose")}
             </span>
           ) : (
             <span className="flex items-center gap-2">
-              Snooze <Clock className="size-5" />
+              {t("inboxUiSnooze")} <Clock className="size-5" />
             </span>
           )}
         </div>
@@ -149,7 +152,7 @@ export const ConversationRow = memo(function ConversationRow({
           cursor && !active && "shadow-[inset_2px_0_0_var(--brand)]"
         )}
       >
-        {item.unread && <span className="absolute top-[18px] left-1.5 size-1.5 rounded-full bg-brand" aria-label="Unread" />}
+        {item.unread && <span className="absolute top-[18px] left-1.5 size-1.5 rounded-full bg-brand" aria-label={locale === "it" ? "Da leggere" : "Unread"} />}
         <div
           className="relative mt-0.5 shrink-0"
           onClick={(e) => {
@@ -182,7 +185,7 @@ export const ConversationRow = memo(function ConversationRow({
           >
             <Checkbox
               checked={selected}
-              aria-label={selected ? "Deselect conversation" : "Select conversation"}
+              aria-label={selected ? (locale === "it" ? "Deseleziona conversazione" : "Deselect conversation") : (locale === "it" ? "Seleziona conversazione" : "Select conversation")}
               tabIndex={-1}
               className="size-[18px] bg-card"
             />
@@ -199,17 +202,17 @@ export const ConversationRow = memo(function ConversationRow({
               <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: acc.color }} title={acc.name} aria-hidden />
             )}
             <time className={cn("shrink-0 font-mono text-[11px] tabular-nums", item.unread ? "text-foreground" : "text-muted-foreground")} dateTime={item.lastActivityAt}>
-              {listTime(item.lastActivityAt)}
+              {listTime(item.lastActivityAt, locale)}
             </time>
           </div>
 
           {!isChat && (
             <div className="mt-0.5 flex items-center gap-1.5">
-              {item.priority && <Flag className="size-3 shrink-0 fill-red-500 text-red-500" aria-label="Priority" />}
-              {item.hasDraft && <span className="shrink-0 text-[12px] font-medium text-red-600 dark:text-red-400">Draft</span>}
-              {item.hasScheduled && <Clock className="size-3 shrink-0 text-info" aria-label="Scheduled" />}
+              {item.priority && <Flag className="size-3 shrink-0 fill-red-500 text-red-500" aria-label={t("inboxUiPriority")} />}
+              {item.hasDraft && <span className="shrink-0 text-[12px] font-medium text-red-600 dark:text-red-400">{t("inboxUiDraft")}</span>}
+              {item.hasScheduled && <Clock className="size-3 shrink-0 text-info" aria-label={t("inboxUiScheduled")} />}
               <span className={cn("min-w-0 truncate text-[13px]", item.unread ? "font-medium text-foreground" : "text-foreground/80")}>
-                {item.subject || <span className="text-muted-foreground italic">(no subject)</span>}
+                {item.subject || <span className="text-muted-foreground italic">{t("inboxUiNoSubject")}</span>}
               </span>
             </div>
           )}
@@ -218,15 +221,15 @@ export const ConversationRow = memo(function ConversationRow({
             <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted-foreground">{item.snippet || " "}</span>
             <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
               {snoozed && (
-                <span className="flex items-center gap-0.5 text-[11px] text-amber-600 dark:text-amber-400" title={`Snoozed until ${untilLabel(item.snoozedUntil)}`}>
+                <span className="flex items-center gap-0.5 text-[11px] text-amber-600 dark:text-amber-400" title={`${locale === "it" ? "Posticipata fino a" : "Snoozed until"} ${untilLabel(item.snoozedUntil, locale)}`}>
                   <Clock className="size-3" />
-                  <span className="max-md:hidden">{untilLabel(item.snoozedUntil)}</span>
+                  <span className="max-md:hidden">{untilLabel(item.snoozedUntil, locale)}</span>
                 </span>
               )}
-              {item.starred && <Star className="size-3 fill-amber-400 text-amber-400" aria-label="Starred" />}
-              {item.hasAttachments && <Paperclip className="size-3" aria-label="Has attachments" />}
+              {item.starred && <Star className="size-3 fill-amber-400 text-amber-400" aria-label={t("inboxUiStarred")} />}
+              {item.hasAttachments && <Paperclip className="size-3" aria-label={t("inboxUiHasAttachments")} />}
               {item.commentCount > 0 && !isChat && (
-                <span className="flex items-center gap-0.5 text-[11px]" aria-label={`${item.commentCount} comments`}>
+                <span className="flex items-center gap-0.5 text-[11px]" aria-label={locale === "it" ? `${item.commentCount} commenti` : `${item.commentCount} comments`}>
                   <MessageSquare className="size-3" />
                   {item.commentCount}
                 </span>
@@ -249,7 +252,7 @@ export const ConversationRow = memo(function ConversationRow({
                 {labels.length > 3 && <span className="text-[10.5px] text-muted-foreground">+{labels.length - 3}</span>}
               </div>
               {assignees.length > 0 && (
-                <div className="flex shrink-0 -space-x-1.5" title={`Assigned to ${assignees.map((a) => memberName(a)).join(", ")}`}>
+                <div className="flex shrink-0 -space-x-1.5" title={`${t("inboxUiToLabel")} ${assignees.map((a) => memberName(a)).join(", ")}`}>
                   {assignees.slice(0, 3).map((a) => (
                     <UserAvatar key={a!.id} name={a!.name} email={a!.email} src={a!.avatarUrl} size="xs" className="ring-2 ring-card" />
                   ))}

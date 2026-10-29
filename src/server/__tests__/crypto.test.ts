@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { decrypt, decryptJson, encrypt, encryptJson, hashToken, hmac, maskSecret, randomCode, randomToken, safeEqual, sign, unsign } from "@/server/crypto"
+import { decrypt, decryptJson, encrypt, encryptJson, hashPassword, hashToken, hmac, maskSecret, randomCode, randomToken, safeEqual, sign, unsign, verifyPassword } from "@/server/crypto"
 
 describe("crypto", () => {
   it("round-trips encryption with random IVs", () => {
@@ -44,5 +44,14 @@ describe("crypto", () => {
     // passwords never reveal most of their characters
     expect(maskSecret("Sup3rS3cretPass")).toBe("••••••••")
     expect(maskSecret("a-long-smtp-password-123")).toBe("••••-123")
+  })
+
+  it("hashes passwords with a unique salt and verifies them", () => {
+    const a = hashPassword("correct horse battery staple")
+    const b = hashPassword("correct horse battery staple")
+    expect(a).not.toEqual(b)
+    expect(verifyPassword("correct horse battery staple", a)).toBe(true)
+    expect(verifyPassword("wrong password", a)).toBe(false)
+    expect(verifyPassword("correct horse battery staple", "invalid")).toBe(false)
   })
 })

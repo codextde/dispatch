@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { saveSettingsAction } from "@/app/admin/settings/actions"
 import type { EditableSection } from "@/server/admin/settings"
 import { cn } from "@/lib/utils"
+import { localizeError, useI18n } from "@/lib/i18n"
 
 /**
  * Settings form framework for Admin → Settings.
@@ -58,6 +59,7 @@ export function getPath(obj: unknown, path: string): unknown {
 export type SettingsForm<T extends Json> = ReturnType<typeof useSettingsForm<T>>
 
 export function useSettingsForm<T extends Json>(section: EditableSection, initial: T) {
+  const { locale } = useI18n()
   const router = useRouter()
   const initialJson = JSON.stringify(initial)
   const [synced, setSynced] = useState(initialJson)
@@ -133,17 +135,17 @@ export function useSettingsForm<T extends Json>(section: EditableSection, initia
           const res = await saveSettingsAction({ section, values: changes, secrets: secretChanges })
           if (!res.ok) {
             setErrors(res.fieldErrors ?? {})
-            toast.error(res.error)
+            toast.error(localizeError(res.error, locale))
             resolve(false)
             return
           }
           reset(res.data as T)
           setSynced(JSON.stringify(res.data))
-          toast.success("Settings saved")
+          toast.success(locale === "it" ? "Impostazioni salvate" : "Settings saved")
           router.refresh()
           resolve(true)
         } catch {
-          toast.error("Could not reach the server. Try again.")
+          toast.error(locale === "it" ? "Impossibile raggiungere il server. Riprova." : "Could not reach the server. Try again.")
           resolve(false)
         }
       })
@@ -209,25 +211,27 @@ export function SettingsSaveBar({
   form: { dirty: boolean; saving: boolean; save: () => Promise<boolean>; discard: () => void }
   className?: string
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   if (!form.dirty && !form.saving) return <div aria-hidden className="h-4" />
   return (
     <div className={cn("sticky bottom-0 z-20 -mx-1 mt-6 pb-[max(env(safe-area-inset-bottom),1rem)]", className)}>
       <div
         role="region"
-        aria-label="Unsaved changes"
+        aria-label={it ? "Modifiche non salvate" : "Unsaved changes"}
         className="flex animate-in items-center gap-3 rounded-lg border border-border bg-popover px-3 py-2.5 shadow-lg shadow-black/5 fade-in slide-in-from-bottom-2 duration-200 sm:px-4 dark:shadow-black/40"
       >
         <span className="size-2 shrink-0 rounded-full bg-amber-500" aria-hidden />
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
-          Unsaved changes
-          <span className="ml-2 hidden font-mono text-[11px] font-normal text-muted-foreground sm:inline">⌘S to save</span>
+          {it ? "Modifiche non salvate" : "Unsaved changes"}
+          <span className="ml-2 hidden font-mono text-[11px] font-normal text-muted-foreground sm:inline">{it ? "⌘S per salvare" : "⌘S to save"}</span>
         </span>
         <Button type="button" variant="ghost" size="sm" onClick={form.discard} disabled={form.saving}>
-          Discard
+          {it ? "Annulla" : "Discard"}
         </Button>
         <Button type="submit" size="sm" disabled={form.saving}>
           {form.saving && <Spinner />}
-          Save changes
+          {it ? "Salva modifiche" : "Save changes"}
         </Button>
       </div>
     </div>

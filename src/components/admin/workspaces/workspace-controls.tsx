@@ -31,6 +31,7 @@ import {
   transferWorkspaceOwnershipAction,
   unsuspendWorkspaceAction,
 } from "@/app/admin/workspaces/actions"
+import { useI18n } from "@/lib/i18n"
 
 function Row({ label, htmlFor, children, hint }: { label: string; htmlFor?: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
@@ -65,6 +66,8 @@ export function SubscriptionControls({
   stripeSubscriptionId: string | null
   currentPeriodEndsAt: string | null
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [nextPlan, setNextPlan] = useState<PlanValue>(plan)
   const [nextStatus, setNextStatus] = useState<SubscriptionStatusValue>(status)
   const [days, setDays] = useState("14")
@@ -74,7 +77,7 @@ export function SubscriptionControls({
 
   return (
     <div className="grid gap-5">
-      <Row label="Plan" htmlFor="ws-plan" hint="Cloud workspaces are billed through Stripe when billing is enabled.">
+      <Row label={it ? "Piano" : "Plan"} htmlFor="ws-plan" hint={it ? "I workspace cloud vengono fatturati tramite Stripe quando la fatturazione è attiva." : "Cloud workspaces are billed through Stripe when billing is enabled."}>
         <div className="flex gap-2">
           <Select value={nextPlan} onValueChange={(v) => setNextPlan(v as PlanValue)}>
             <SelectTrigger id="ws-plan" className="w-full min-w-0 flex-1">
@@ -91,14 +94,14 @@ export function SubscriptionControls({
           <Button
             variant="outline"
             disabled={nextPlan === plan || planAction.pending}
-            onClick={() => planAction.run(() => setWorkspacePlanAction({ id, plan: nextPlan }), { success: "Plan updated" })}
+            onClick={() => planAction.run(() => setWorkspacePlanAction({ id, plan: nextPlan }), { success: it ? "Piano aggiornato" : "Plan updated" })}
           >
-            {planAction.pending && <Spinner />} Save
+            {planAction.pending && <Spinner />} {it ? "Salva" : "Save"}
           </Button>
         </div>
       </Row>
 
-      <Row label="Subscription status" htmlFor="ws-status" hint="Normally kept in sync by the Stripe webhook — override only to fix mistakes.">
+      <Row label={it ? "Stato abbonamento" : "Subscription status"} htmlFor="ws-status" hint={it ? "Di norma viene sincronizzato dal webhook Stripe: modifica solo per correggere errori." : "Normally kept in sync by the Stripe webhook — override only to fix mistakes."}>
         <div className="flex gap-2">
           <Select value={nextStatus} onValueChange={(v) => setNextStatus(v as SubscriptionStatusValue)}>
             <SelectTrigger id="ws-status" className="w-full min-w-0 flex-1">
@@ -116,24 +119,24 @@ export function SubscriptionControls({
             variant="outline"
             disabled={nextStatus === status || statusAction.pending}
             onClick={() =>
-              statusAction.run(() => setWorkspaceStatusAction({ id, status: nextStatus }), { success: "Subscription status updated" })
+              statusAction.run(() => setWorkspaceStatusAction({ id, status: nextStatus }), { success: it ? "Stato abbonamento aggiornato" : "Subscription status updated" })
             }
           >
-            {statusAction.pending && <Spinner />} Save
+            {statusAction.pending && <Spinner />} {it ? "Salva" : "Save"}
           </Button>
         </div>
       </Row>
 
       <Row
-        label="Trial"
+        label={it ? "Periodo di prova" : "Trial"}
         htmlFor="ws-trial-days"
         hint={
           trialEndsAt ? (
             <>
-              {trialExpired ? "Ended" : "Ends"} <LocalTime date={trialEndsAt} format="date" />. Extending starts from {trialExpired ? "today" : "the current end date"}.
+              {trialExpired ? (it ? "Terminato" : "Ended") : (it ? "Termina" : "Ends")} <LocalTime date={trialEndsAt} format="date" />. {it ? "Estendendo, il periodo partirà da" : "Extending starts from"} {trialExpired ? (it ? "oggi" : "today") : (it ? "dalla data di fine attuale" : "the current end date")}.
             </>
           ) : (
-            "No trial. Extending starts a trial from today."
+            (it ? "Nessun periodo di prova. L’estensione ne avvierà uno da oggi." : "No trial. Extending starts a trial from today.")
           )
         }
       >
@@ -146,18 +149,18 @@ export function SubscriptionControls({
               onChange={(e) => setDays(e.target.value.replace(/\D/g, "").slice(0, 3))}
               className="pr-12"
             />
-            <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-xs text-muted-foreground">days</span>
+            <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-xs text-muted-foreground">{it ? "giorni" : "days"}</span>
           </div>
           <Button
             variant="outline"
             disabled={!Number(days) || trialAction.pending}
             onClick={() =>
               trialAction.run(() => extendWorkspaceTrialAction({ id, days: Number(days) }), {
-                success: (d) => `Trial extended to ${formatLocalTime(d.trialEndsAt, "date")}`,
+                success: (d) => it ? `Periodo di prova esteso fino al ${formatLocalTime(d.trialEndsAt, "date")}` : `Trial extended to ${formatLocalTime(d.trialEndsAt, "date")}`,
               })
             }
           >
-            {trialAction.pending ? <Spinner /> : <CalendarPlus />} Extend
+            {trialAction.pending ? <Spinner /> : <CalendarPlus />} {it ? "Estendi" : "Extend"}
           </Button>
         </div>
       </Row>
@@ -170,19 +173,19 @@ export function SubscriptionControls({
             {stripeSubscriptionId && <CopyField value={stripeSubscriptionId} />}
             {currentPeriodEndsAt && (
               <p className="text-xs text-muted-foreground">
-                Current period ends <LocalTime date={currentPeriodEndsAt} format="date" />.
+                {it ? "Il periodo attuale termina il" : "Current period ends"} <LocalTime date={currentPeriodEndsAt} format="date" />.
               </p>
             )}
             {stripeCustomerUrl && (
               <Button asChild variant="outline" size="sm" className="w-fit">
                 <a href={stripeCustomerUrl} target="_blank" rel="noopener noreferrer">
-                  Open customer in Stripe <ExternalLink />
+                  {it ? "Apri cliente in Stripe" : "Open customer in Stripe"} <ExternalLink />
                 </a>
               </Button>
             )}
           </>
         ) : (
-          <p className="text-[13px] text-muted-foreground">No Stripe customer linked to this workspace.</p>
+          <p className="text-[13px] text-muted-foreground">{it ? "Nessun cliente Stripe collegato a questo workspace." : "No Stripe customer linked to this workspace."}</p>
         )}
       </div>
     </div>
@@ -190,6 +193,8 @@ export function SubscriptionControls({
 }
 
 export function SuspendControl({ id, name, suspended }: { id: string; name: string; suspended: boolean }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState("")
   const { pending, run } = useAdminAction()
@@ -197,14 +202,14 @@ export function SuspendControl({ id, name, suspended }: { id: string; name: stri
   if (suspended) {
     return (
       <ConfirmButton
-        title={`Unsuspend ${name}?`}
-        description="Members regain full access immediately."
-        confirmLabel="Unsuspend"
+        title={it ? `Riattivare ${name}?` : `Unsuspend ${name}?`}
+        description={it ? "I membri riacquisteranno subito l’accesso completo." : "Members regain full access immediately."}
+        confirmLabel={it ? "Riattiva" : "Unsuspend"}
         action={() => unsuspendWorkspaceAction({ id })}
-        success="Workspace unsuspended"
+        success={it ? "Workspace riattivato" : "Workspace unsuspended"}
         className="w-full sm:w-auto"
       >
-        <PlayCircle /> Unsuspend workspace
+        <PlayCircle /> {it ? "Riattiva workspace" : "Unsuspend workspace"}
       </ConfirmButton>
     )
   }
@@ -219,26 +224,26 @@ export function SuspendControl({ id, name, suspended }: { id: string; name: stri
     >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="w-full sm:w-auto">
-          <PauseCircle /> Suspend workspace
+          <PauseCircle /> {it ? "Sospendi workspace" : "Suspend workspace"}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Suspend {name}?</DialogTitle>
+          <DialogTitle>{it ? `Sospendere ${name}?` : `Suspend ${name}?`}</DialogTitle>
           <DialogDescription>
-            The workspace becomes read-only for all members and shows your reason in a banner. Mail sync continues. You can unsuspend at any time.
+            {it ? "Il workspace diventa di sola lettura per tutti i membri e mostra il motivo in un avviso. La sincronizzazione della posta continua. Puoi riattivarlo in qualsiasi momento." : "The workspace becomes read-only for all members and shows your reason in a banner. Mail sync continues. You can unsuspend at any time."}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-1.5">
           <Label htmlFor="suspend-reason" className="text-[13px]">
-            Reason shown to members
+            {it ? "Motivo mostrato ai membri" : "Reason shown to members"}
           </Label>
           <Textarea
             id="suspend-reason"
             value={reason}
             maxLength={500}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. Suspended for violating the acceptable use policy. Contact support@example.com."
+            placeholder={it ? "es. Sospeso per violazione delle condizioni d’uso. Contatta supporto@example.com." : "e.g. Suspended for violating the acceptable use policy. Contact support@example.com."}
             rows={3}
           />
           <p className="text-right text-xs text-muted-foreground tabular-nums">{reason.length}/500</p>
@@ -246,18 +251,18 @@ export function SuspendControl({ id, name, suspended }: { id: string; name: stri
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline" disabled={pending}>
-              Cancel
+              {it ? "Annulla" : "Cancel"}
             </Button>
           </DialogClose>
           <Button
             variant="destructive"
             disabled={pending}
             onClick={async () => {
-              const res = await run(() => suspendWorkspaceAction({ id, reason }), { success: "Workspace suspended" })
+              const res = await run(() => suspendWorkspaceAction({ id, reason }), { success: it ? "Workspace sospeso" : "Workspace suspended" })
               if (res.ok) setOpen(false)
             }}
           >
-            {pending && <Spinner />} Suspend
+            {pending && <Spinner />} {it ? "Sospendi" : "Suspend"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -272,16 +277,18 @@ export function TransferOwnershipControl({
   id: string
   candidates: { userId: string; label: string; role: string }[]
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [userId, setUserId] = useState("")
   const chosen = candidates.find((c) => c.userId === userId)
   if (!candidates.length) {
-    return <p className="text-[13px] text-muted-foreground">Invite another active member to be able to transfer ownership.</p>
+    return <p className="text-[13px] text-muted-foreground">{it ? "Invita un altro membro attivo per poter trasferire la proprietà." : "Invite another active member to be able to transfer ownership."}</p>
   }
   return (
     <div className="flex flex-col gap-2 sm:flex-row">
       <Select value={userId} onValueChange={setUserId}>
-        <SelectTrigger className="w-full min-w-0 flex-1" aria-label="New owner">
-          <SelectValue placeholder="Choose the new owner…" />
+        <SelectTrigger className="w-full min-w-0 flex-1" aria-label={it ? "Nuovo proprietario" : "New owner"}>
+          <SelectValue placeholder={it ? "Scegli il nuovo proprietario…" : "Choose the new owner…"} />
         </SelectTrigger>
         <SelectContent>
           {candidates.map((c) => (
@@ -293,46 +300,46 @@ export function TransferOwnershipControl({
       </Select>
       <ConfirmButton
         disabled={!chosen}
-        title="Transfer ownership?"
+        title={it ? "Trasferire la proprietà?" : "Transfer ownership?"}
         description={
           chosen ? (
             <>
-              <strong className="text-foreground">{chosen.label}</strong> becomes the owner (billing, deletion, all permissions). Current owners
-              become admins.
+              <strong className="text-foreground">{chosen.label}</strong> {it ? "diventerà proprietario (fatturazione, eliminazione e tutti i permessi). Gli attuali proprietari diventeranno amministratori." : "becomes the owner (billing, deletion, all permissions). Current owners become admins."}
             </>
           ) : null
         }
-        confirmLabel="Transfer ownership"
+        confirmLabel={it ? "Trasferisci proprietà" : "Transfer ownership"}
         action={() => transferWorkspaceOwnershipAction({ id, userId })}
-        success="Ownership transferred"
+        success={it ? "Proprietà trasferita" : "Ownership transferred"}
         onSuccess={() => setUserId("")}
       >
-        <UserCog /> Transfer
+        <UserCog /> {it ? "Trasferisci" : "Transfer"}
       </ConfirmButton>
     </div>
   )
 }
 
 export function DeleteWorkspaceControl({ id, name, slug }: { id: string; name: string; slug: string }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const router = useRouter()
   return (
     <ConfirmButton
       destructive
-      title={`Delete ${name}?`}
+      title={it ? `Eliminare ${name}?` : `Delete ${name}?`}
       description={
         <>
-          This permanently deletes the workspace with all conversations, messages, comments, contacts, inboxes and settings. Members keep their
-          accounts. This cannot be undone.
+          {it ? "Il workspace verrà eliminato definitivamente con tutte le conversazioni, i messaggi, i commenti, i contatti, le caselle e le impostazioni. I membri manterranno i propri account. L’operazione non si può annullare." : "This permanently deletes the workspace with all conversations, messages, comments, contacts, inboxes and settings. Members keep their accounts. This cannot be undone."}
         </>
       }
       confirmText={slug}
-      confirmLabel="Delete workspace"
+      confirmLabel={it ? "Elimina workspace" : "Delete workspace"}
       action={() => deleteWorkspaceAction({ id, confirm: slug })}
-      success={`${name} was deleted`}
+      success={it ? `${name} è stato eliminato` : `${name} was deleted`}
       onSuccess={() => router.push("/admin/workspaces")}
       className="w-full sm:w-auto"
     >
-      <Trash2 /> Delete workspace
+      <Trash2 /> {it ? "Elimina workspace" : "Delete workspace"}
     </ConfirmButton>
   )
 }

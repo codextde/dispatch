@@ -46,6 +46,7 @@ import type {
   SignatureOpt,
   TeamOpt,
 } from "@/components/settings/inboxes/types"
+import { useI18n } from "@/lib/i18n"
 
 type FormState = InboxSettingsDraft & { folders: FolderPaths; signatureId: string | null }
 
@@ -92,6 +93,7 @@ export function InboxEditor({
   signatures: SignatureOpt[]
   oauth: { google: boolean; microsoft: boolean }
 }) {
+  const { t, locale } = useI18n()
   const { org } = useOrg()
   const router = useRouter()
   const scope = inbox.scope
@@ -140,7 +142,7 @@ export function InboxEditor({
           },
         }),
       {
-        success: "Inbox settings saved",
+        success: t("inboxSettingsSaved"),
         onSuccess: () => setForm((f) => ({ ...f, name: f.name.trim(), fromName: f.fromName.trim() })),
       }
     )
@@ -155,15 +157,15 @@ export function InboxEditor({
   const canReconnect = oauthProvider === "google" ? oauth.google : oauth.microsoft
 
   const signatureOptions = [
-    { value: NO_SIGNATURE, label: "No default signature" },
-    ...signatures.map((s) => ({ value: s.id, label: s.name, hint: s.personal ? "Personal" : "Workspace" })),
+    { value: NO_SIGNATURE, label: t("inboxNoDefaultSignature") },
+    ...signatures.map((s) => ({ value: s.id, label: s.name, hint: s.personal ? t("personal") : t("workspace") })),
   ]
 
   return (
     <SettingsPage
       eyebrow={
         <Link href={base} className="inline-flex items-center gap-1 hover:text-foreground">
-          <ArrowLeft className="size-3" /> {scope === "shared" ? "Inboxes" : "My inboxes"}
+          <ArrowLeft className="size-3" /> {scope === "shared" ? t("inboxes") : t("myInboxes")}
         </Link>
       }
       title={
@@ -179,7 +181,7 @@ export function InboxEditor({
           <span>{providerLabel(inbox.provider)}</span>
           <span aria-hidden>·</span>
           <span>
-            Connected <LocalTime date={inbox.createdAt} format="date" />
+            {t("inboxConnected")} <LocalTime date={inbox.createdAt} format="date" />
           </span>
         </span>
       }
@@ -191,9 +193,9 @@ export function InboxEditor({
                 variant="outline"
                 size="sm"
                 disabled={actions.pending}
-                onClick={() => actions.run(() => syncInboxNow(ref), { success: "Sync requested" })}
+                onClick={() => actions.run(() => syncInboxNow(ref), { success: t("inboxSyncRequested") })}
               >
-                <RefreshCw className={cn(actions.pending && "animate-spin")} /> Sync now
+                <RefreshCw className={cn(actions.pending && "animate-spin")} /> {t("inboxSyncNow")}
               </Button>
             )}
             <Button
@@ -202,12 +204,12 @@ export function InboxEditor({
               disabled={actions.pending}
               onClick={() =>
                 actions.run(() => setInboxPausedAction({ ...ref, paused: inbox.status !== "paused" }), {
-                  success: (r) => (r.paused ? "Syncing paused" : "Syncing resumed"),
+                  success: (r) => (r.paused ? t("inboxSyncPaused") : t("inboxSyncResumed")),
                 })
               }
             >
               {inbox.status === "paused" ? <Play /> : <Pause />}
-              {inbox.status === "paused" ? "Resume" : "Pause"}
+              {inbox.status === "paused" ? t("inboxResume") : t("inboxPause")}
             </Button>
           </>
         )
@@ -216,20 +218,20 @@ export function InboxEditor({
       {/* Status strip */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-4">
         {[
-          { label: "Status", value: <InboxStatusBadge status={inbox.status} lastError={inbox.lastError} /> },
+          { label: t("inboxStatus"), value: <InboxStatusBadge status={inbox.status} lastError={inbox.lastError} /> },
           {
-            label: "Last synced",
+            label: t("inboxLastSynced"),
             value:
               inbox.status === "paused" ? (
-                "Paused"
+                t("inboxPaused")
               ) : inbox.lastSyncedAt ? (
                 <LocalTime date={inbox.lastSyncedAt} format="relative" titleFormat="datetime" />
               ) : (
-                "Not yet"
+                t("inboxNotYet")
               ),
           },
-          { label: "Conversations", value: inbox.conversationCount.toLocaleString("en-US") },
-          { label: "History", value: inbox.config.syncDays === 365 ? "1 year" : `${inbox.config.syncDays} days` },
+          { label: t("inboxConversations"), value: inbox.conversationCount.toLocaleString(locale === "it" ? "it-IT" : "en-US") },
+          { label: t("inboxHistory"), value: inbox.config.syncDays === 365 ? t("inbox1Year") : `${inbox.config.syncDays} ${t("days")}` },
         ].map((s) => (
           <div key={s.label} className="flex flex-col gap-1.5 bg-card px-4 py-3">
             <span className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">{s.label}</span>
@@ -242,16 +244,16 @@ export function InboxEditor({
         <div role="alert" className="flex items-start gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-[13px]">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="min-w-0 text-pretty">
-            <p className="font-medium">Sync is failing</p>
+            <p className="font-medium">{t("inboxSyncFailing")}</p>
             <p className="mt-0.5 break-words text-muted-foreground">{inbox.lastError}</p>
             <p className="mt-1 text-muted-foreground">
-              {isOAuth ? "Reconnect the account to grant access again." : "Check the password and server settings under Connection."}
+              {isOAuth ? t("inboxReconnectAccess") : t("inboxCheckConnection")}
             </p>
           </div>
         </div>
       )}
 
-      <SettingsSection title="Inbox" description="How this inbox appears in Dispatch and to your recipients.">
+      <SettingsSection title={t("inboxSettingsTitle")} description={t("inboxSettingsDescription")}>
         <div className="flex flex-col gap-5">
           <IdentityFields
             value={form}
@@ -261,13 +263,13 @@ export function InboxEditor({
             showTeam={scope === "shared"}
           />
           <FormField
-            label="Default signature"
+            label={t("inboxDefaultSignature")}
             htmlFor="inbox-signature"
             description={
               <>
-                Added to new emails and replies from this inbox.{" "}
+                {t("inboxSignatureAdded")}{" "}
                 <Link href={`/w/${org.slug}/settings/signatures`} className="underline underline-offset-2 hover:text-foreground">
-                  Manage signatures
+                  {t("inboxManageSignatures")}
                 </Link>
               </>
             }
@@ -277,13 +279,13 @@ export function InboxEditor({
               options={signatureOptions}
               value={form.signatureId ?? NO_SIGNATURE}
               onChange={(v) => setForm((f) => ({ ...f, signatureId: !v || v === NO_SIGNATURE ? null : v }))}
-              searchPlaceholder="Search signatures…"
+              searchPlaceholder={t("inboxSearchSignatures")}
               className="sm:max-w-sm"
             />
           </FormField>
           {!isDemo && (
             <SettingsRows>
-              <SettingsRow label="Import history" description="How far back existing email is synced. Increasing it imports older mail on the next sync.">
+              <SettingsRow label={t("inboxImportHistory")} description={t("inboxImportHistoryDescription")}>
                 <SyncDaysField value={form.syncDays} onChange={(syncDays) => setForm((f) => ({ ...f, syncDays }))} />
               </SettingsRow>
             </SettingsRows>
@@ -291,17 +293,17 @@ export function InboxEditor({
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Sending" description="Addresses and defaults used when replying from this inbox.">
+      <SettingsSection title={t("inboxSending")} description={t("inboxSendingDescription")}>
         <SendingFields value={form} onChange={(v) => setForm((f) => ({ ...f, ...v }))} errors={save.fieldErrors} />
       </SettingsSection>
 
       {!isDemo && (
         <SettingsSection
-          title="Folders"
-          description="Mailbox folders Dispatch uses when you send, archive, delete or mark spam."
+          title={t("inboxFolders")}
+          description={t("inboxFoldersDescription")}
           footer={
             isImap ? (
-              <SectionFooter hint={test?.imap.ok ? `Loaded ${pluralize(test.imap.mailboxes.length, "folder")} from the server.` : "Load the folder list from the server to pick folders."}>
+              <SectionFooter hint={test?.imap.ok ? t("inboxLoadedFolders").replace("{count}", String(test.imap.mailboxes.length)) : t("inboxLoadFolders")}>
                 <Button
                   variant="outline"
                   size="sm"
@@ -309,7 +311,7 @@ export function InboxEditor({
                   onClick={() => retest.run(() => retestInbox(ref), { onSuccess: setTest })}
                 >
                   {retest.pending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-                  Re-test connection
+                  {t("inboxRetestConnection")}
                 </Button>
               </SectionFooter>
             ) : undefined
@@ -317,7 +319,7 @@ export function InboxEditor({
         >
           <div className="flex flex-col gap-4">
             <p className="text-[13px] text-muted-foreground">
-              Incoming mail is read from <Code>{inbox.config.inboxPath}</Code>.
+              {t("inboxIncomingMailFrom")} <Code>{inbox.config.inboxPath}</Code>.
             </p>
             <FolderFields
               value={form.folders}
@@ -329,17 +331,17 @@ export function InboxEditor({
       )}
 
       <SettingsSection
-        title="Connection"
+        title={t("connection")}
         description={
           isImap
-            ? "IMAP receives mail, SMTP sends it. Passwords are encrypted and never shown again."
+            ? t("inboxIMAPSMTPHelp")
             : isOAuth
-              ? `Connected with ${oauthProvider === "google" ? "Google" : "Microsoft"} — no password is stored.`
-              : "Demo inboxes contain sample data and don't connect to a mail server."
+              ? t("inboxOAuthConnected").replace("{provider}", oauthProvider === "google" ? "Google" : "Microsoft")
+              : t("inboxDemoConnection")
         }
         footer={
           isImap ? (
-            <SectionFooter hint="Changing settings re-tests the connection before saving.">
+            <SectionFooter hint={t("inboxConnectionChanged")}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -347,17 +349,17 @@ export function InboxEditor({
                 onClick={() => retest.run(() => retestInbox(ref), { onSuccess: setTest })}
               >
                 {retest.pending ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-                Test
+                {t("inboxTest")}
               </Button>
               <CredentialsDialog key={`${inbox.connection.imap?.host}:${inbox.connection.imap?.user}`} inbox={inbox} />
             </SectionFooter>
           ) : isOAuth ? (
-            <SectionFooter hint={canReconnect ? "Reconnect if access was revoked or the password changed." : "Sign-in with this provider is currently disabled by your administrator."}>
+            <SectionFooter hint={canReconnect ? t("inboxReconnectRevoked") : t("inboxSignInDisabled")}>
               {canReconnect && (
                 <Button asChild variant="outline" size="sm">
                   <a href={reconnectHref}>
                     {oauthProvider === "google" ? <GoogleGlyph /> : <MicrosoftGlyph />}
-                    Reconnect with {oauthProvider === "google" ? "Google" : "Microsoft"}
+                    {t("inboxReconnectWith").replace("{provider}", oauthProvider === "google" ? "Google" : "Microsoft")}
                   </a>
                 </Button>
               )}
@@ -370,8 +372,8 @@ export function InboxEditor({
             <div className="grid gap-3 sm:grid-cols-2">
               {(
                 [
-                  ["Incoming · IMAP", inbox.connection.imap],
-                  ["Outgoing · SMTP", inbox.connection.smtp],
+                  [t("inboxIncomingIMAP"), inbox.connection.imap],
+                  [t("inboxOutgoingSMTP"), inbox.connection.smtp],
                 ] as const
               ).map(([label, s]) => (
                 <div key={label} className="flex flex-col gap-2 rounded-lg border bg-surface/40 p-3.5">
@@ -380,19 +382,19 @@ export function InboxEditor({
                   </span>
                   {s ? (
                     <dl className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-2 gap-y-1 text-[13px]">
-                      <dt className="text-muted-foreground">Server</dt>
+                      <dt className="text-muted-foreground">{t("inboxServer")}</dt>
                       <dd className="truncate font-mono text-[12.5px]">
                         {s.host}:{s.port}
                       </dd>
-                      <dt className="text-muted-foreground">Security</dt>
+                      <dt className="text-muted-foreground">{t("inboxSecurity")}</dt>
                       <dd>{s.secure ? "SSL/TLS" : "STARTTLS"}</dd>
-                      <dt className="text-muted-foreground">Username</dt>
+                      <dt className="text-muted-foreground">{t("inboxUsername")}</dt>
                       <dd className="truncate">{s.user}</dd>
-                      <dt className="text-muted-foreground">Password</dt>
-                      <dd className="tracking-widest text-muted-foreground">{inbox.connection.hasPassword ? "••••••••" : "Not set"}</dd>
+                      <dt className="text-muted-foreground">{t("inboxPassword")}</dt>
+                      <dd className="tracking-widest text-muted-foreground">{inbox.connection.hasPassword ? "••••••••" : t("inboxNotSet")}</dd>
                     </dl>
                   ) : (
-                    <p className="text-[13px] text-muted-foreground">Not configured</p>
+                    <p className="text-[13px] text-muted-foreground">{t("aiNotConfigured")}</p>
                   )}
                 </div>
               ))}
@@ -410,7 +412,7 @@ export function InboxEditor({
           <div className="flex items-center gap-3 rounded-lg border bg-surface/40 p-3.5 text-[13px]">
             {oauthProvider === "google" ? <GoogleGlyph className="size-5" /> : <MicrosoftGlyph className="size-5" />}
             <div className="min-w-0">
-              <div className="font-medium">{oauthProvider === "google" ? "Google account" : "Microsoft account"}</div>
+              <div className="font-medium">{oauthProvider === "google" ? t("inboxGoogleAccount") : t("inboxMicrosoftAccount")}</div>
               <div className="truncate font-mono text-xs text-muted-foreground">{inbox.email}</div>
             </div>
           </div>
@@ -419,10 +421,10 @@ export function InboxEditor({
 
       {scope === "shared" && (
         <SettingsSection
-          title="Access"
-          description="Who can see and reply to conversations in this inbox."
+          title={t("inboxAccess")}
+          description={t("inboxAccessDescription")}
           footer={
-            <SectionFooter hint={accessDirty ? "You have unsaved access changes." : "People who manage inboxes always have access."}>
+            <SectionFooter hint={accessDirty ? t("inboxUnsavedAccess") : t("inboxManagersAccess")}>
               {accessDirty && (
                 <Button variant="ghost" size="sm" onClick={() => setAccess(inbox.accessValue)} disabled={accessAction.pending}>
                   Reset
@@ -433,12 +435,12 @@ export function InboxEditor({
                 disabled={!accessDirty || accessAction.pending}
                 onClick={() =>
                   accessAction.run(() => updateInboxAccessAction({ slug: org.slug, id: inbox.id, access }), {
-                    success: "Access updated",
+                success: t("inboxAccessUpdated"),
                   })
                 }
               >
                 {accessAction.pending && <Loader2 className="animate-spin" />}
-                Save access
+                {t("inboxSaveAccess")}
               </Button>
             </SectionFooter>
           }
@@ -449,38 +451,38 @@ export function InboxEditor({
 
       <SettingsSection
         tone="danger"
-        title="Delete inbox"
-        description="Disconnects the mailbox from Dispatch. Email on the mail server is not touched."
+        title={t("inboxDeleteTitle")}
+        description={t("inboxDeleteDescription")}
         footer={
-          <SectionFooter hint={pluralize(inbox.conversationCount, "conversation") + " in this inbox."}>
+          <SectionFooter hint={t("inboxConversationCount").replace("{count}", String(inbox.conversationCount))}>
             <ConfirmDialog
               trigger={
                 <Button variant="destructive" size="sm">
-                  <Trash2 /> Delete inbox
+                  <Trash2 /> {t("inboxDeleteTitle")}
                 </Button>
               }
-              title={`Delete ${inbox.name}?`}
-              description="This stops syncing and removes the inbox, its access rules and its folder state from Dispatch."
+              title={t("inboxDeleteConfirmTitle").replace("{name}", inbox.name)}
+              description={t("inboxDeleteConfirmDescription")}
               destructive
-              confirmLabel="Delete inbox"
+              confirmLabel={t("inboxDeleteTitle")}
               confirmText={deleteMode === "delete" ? inbox.email : undefined}
               onOpenChange={(o) => !o && setDeleteMode("keep")}
               onConfirm={async () => {
                 const res = await deleteAction.run(() => deleteInboxAction({ ...ref, conversations: deleteMode }), {
                   success: (r) =>
                     deleteMode === "delete"
-                      ? `Inbox deleted with ${pluralize(r.conversations, "conversation")}`
-                      : "Inbox deleted — conversations were kept",
+                      ? t("inboxDeleteSuccess").replace("{count}", String(r.conversations))
+                      : t("inboxDeleteKept"),
                 })
                 if (res.ok) router.push(base)
                 return res.ok
               }}
             >
-              <div role="radiogroup" aria-label="Conversations" className="grid gap-2">
+              <div role="radiogroup" aria-label={t("inboxDeleteAccessLabel")} className="grid gap-2">
                 {(
                   [
-                    ["keep", "Keep conversations", "Conversations stay searchable in Dispatch, detached from this inbox."],
-                    ["delete", "Delete conversations", `Permanently delete ${pluralize(inbox.conversationCount, "conversation")}, including comments and tasks.`],
+                    ["keep", t("inboxKeepConversations"), t("inboxKeepDescription")],
+                    ["delete", t("inboxDeleteConversations"), t("inboxDeleteConversationsDescription").replace("{count}", String(inbox.conversationCount))],
                   ] as const
                 ).map(([value, title, desc]) => (
                   <button

@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Kbd } from "@/components/ui/kbd"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { aiRequest, aiSettingsHref, useAiStatus, type AiTextResult, type ImproveMode, type ReplyTone } from "./use-ai"
 
 type View =
@@ -84,6 +85,8 @@ export function AiAssist({
   /** Open with ⌘J / Ctrl+J */
   shortcut?: boolean
 }) {
+  const { locale } = useI18n()
+  const tx = (en: string, it: string) => locale === "it" ? it : en
   const { data: status } = useAiStatus(slug)
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<View>({ name: "menu" })
@@ -138,12 +141,12 @@ export function AiAssist({
     run({
       url: `/api/w/${slug}/ai/draft`,
       body: { conversationId, tone, instructions: instructions.trim() || undefined, currentDraft: draftText || undefined },
-      label: "Reply draft",
+      label: tx("Reply draft", "Bozza di risposta"),
     })
   const improve = (mode: ImproveMode, label: string) =>
     run({ url: `/api/w/${slug}/ai/improve`, body: { text: draftText, mode }, label })
   const translate = (lang: string) =>
-    run({ url: `/api/w/${slug}/ai/translate`, body: { text: draftText, language: lang }, label: `Translated to ${lang}` })
+    run({ url: `/api/w/${slug}/ai/translate`, body: { text: draftText, language: lang }, label: tx(`Translated to ${lang}`, `Tradotto in ${lang}`) })
 
   const apply = (html: string, how: "insert" | "replace") => {
     if (how === "replace" && onReplace) onReplace(html)
@@ -161,7 +164,7 @@ export function AiAssist({
         variant="ghost"
         size="icon-sm"
         className={cn("text-muted-foreground hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground", className)}
-        aria-label="AI assistant"
+        aria-label={tx("AI assistant", "Assistente IA")}
       >
         <Sparkles />
       </Button>
@@ -173,21 +176,21 @@ export function AiAssist({
       <Tooltip>
         <TooltipTrigger asChild>{trigger}</TooltipTrigger>
         <TooltipContent className="flex items-center gap-2">
-          AI assistant {shortcut && enabled && <Kbd>⌘J</Kbd>}
+          {tx("AI assistant", "Assistente IA")} {shortcut && enabled && <Kbd>⌘J</Kbd>}
         </TooltipContent>
       </Tooltip>
       <PopoverContent align={align} side={side} className="w-[min(22rem,calc(100vw-2rem))] p-0" onOpenAutoFocus={(e) => view.name === "menu" && e.preventDefault()}>
         {!enabled ? (
           <div className="flex flex-col gap-2 p-4">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <Sparkles className="size-4 text-brand" /> Set up the AI assistant
+              <Sparkles className="size-4 text-brand" /> {tx("Set up the AI assistant", "Configura l’assistente IA")}
             </div>
             <p className="text-[13px] text-muted-foreground">
-              Draft replies, summarize threads and polish your writing with your own Anthropic or OpenAI-compatible key.
+              {tx("Draft replies, summarize threads and polish your writing with your own Anthropic or OpenAI-compatible key.", "Prepara risposte, riassumi conversazioni e migliora i testi con una tua chiave Anthropic o compatibile con OpenAI.")}
             </p>
             <Button asChild size="sm" className="mt-1 self-start">
               <Link href={aiSettingsHref(slug)} onClick={() => setOpen(false)}>
-                Configure AI
+                {tx("Configure AI", "Configura IA")}
               </Link>
             </Button>
           </div>
@@ -195,23 +198,23 @@ export function AiAssist({
           <div className="flex flex-col p-1">
             <div className="flex items-center gap-2 px-2.5 pt-2 pb-1.5">
               <Sparkles className="size-3.5 text-brand" />
-              <span className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">AI assistant</span>
+              <span className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">{tx("AI assistant", "Assistente IA")}</span>
             </div>
             {conversationId && (
               <MenuItem icon={MessageSquareReply} onClick={() => setView({ name: "draft" })} chevron>
-                {draftText ? "Continue my draft" : "Draft a reply"}
+                {draftText ? tx("Continue my draft", "Continua la bozza") : tx("Draft a reply", "Prepara una risposta")}
               </MenuItem>
             )}
             <div className="my-1 h-px bg-border" />
             {IMPROVE.map((i) => (
-              <MenuItem key={i.mode} icon={i.icon} disabled={!draftText} onClick={() => improve(i.mode, i.label)}>
-                {i.label}
+              <MenuItem key={i.mode} icon={i.icon} disabled={!draftText} onClick={() => improve(i.mode, locale === "it" ? ({ fix: "Correggi ortografia e grammatica", shorter: "Accorcia", longer: "Allunga", friendlier: "Rendi più cordiale", formal: "Rendi più formale" }[i.mode]) : i.label)}>
+                {locale === "it" ? ({ fix: "Correggi ortografia e grammatica", shorter: "Accorcia", longer: "Allunga", friendlier: "Rendi più cordiale", formal: "Rendi più formale" }[i.mode]) : i.label}
               </MenuItem>
             ))}
             <MenuItem icon={Languages} disabled={!draftText} onClick={() => setView({ name: "translate" })} chevron>
-              Translate…
+              {tx("Translate…", "Traduci…")}
             </MenuItem>
-            {!draftText && <p className="px-2.5 pt-1 pb-2 text-xs text-muted-foreground">Write something to rewrite or translate it.</p>}
+            {!draftText && <p className="px-2.5 pt-1 pb-2 text-xs text-muted-foreground">{tx("Write something to rewrite or translate it.", "Scrivi un testo da riscrivere o tradurre.")}</p>}
           </div>
         ) : view.name === "draft" ? (
           <form
@@ -221,8 +224,8 @@ export function AiAssist({
               void draftReply()
             }}
           >
-            <SubHeader title={draftText ? "Continue my draft" : "Draft a reply"} onBack={() => setView({ name: "menu" })} />
-            <div className="flex items-center gap-0.5 rounded-lg bg-muted/70 p-0.5" role="radiogroup" aria-label="Tone">
+            <SubHeader title={draftText ? tx("Continue my draft", "Continua la bozza") : tx("Draft a reply", "Prepara una risposta")} onBack={() => setView({ name: "menu" })} />
+            <div className="flex items-center gap-0.5 rounded-lg bg-muted/70 p-0.5" role="radiogroup" aria-label={tx("Tone", "Tono")}>
               {TONES.map((t) => (
                 <button
                   key={t.value}
@@ -235,7 +238,7 @@ export function AiAssist({
                     tone === t.value && "bg-background text-foreground shadow-xs dark:bg-accent"
                   )}
                 >
-                  {t.label}
+                  {locale === "it" ? ({ friendly: "Cordiale", formal: "Formale", concise: "Conciso" }[t.value]) : t.label}
                 </button>
               ))}
             </div>
@@ -248,15 +251,15 @@ export function AiAssist({
                   void draftReply()
                 }
               }}
-              placeholder="Optional: what should the reply say? e.g. “Offer a refund and apologize for the delay”"
-              aria-label="Instructions"
+              placeholder={tx("Optional: what should the reply say? e.g. “Offer a refund and apologize for the delay”", "Facoltativo: cosa dovrebbe dire la risposta? es. “Offri un rimborso e scusati per il ritardo”")}
+              aria-label={tx("Instructions", "Istruzioni")}
               rows={3}
               maxLength={2000}
               className="min-h-20 resize-none text-[13px]"
               autoFocus
             />
             <Button type="submit" size="sm">
-              <Wand2 /> Generate
+              <Wand2 /> {tx("Generate", "Genera")}
             </Button>
           </form>
         ) : view.name === "translate" ? (
@@ -267,7 +270,7 @@ export function AiAssist({
               if (language.trim()) void translate(language.trim())
             }}
           >
-            <SubHeader title="Translate draft" onBack={() => setView({ name: "menu" })} />
+            <SubHeader title={tx("Translate draft", "Traduci bozza")} onBack={() => setView({ name: "menu" })} />
             <div className="flex flex-wrap gap-1.5">
               {LANGUAGES.map((l) => (
                 <button
@@ -284,13 +287,13 @@ export function AiAssist({
               <input
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                placeholder="Other language…"
-                aria-label="Target language"
+                placeholder={tx("Other language…", "Un’altra lingua…")}
+                aria-label={tx("Target language", "Lingua di destinazione")}
                 maxLength={60}
                 className="h-8 min-w-0 flex-1 rounded-lg border bg-background px-2.5 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 dark:bg-input/30"
               />
               <Button type="submit" size="sm" disabled={!language.trim()}>
-                Translate
+                {tx("Translate", "Traduci")}
               </Button>
             </div>
           </form>
@@ -299,7 +302,7 @@ export function AiAssist({
             <span className="relative flex size-9 items-center justify-center rounded-full bg-brand-soft">
               <Sparkles className="size-4 animate-pulse text-brand" />
             </span>
-            <div className="text-[13px] font-medium">{view.label === "Reply draft" ? "Writing a reply…" : "Working on it…"}</div>
+            <div className="text-[13px] font-medium">{view.label === tx("Reply draft", "Bozza di risposta") ? tx("Writing a reply…", "Sto preparando la risposta…") : tx("Working on it…", "Elaborazione in corso…")}</div>
             <Button
               variant="ghost"
               size="xs"
@@ -308,7 +311,7 @@ export function AiAssist({
                 setView({ name: "menu" })
               }}
             >
-              Cancel
+              {tx("Cancel", "Annulla")}
             </Button>
           </div>
         ) : view.name === "error" ? (
@@ -316,10 +319,10 @@ export function AiAssist({
             <p className="text-[13px] text-destructive">{view.message}</p>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => lastRequest.current && run(lastRequest.current)}>
-                <RefreshCw /> Try again
+                <RefreshCw /> {tx("Try again", "Riprova")}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setView({ name: "menu" })}>
-                Back
+                {tx("Back", "Indietro")}
               </Button>
             </div>
           </div>
@@ -336,11 +339,11 @@ export function AiAssist({
                     setCopied(true)
                     setTimeout(() => setCopied(false), 1500)
                   } catch {
-                    toast.error("Couldn’t copy to the clipboard")
+                    toast.error(tx("Couldn’t copy to the clipboard", "Impossibile copiare negli appunti"))
                   }
                 }}
                 className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label="Copy text"
+                aria-label={tx("Copy text", "Copia testo")}
               >
                 {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
               </button>
@@ -354,22 +357,22 @@ export function AiAssist({
                 size="sm"
                 variant="ghost"
                 onClick={() => lastRequest.current && run(lastRequest.current)}
-                aria-label="Regenerate"
-                title="Regenerate"
+                aria-label={tx("Regenerate", "Rigenera")}
+                title={tx("Regenerate", "Rigenera")}
               >
                 <RefreshCw />
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setView({ name: "menu" })}>
-                Back
+                {tx("Back", "Indietro")}
               </Button>
               <div className="ml-auto flex gap-1.5">
                 {onReplace && (
                   <Button size="sm" variant={draftText ? "default" : "outline"} onClick={() => apply(view.result.html, "replace")}>
-                    Replace draft
+                    {tx("Replace draft", "Sostituisci bozza")}
                   </Button>
                 )}
                 <Button size="sm" variant={onReplace && draftText ? "outline" : "default"} onClick={() => apply(view.result.html, "insert")}>
-                  Insert
+                  {tx("Insert", "Inserisci")}
                 </Button>
               </div>
             </div>
@@ -408,13 +411,14 @@ function MenuItem({
 }
 
 function SubHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  const { locale } = useI18n()
   return (
     <div className="flex items-center gap-1.5">
       <button
         type="button"
         onClick={onBack}
         className="-ml-1 flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label="Back"
+        aria-label={locale === "it" ? "Indietro" : "Back"}
       >
         <ArrowLeft className="size-3.5" />
       </button>

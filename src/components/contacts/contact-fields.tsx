@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 /**
  * Inline-editable field: looks like text, becomes an input on focus and
@@ -100,6 +101,8 @@ export function TagInput({
   suggestions?: string[]
   placeholder?: string
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [draft, setDraft] = useState("")
   const add = (raw: string) => {
     const t = raw.trim().replace(/\s+/g, "-")
@@ -118,7 +121,7 @@ export function TagInput({
               type="button"
               onClick={() => onChange(value.filter((v) => v !== t))}
               className="-mr-1 rounded text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={`Remove tag ${t}`}
+              aria-label={it ? `Rimuovi etichetta ${t}` : `Remove tag ${t}`}
             >
               <X className="size-3" />
             </button>
@@ -145,7 +148,7 @@ export function TagInput({
             }}
             onBlur={() => draft && add(draft)}
             placeholder={value.length ? "" : placeholder}
-            aria-label="Add tag"
+            aria-label={it ? "Aggiungi etichetta" : "Add tag"}
             className="h-6 min-w-20 flex-1 bg-transparent px-1 text-xs outline-none placeholder:text-muted-foreground/70"
           />
           {suggestions.length > 0 && (
@@ -174,6 +177,8 @@ export function CustomFieldsEditor({
   onChange: (fields: Record<string, string>) => void
   readOnly?: boolean
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const entries = Object.entries(value)
   const [newKey, setNewKey] = useState("")
   const [newValue, setNewValue] = useState("")
@@ -220,7 +225,7 @@ export function CustomFieldsEditor({
                 onChange(copy)
               }}
               className="flex size-6 items-center justify-center rounded-md text-muted-foreground opacity-0 outline-none group-hover/cf:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={`Remove ${k}`}
+              aria-label={it ? `Rimuovi ${k}` : `Remove ${k}`}
             >
               <X className="size-3.5" />
             </button>
@@ -234,8 +239,8 @@ export function CustomFieldsEditor({
           <input
             value={newKey}
             onChange={(e) => setNewKey(e.target.value)}
-            placeholder="Field"
-            aria-label="New custom field name"
+            placeholder={it ? "Campo" : "Field"}
+            aria-label={it ? "Nome del nuovo campo personalizzato" : "New custom field name"}
             className="w-full min-w-0 rounded-md bg-transparent px-0 py-1.5 text-[12.5px] outline-none placeholder:text-muted-foreground/60 focus:text-foreground"
           />
           <input
@@ -243,8 +248,8 @@ export function CustomFieldsEditor({
             onChange={(e) => setNewValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && commitNew()}
             onBlur={commitNew}
-            placeholder="Value"
-            aria-label="New custom field value"
+            placeholder={it ? "Valore" : "Value"}
+            aria-label={it ? "Valore del nuovo campo personalizzato" : "New custom field value"}
             className="w-full min-w-0 rounded-md bg-transparent px-2 py-1.5 text-[13px] outline-none placeholder:text-muted-foreground/60 hover:bg-accent/70 focus:bg-background focus:ring-2 focus:ring-ring/40 dark:focus:bg-input/30"
           />
           <button
@@ -252,7 +257,7 @@ export function CustomFieldsEditor({
             onClick={commitNew}
             disabled={!newKey.trim() || !newValue.trim()}
             className="flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
-            aria-label="Add custom field"
+            aria-label={it ? "Aggiungi campo personalizzato" : "Add custom field"}
           >
             <Plus className="size-3.5" />
           </button>
@@ -279,6 +284,8 @@ export function EmailListInput({
   readOnly?: boolean
   placeholder?: string
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [draft, setDraft] = useState("")
   const [invalid, setInvalid] = useState(false)
   const add = (raw: string) => {
@@ -304,7 +311,7 @@ export function EmailListInput({
                   type="button"
                   onClick={() => onChange(value.filter((v) => v !== e))}
                   className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 outline-none group-hover/alt:opacity-100 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`Remove ${e}`}
+                  aria-label={it ? `Rimuovi ${e}` : `Remove ${e}`}
                 >
                   <X className="size-3.5" />
                 </button>
@@ -343,7 +350,7 @@ export function EmailListInput({
           )}
         />
       )}
-      {invalid && <p className="px-2 text-xs text-destructive">That doesn’t look like an email address.</p>}
+      {invalid && <p className="px-2 text-xs text-destructive">{locale === "it" ? "L’indirizzo email non sembra valido." : "That doesn’t look like an email address."}</p>}
     </div>
   )
 }

@@ -21,6 +21,7 @@ import { IdentityFields, SendingFields, SyncDaysField, type InboxSettingsDraft }
 import { GoogleGlyph, MicrosoftGlyph } from "@/components/settings/inboxes/provider-icon"
 import { ServerFields, validateServerDraft, type ServerDraft } from "@/components/settings/inboxes/server-fields"
 import type { AccessValue, ConnectOptions, ConnectionTestResult, FolderPaths, MailPreset } from "@/components/settings/inboxes/types"
+import { useI18n } from "@/lib/i18n"
 
 type StepId = "provider" | "credentials" | "test" | "settings" | "access"
 
@@ -65,8 +66,8 @@ function blankServer(kind: "imap" | "smtp"): ServerDraft {
     : { host: "", port: 465, secure: true, user: "", pass: "" }
 }
 
-function hostSummary(s: ServerDraft) {
-  return s.host ? `${s.host}:${s.port || "?"} · ${s.secure ? "SSL/TLS" : "STARTTLS"}` : "not set"
+function hostSummary(s: ServerDraft, it: boolean) {
+  return s.host ? `${s.host}:${s.port || "?"} · ${s.secure ? "SSL/TLS" : "STARTTLS"}` : it ? "non configurato" : "not set"
 }
 
 /** "Connect inbox" button + multi-step wizard dialog (shared or personal inbox). */
@@ -77,6 +78,8 @@ export function ConnectInboxWizard({
   options: ConnectOptions
   trigger?: React.ReactNode
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const { org } = useOrg()
   const scope = options.scope
   const steps: StepId[] = scope === "shared" ? ["provider", "credentials", "test", "settings", "access"] : ["provider", "credentials", "test", "settings"]
@@ -95,6 +98,9 @@ export function ConnectInboxWizard({
   const [folders, setFolders] = useState<FolderPaths>(EMPTY_FOLDERS)
   const [access, setAccess] = useState<AccessValue>({ mode: "everyone", grants: [] })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const stepLabels: Record<StepId, string> = it
+    ? { provider: "Provider", credentials: "Credenziali", test: "Verifica", settings: "Impostazioni", access: "Accesso" }
+    : STEP_LABELS
   const [test, setTest] = useState<{ key: string; result: ConnectionTestResult } | null>(null)
   const testAction = useServerAction()
   const saveAction = useServerAction()
@@ -144,7 +150,7 @@ export function ConnectInboxWizard({
 
   const validateCredentials = () => {
     const e: Record<string, string> = {}
-    if (!isEmail(email)) e["email"] = "Enter a valid email address"
+    if (!isEmail(email)) e["email"] = it ? "Inserisci un indirizzo email valido" : "Enter a valid email address"
     Object.assign(e, validateServerDraft("imap", imap, { requirePassword: true, requireUser: true }))
     Object.assign(
       e,
@@ -200,7 +206,7 @@ export function ConnectInboxWizard({
     }
     if (step === "settings") {
       if (!settings.name.trim()) {
-        setErrors({ name: "Name is required" })
+        setErrors({ name: it ? "Inserisci un nome" : "Name is required" })
         return
       }
       setErrors({})
@@ -243,7 +249,7 @@ export function ConnectInboxWizard({
           testToken,
         }),
       {
-        success: "Inbox connected — the first sync has started",
+        success: it ? "Casella collegata: prima sincronizzazione avviata" : "Inbox connected — the first sync has started",
         onSuccess: () => {
           setOpen(false)
           reset()
@@ -270,14 +276,14 @@ export function ConnectInboxWizard({
 
   const hasOAuth = options.oauth.google || options.oauth.microsoft
   const pending = testAction.pending || saveAction.pending
-  const title = scope === "shared" ? "Connect a shared inbox" : "Connect your inbox"
+  const title = scope === "shared" ? (it ? "Collega una casella condivisa" : "Connect a shared inbox") : (it ? "Collega la tua casella" : "Connect your inbox")
 
   const primaryLabel = useMemo(() => {
-    if (step === "credentials") return "Test connection"
-    if (step === "settings" && scope === "personal") return "Connect inbox"
-    if (step === "access") return "Connect inbox"
-    return "Continue"
-  }, [step, scope])
+    if (step === "credentials") return it ? "Verifica connessione" : "Test connection"
+    if (step === "settings" && scope === "personal") return it ? "Collega casella" : "Connect inbox"
+    if (step === "access") return it ? "Collega casella" : "Connect inbox"
+    return it ? "Continua" : "Continue"
+  }, [step, scope, it])
 
   return (
     <Dialog
@@ -291,7 +297,7 @@ export function ConnectInboxWizard({
       <DialogTrigger asChild>
         {trigger ?? (
           <Button>
-            <Plus /> Connect inbox
+            <Plus /> {it ? "Collega casella" : "Connect inbox"}
           </Button>
         )}
       </DialogTrigger>
@@ -306,11 +312,11 @@ export function ConnectInboxWizard({
             <DialogTitle className="text-lg font-semibold tracking-tight">{title}</DialogTitle>
             <DialogDescription className="mt-1">
               {scope === "shared"
-                ? "Bring a team mailbox like support@ or sales@ into Dispatch. Mail stays on your server; Dispatch syncs it."
-                : "Connect your own mailbox. Its conversations are private to you unless you share them."}
+                ? it ? "Aggiungi a Dispatch una casella del team, come support@ o sales@. La posta resta sul tuo server; Dispatch la sincronizza." : "Bring a team mailbox like support@ or sales@ into Dispatch. Mail stays on your server; Dispatch syncs it."
+                : it ? "Collega la tua casella personale. Le conversazioni restano private, a meno che tu non le condivida." : "Connect your own mailbox. Its conversations are private to you unless you share them."}
             </DialogDescription>
           </div>
-          <ol className="flex items-center gap-1.5" aria-label="Progress">
+          <ol className="flex items-center gap-1.5" aria-label={it ? "Avanzamento" : "Progress"}>
             {steps.map((s, i) => {
               const done = i < stepIndex
               const current = i === stepIndex
@@ -324,14 +330,14 @@ export function ConnectInboxWizard({
                     )}
                   >
                     {done ? <Check className="mr-0.5 inline size-3 -translate-y-px" /> : null}
-                    {STEP_LABELS[s]}
+                    {stepLabels[s]}
                   </span>
                 </li>
               )
             })}
           </ol>
           <span className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase sm:hidden">
-            Step {stepIndex + 1} of {steps.length} · {STEP_LABELS[step]}
+            {it ? `Passaggio ${stepIndex + 1} di ${steps.length} · ${stepLabels[step]}` : `Step ${stepIndex + 1} of ${steps.length} · ${stepLabels[step]}`}
           </span>
         </DialogHeader>
 
@@ -341,19 +347,19 @@ export function ConnectInboxWizard({
               {hasOAuth && (
                 <div className="flex flex-col gap-3">
                   <div>
-                    <MicroLabel>Recommended</MicroLabel>
+                    <MicroLabel>{it ? "Consigliato" : "Recommended"}</MicroLabel>
                     <p className="mt-1 text-[13px] text-muted-foreground">
-                      Sign in with your provider — no passwords stored, works with two-factor authentication.
+                      {it ? "Accedi con il tuo provider: non salviamo password e il metodo funziona con l’autenticazione a due fattori." : "Sign in with your provider — no passwords stored, works with two-factor authentication."}
                     </p>
                   </div>
                   {scope === "shared" && options.teams.length > 0 && (
-                    <FormField label="Add to team" htmlFor="oauth-team" optional>
+                    <FormField label={it ? "Aggiungi al team" : "Add to team"} htmlFor="oauth-team" optional>
                       <Combobox
                         id="oauth-team"
                         options={options.teams.map((t) => ({ value: t.id, label: t.name, icon: <ColorDot color={t.color} /> }))}
                         value={settings.teamId}
                         onChange={(teamId) => setSettings((s) => ({ ...s, teamId }))}
-                        placeholder="No team"
+                        placeholder={it ? "Nessun team" : "No team"}
                         clearable
                       />
                     </FormField>
@@ -363,7 +369,7 @@ export function ConnectInboxWizard({
                       <Button asChild variant="outline" size="lg" className="h-11 justify-start gap-3 px-4">
                         <a href={oauthHref("google")}>
                           <GoogleGlyph className="size-5" />
-                          Continue with Google
+                          {it ? "Continua con Google" : "Continue with Google"}
                           <ArrowRight className="ml-auto text-muted-foreground" />
                         </a>
                       </Button>
@@ -372,7 +378,7 @@ export function ConnectInboxWizard({
                       <Button asChild variant="outline" size="lg" className="h-11 justify-start gap-3 px-4">
                         <a href={oauthHref("microsoft")}>
                           <MicrosoftGlyph className="size-5" />
-                          Continue with Microsoft
+                          {it ? "Continua con Microsoft" : "Continue with Microsoft"}
                           <ArrowRight className="ml-auto text-muted-foreground" />
                         </a>
                       </Button>
@@ -380,14 +386,14 @@ export function ConnectInboxWizard({
                   </div>
                   <div className="relative my-1 flex items-center gap-3">
                     <span className="h-px flex-1 bg-border" />
-                    <span className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">or use IMAP &amp; SMTP</span>
+                    <span className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">{it ? "oppure usa IMAP e SMTP" : "or use IMAP & SMTP"}</span>
                     <span className="h-px flex-1 bg-border" />
                   </div>
                 </div>
               )}
               {!hasOAuth && (
                 <p className="text-[13px] text-muted-foreground">
-                  Choose your email provider. Dispatch connects over IMAP (incoming) and SMTP (outgoing).
+                  {it ? "Scegli il provider email. Dispatch si connette tramite IMAP (posta in entrata) e SMTP (posta in uscita)." : "Choose your email provider. Dispatch connects over IMAP (incoming) and SMTP (outgoing)."}
                 </p>
               )}
               <div role="list" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -419,7 +425,7 @@ export function ConnectInboxWizard({
                 </div>
               )}
               <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Email address" htmlFor="connect-email" error={errors["email"]}>
+                <FormField label={it ? "Indirizzo email" : "Email address"} htmlFor="connect-email" error={errors["email"]}>
                   <Input
                     id="connect-email"
                     type="email"
@@ -432,7 +438,7 @@ export function ConnectInboxWizard({
                     onChange={(e) => onEmailChange(e.target.value)}
                   />
                 </FormField>
-                <FormField label="Sender name" htmlFor="connect-from" optional>
+                <FormField label={it ? "Nome del mittente" : "Sender name"} htmlFor="connect-from" optional>
                   <Input
                     id="connect-from"
                     value={settings.fromName}
@@ -445,9 +451,9 @@ export function ConnectInboxWizard({
 
               <section className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
-                  <MicroLabel>Incoming mail · IMAP</MicroLabel>
+                  <MicroLabel>{it ? "Posta in entrata · IMAP" : "Incoming mail · IMAP"}</MicroLabel>
                   {!isCustom && (
-                    <span className="truncate font-mono text-[11px] text-muted-foreground">{hostSummary(imap)}</span>
+                    <span className="truncate font-mono text-[11px] text-muted-foreground">{hostSummary(imap, it)}</span>
                   )}
                 </div>
                 <ServerFields
@@ -459,18 +465,18 @@ export function ConnectInboxWizard({
                   }}
                   errors={errors}
                   hideServer={!showServer}
-                  passwordPlaceholder={presetId === "gmail" || presetId === "icloud" ? "App password" : undefined}
+                  passwordPlaceholder={presetId === "gmail" || presetId === "icloud" ? (it ? "Password per app" : "App password") : undefined}
                 />
               </section>
 
               <section className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
-                  <MicroLabel>Outgoing mail · SMTP</MicroLabel>
-                  {!showServer && <span className="truncate font-mono text-[11px] text-muted-foreground">{hostSummary(smtp)}</span>}
+                  <MicroLabel>{it ? "Posta in uscita · SMTP" : "Outgoing mail · SMTP"}</MicroLabel>
+                  {!showServer && <span className="truncate font-mono text-[11px] text-muted-foreground">{hostSummary(smtp, it)}</span>}
                 </div>
                 {showServer && <ServerFields kind="smtp" value={smtp} onChange={setSmtp} errors={errors} showCredentials={false} />}
                 <SettingsRow
-                  label="Use the same username and password as IMAP"
+                  label={it ? "Usa lo stesso nome utente e la stessa password di IMAP" : "Use the same username and password as IMAP"}
                   htmlFor="smtp-same"
                   className="rounded-lg border px-3 py-2.5 first:pt-2.5 last:pb-2.5"
                 >
@@ -489,12 +495,12 @@ export function ConnectInboxWizard({
                   onClick={() => setShowServer((v) => !v)}
                 >
                   <ChevronDown className={cn("transition-transform", showServer && "rotate-180")} />
-                  {showServer ? "Hide server settings" : "Edit server settings"}
+                  {showServer ? (it ? "Nascondi impostazioni server" : "Hide server settings") : (it ? "Modifica impostazioni server" : "Edit server settings")}
                 </Button>
               )}
               {options.blockPrivateNetworks && (
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <ShieldCheck className="size-3.5" /> Connections to private networks are blocked on this server.
+                  <ShieldCheck className="size-3.5" /> {it ? "Le connessioni alle reti private sono bloccate su questo server." : "Connections to private networks are blocked on this server."}
                 </p>
               )}
             </div>
@@ -512,10 +518,9 @@ export function ConnectInboxWizard({
                 <div className="flex gap-2.5 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-[13px]">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
                   <div className="text-pretty text-muted-foreground">
-                    <p className="font-medium text-foreground">Dispatch couldn&apos;t sign in to the mailbox.</p>
+                    <p className="font-medium text-foreground">{it ? "Dispatch non è riuscito ad accedere alla casella." : "Dispatch couldn't sign in to the mailbox."}</p>
                     <p className="mt-0.5">
-                      Double-check the username and password — many providers require an app-specific password when two-factor
-                      authentication is on — and that IMAP access is enabled for the mailbox.
+                      {it ? "Controlla nome utente e password: molti provider richiedono una password specifica per app quando è attiva l’autenticazione a due fattori. Verifica anche che l’accesso IMAP sia abilitato per la casella." : "Double-check the username and password — many providers require an app-specific password when two-factor authentication is on — and that IMAP access is enabled for the mailbox."}
                     </p>
                   </div>
                 </div>
@@ -524,18 +529,16 @@ export function ConnectInboxWizard({
                 <div className="flex gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-[13px] text-muted-foreground">
                   <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
                   <p className="text-pretty">
-                    Incoming mail works, but sending failed. You can continue and fix the SMTP settings later — replies can&apos;t be sent
-                    until then.
+                    {it ? "La ricezione funziona, ma l’invio non è riuscito. Puoi continuare e correggere le impostazioni SMTP in seguito; fino ad allora non potrai inviare risposte." : "Incoming mail works, but sending failed. You can continue and fix the SMTP settings later — replies can't be sent until then."}
                   </p>
                 </div>
               )}
               {testResult?.imap.ok && testResult.imap.mailboxes && (
                 <section className="flex flex-col gap-3">
                   <div>
-                    <MicroLabel>Folders</MicroLabel>
+                    <MicroLabel>{it ? "Cartelle" : "Folders"}</MicroLabel>
                     <p className="mt-1 text-[13px] text-muted-foreground">
-                      Found {testResult.imap.mailboxes.length} folder{testResult.imap.mailboxes.length === 1 ? "" : "s"}. We picked the
-                      special folders automatically — adjust if needed.
+                      {it ? `Trovate ${testResult.imap.mailboxes.length} ${testResult.imap.mailboxes.length === 1 ? "cartella" : "cartelle"}. Abbiamo selezionato automaticamente quelle speciali: modifica la scelta se necessario.` : `Found ${testResult.imap.mailboxes.length} folder${testResult.imap.mailboxes.length === 1 ? "" : "s"}. We picked the special folders automatically — adjust if needed.`}
                     </p>
                   </div>
                   <FolderFields value={folders} onChange={setFolders} mailboxes={testResult.imap.mailboxes} />
@@ -559,8 +562,8 @@ export function ConnectInboxWizard({
               />
               <div className="flex flex-col gap-2">
                 <div>
-                  <div className="text-[13px] font-medium">Import history</div>
-                  <p className="text-xs text-muted-foreground">How far back to import existing email. New mail always syncs.</p>
+                  <div className="text-[13px] font-medium">{it ? "Cronologia da importare" : "Import history"}</div>
+                  <p className="text-xs text-muted-foreground">{it ? "Quanto indietro importare le email esistenti. Le nuove email vengono sempre sincronizzate." : "How far back to import existing email. New mail always syncs."}</p>
                 </div>
                 <SyncDaysField value={settings.syncDays} onChange={(syncDays) => setSettings((s) => ({ ...s, syncDays }))} />
               </div>
@@ -571,8 +574,8 @@ export function ConnectInboxWizard({
           {step === "access" && (
             <div className="flex flex-col gap-4">
               <div>
-                <div className="text-sm font-medium">Who can work in this inbox?</div>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">You can change this at any time in the inbox settings.</p>
+                <div className="text-sm font-medium">{it ? "Chi può lavorare in questa casella?" : "Who can work in this inbox?"}</div>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">{it ? "Puoi modificare questa scelta in qualsiasi momento nelle impostazioni della casella." : "You can change this at any time in the inbox settings."}</p>
               </div>
               <AccessEditor value={access} onChange={setAccess} teams={options.teams} members={options.members} />
             </div>
@@ -582,13 +585,13 @@ export function ConnectInboxWizard({
         {step !== "provider" && (
           <div className="safe-bottom flex items-center justify-between gap-2 border-t bg-surface/60 px-5 py-3">
             <Button type="button" variant="ghost" onClick={goBack} disabled={pending}>
-              <ArrowLeft /> Back
+              <ArrowLeft /> {it ? "Indietro" : "Back"}
             </Button>
             <div className="flex items-center gap-2">
               {step === "test" && (
                 <Button type="button" variant="outline" onClick={() => void runTest()} disabled={pending}>
                   <RefreshCw className={cn(testAction.pending && "animate-spin")} />
-                  {testResult ? "Test again" : "Run test"}
+                  {testResult ? (it ? "Ripeti verifica" : "Test again") : (it ? "Verifica" : "Run test")}
                 </Button>
               )}
               <Button
@@ -598,7 +601,7 @@ export function ConnectInboxWizard({
               >
                 {(saveAction.pending || (step === "credentials" && testAction.pending)) && <Loader2 className="animate-spin" />}
                 {primaryLabel}
-                {primaryLabel === "Continue" && <ArrowRight />}
+                {(primaryLabel === "Continue" || primaryLabel === "Continua") && <ArrowRight />}
               </Button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Panel } from "@/components/admin/ui"
 import { SettingField, SettingsFormShell, useSettingsForm } from "@/components/admin/settings/form"
 import { MarkdownEditor } from "@/components/admin/settings/markdown-editor"
+import { useI18n } from "@/lib/i18n"
 
 export type LegalSettingsValue = {
   companyName: string
@@ -38,12 +39,14 @@ const DOCS = [
 ] as const
 
 export function LegalSettingsForm({ initial }: { initial: LegalSettingsValue }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const form = useSettingsForm("legal", initial)
   const v = form.values
   return (
     <SettingsFormShell form={form}>
-      <Panel title="Operator" description="Shown in the website footer and on legal pages.">
-        <SettingField label="Company name" htmlFor="companyName" error={form.error("companyName")}>
+      <Panel title={it ? "Gestore" : "Operator"} description={it ? "Mostrato nel piè di pagina del sito e nelle pagine legali." : "Shown in the website footer and on legal pages."}>
+        <SettingField label={it ? "Nome dell’azienda" : "Company name"} htmlFor="companyName" error={form.error("companyName")}>
           <Input
             id="companyName"
             value={v.companyName}
@@ -57,10 +60,10 @@ export function LegalSettingsForm({ initial }: { initial: LegalSettingsValue }) 
       {DOCS.map((doc) => (
         <Panel
           key={doc.key}
-          title={doc.title}
+          title={it ? ({ imprint: "Note legali", privacy: "Informativa sulla privacy", terms: "Termini di servizio" } as const)[doc.key] : doc.title}
           description={
             <>
-              {doc.description} Published at <code className="font-mono text-[12px]">/legal/{doc.slug}</code>.
+              {it ? ({ imprint: "Informazioni legali: nome dell’azienda, indirizzo, rappresentanti, registrazione e contatti.", privacy: "Quali dati personali vengono trattati, per quali finalità, per quanto tempo, da quali responsabili e quali sono i diritti delle persone.", terms: "L’accordo tra te e le persone che utilizzano questa istanza." } as const)[doc.key] : doc.description}{" "}{it ? "Pubblicata in" : "Published at"} <code className="font-mono text-[12px]">/legal/{doc.slug}</code>.
             </>
           }
           actions={
@@ -71,7 +74,7 @@ export function LegalSettingsForm({ initial }: { initial: LegalSettingsValue }) 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 rounded-sm text-[13px] font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
-                View page <ArrowUpRight className="size-3.5" />
+                {it ? "Visualizza pagina" : "View page"} <ArrowUpRight className="size-3.5" />
               </a>
             ) : null
           }

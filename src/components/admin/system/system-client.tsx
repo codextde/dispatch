@@ -9,14 +9,16 @@ import { ConfirmButton, useAdminAction } from "@/components/admin/client"
 import { LocalTime } from "@/components/app/local-time"
 import { deleteJobAction, retryAllFailedJobsAction, retryJobAction } from "@/app/admin/system/actions"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 /** Re-renders the page on the server (re-runs every health check). */
 export function RecheckButton() {
+  const { locale } = useI18n()
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   return (
     <Button variant="outline" size="sm" onClick={() => startTransition(() => router.refresh())} disabled={pending}>
-      {pending ? <Spinner /> : <RefreshCw />} Re-run checks
+      {pending ? <Spinner /> : <RefreshCw />} {locale === "it" ? "Ripeti controlli" : "Re-run checks"}
     </Button>
   )
 }
@@ -33,21 +35,25 @@ export type FailedJobView = {
 }
 
 export function RetryAllButton({ count }: { count: number }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   return (
     <ConfirmButton
-      title={`Retry ${count} failed ${count === 1 ? "job" : "jobs"}?`}
-      description="Their attempt counters are reset and the worker picks them up right away."
-      confirmLabel="Retry all"
+      title={it ? `Riprovare ${count} ${count === 1 ? "attività non riuscita" : "attività non riuscite"}?` : `Retry ${count} failed ${count === 1 ? "job" : "jobs"}?`}
+      description={it ? "Il contatore dei tentativi verrà azzerato e il worker le riprenderà subito." : "Their attempt counters are reset and the worker picks them up right away."}
+      confirmLabel={it ? "Riprova tutte" : "Retry all"}
       variant="outline"
       action={() => retryAllFailedJobsAction({})}
-      success="Failed jobs queued for retry"
+      success={it ? "Attività non riuscite messe in coda per un nuovo tentativo" : "Failed jobs queued for retry"}
     >
-      <RotateCcw /> Retry all
+      <RotateCcw /> {it ? "Riprova tutte" : "Retry all"}
     </ConfirmButton>
   )
 }
 
 function JobRow({ job }: { job: FailedJobView }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [open, setOpen] = useState(false)
   const { pending, run } = useAdminAction()
   return (
@@ -66,14 +72,14 @@ function JobRow({ job }: { job: FailedJobView }) {
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <code className="font-mono text-[13px] font-medium">{job.type}</code>
               <span className="font-mono text-[11px] text-muted-foreground">
-                {job.attempts}/{job.maxAttempts} attempts
+                {job.attempts}/{job.maxAttempts} {it ? "tentativi" : "attempts"}
               </span>
               <span className="text-[11px] text-muted-foreground">
-                · created <LocalTime date={job.createdAt} format="relative" />
+                · {it ? "creata" : "created"} <LocalTime date={job.createdAt} format="relative" />
               </span>
             </span>
             <span className={cn("mt-1 block text-[13px] text-destructive", !open && "line-clamp-2")}>
-              {job.lastError ?? "No error recorded"}
+              {job.lastError ?? (it ? "Nessun errore registrato" : "No error recorded")}
             </span>
           </span>
         </button>
@@ -84,27 +90,27 @@ function JobRow({ job }: { job: FailedJobView }) {
             disabled={pending}
             onClick={() =>
               run(() => retryJobAction({ id: job.id }), {
-                success: `Retrying ${job.type}`,
+                success: it ? `Nuovo tentativo di ${job.type}` : `Retrying ${job.type}`,
               })
             }
           >
-            {pending ? <Spinner /> : <RotateCcw />} Retry
+            {pending ? <Spinner /> : <RotateCcw />} {it ? "Riprova" : "Retry"}
           </Button>
           <ConfirmButton
-            title="Delete this job?"
+            title={it ? "Eliminare questa attività?" : "Delete this job?"}
             description={
               <>
-                The <code className="font-mono">{job.type}</code> job is removed permanently and won&apos;t run again.
+                {it ? <>L’attività <code className="font-mono">{job.type}</code> verrà eliminata definitivamente e non verrà più eseguita.</> : <>The <code className="font-mono">{job.type}</code> job is removed permanently and won&apos;t run again.</>}
               </>
             }
-            confirmLabel="Delete job"
+            confirmLabel={it ? "Elimina attività" : "Delete job"}
             destructive
             variant="ghost"
             action={() => deleteJobAction({ id: job.id })}
-            success="Job deleted"
+            success={it ? "Attività eliminata" : "Job deleted"}
           >
             <Trash2 />
-            <span className="sr-only sm:not-sr-only">Delete</span>
+            <span className="sr-only sm:not-sr-only">{it ? "Elimina" : "Delete"}</span>
           </ConfirmButton>
         </div>
       </div>
@@ -112,10 +118,10 @@ function JobRow({ job }: { job: FailedJobView }) {
         <div className="mt-3 ml-6 grid gap-2 text-[13px]">
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
             <span>
-              Created <LocalTime date={job.createdAt} />
+              {it ? "Creata" : "Created"} <LocalTime date={job.createdAt} />
             </span>
             <span>
-              Last scheduled <LocalTime date={job.runAt} format="relative" titleFormat="datetime" />
+              {it ? "Ultima programmazione" : "Last scheduled"} <LocalTime date={job.runAt} format="relative" titleFormat="datetime" />
             </span>
             <span className="font-mono text-xs">{job.id}</span>
           </div>

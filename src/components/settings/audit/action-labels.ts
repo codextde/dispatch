@@ -125,9 +125,27 @@ export const AUDIT_RESOURCE_LABELS: Record<string, string> = {
   admin: "Instance admin",
 }
 
-export function auditActionLabel(action: string): string {
+const IT_ACTION_LABELS: Record<string, string> = {
+  "auth.login": "Accesso effettuato", "auth.login_denied": "Accesso rifiutato", "auth.logout": "Disconnessione effettuata",
+  "auth.session_revoked": "Dispositivo disconnesso", "auth.sessions_revoked": "Altri dispositivi disconnessi",
+  "workspace.created": "Workspace creato", "workspace.deleted": "Workspace eliminato", "workspace.slug_changed": "URL del workspace modificato",
+  "settings.updated": "Impostazioni del workspace aggiornate", "demo.seeded": "Dati di esempio caricati", "demo.loaded": "Dati di esempio caricati", "demo.removed": "Dati di esempio rimossi",
+  "member.invited": "Membro invitato", "member.joined": "Ingresso nel workspace", "member.left": "Uscita dal workspace", "member.removed": "Membro rimosso", "member.role_changed": "Ruolo del membro modificato", "member.suspended": "Membro sospeso", "member.reactivated": "Membro riattivato",
+  "invitation.resent": "Invito reinviato", "invitation.revoked": "Invito revocato", "team.created": "Team creato", "team.updated": "Team aggiornato", "team.deleted": "Team eliminato", "team.member_added": "Membro aggiunto al team", "team.member_removed": "Membro rimosso dal team", "team.lead_changed": "Referente del team modificato",
+  "role.created": "Ruolo creato", "role.updated": "Ruolo aggiornato", "role.deleted": "Ruolo eliminato", "inbox.connected": "Casella collegata", "inbox.updated": "Casella aggiornata", "inbox.access_updated": "Accesso alla casella modificato", "inbox.credentials_rotated": "Credenziali della casella aggiornate", "inbox.paused": "Casella sospesa", "inbox.resumed": "Casella riattivata", "inbox.sync_requested": "Sincronizzazione della casella avviata", "inbox.deleted": "Casella eliminata",
+  "label.created": "Etichetta creata", "label.updated": "Etichetta aggiornata", "label.deleted": "Etichetta eliminata", "label.reordered": "Ordine delle etichette modificato", "response.created": "Risposta predefinita creata", "response.updated": "Risposta predefinita aggiornata", "response.deleted": "Risposta predefinita eliminata", "signature.created": "Firma creata", "signature.updated": "Firma aggiornata", "signature.deleted": "Firma eliminata", "signature.assigned": "Firme predefinite modificate",
+  "rule.created": "Regola creata", "rule.updated": "Regola aggiornata", "rule.deleted": "Regola eliminata", "rule.toggled": "Regola attivata o disattivata", "rule.reordered": "Ordine delle regole modificato", "api_key.created": "Chiave API creata", "api_key.revoked": "Chiave API revocata", "webhook.created": "Webhook creato", "webhook.updated": "Webhook aggiornato", "webhook.deleted": "Webhook eliminato", "webhook.secret_rolled": "Segreto webhook rigenerato", "webhook.tested": "Evento webhook di test inviato", "webhook.redelivered": "Evento webhook reinviato", "webhook.auto_disabled": "Webhook disattivato dopo errori",
+  "billing.checkout_started": "Acquisto avviato", "billing.portal_opened": "Portale di fatturazione aperto", "billing.checkout_completed": "Acquisto completato", "billing.subscription_created": "Abbonamento creato", "billing.subscription_updated": "Abbonamento aggiornato", "billing.subscription_canceled": "Abbonamento annullato", "billing.invoice_paid": "Fattura pagata", "billing.payment_failed": "Pagamento non riuscito", "conversation.deleted": "Conversazione eliminata", "conversation.merged": "Conversazioni unite", "contact.deleted": "Contatto eliminato", "contact.merged": "Contatti uniti", "contacts.imported": "Contatti importati", "task.deleted": "Attività eliminata",
+  "admin.impersonation_started": "Amministratore dell’istanza ha avviato l’impersonificazione", "admin.impersonation_stopped": "Amministratore dell’istanza ha interrotto l’impersonificazione", "admin.workspace_suspended": "Workspace sospeso dall’amministratore dell’istanza", "admin.workspace_unsuspended": "Sospensione del workspace rimossa dall’amministratore dell’istanza", "admin.workspace_plan_changed": "Piano modificato dall’amministratore dell’istanza", "admin.workspace_trial_extended": "Periodo di prova esteso dall’amministratore dell’istanza", "admin.workspace_ownership_transferred": "Proprietà trasferita dall’amministratore dell’istanza", "admin.workspace_subscription_status_changed": "Stato dell’abbonamento modificato dall’amministratore dell’istanza",
+}
+
+const IT_RESOURCE_LABELS: Record<string, string> = {
+  auth: "Accesso e sessioni", workspace: "Workspace", settings: "Impostazioni", demo: "Dati di esempio", member: "Membri", invitation: "Inviti", team: "Team", role: "Ruoli", inbox: "Caselle", label: "Etichette", response: "Risposte predefinite", signature: "Firme", rule: "Regole", api_key: "Chiavi API", webhook: "Webhook", billing: "Fatturazione", conversation: "Conversazioni", contact: "Contatti", contacts: "Contatti", task: "Attività", admin: "Amministrazione istanza",
+}
+
+export function auditActionLabel(action: string, locale: "en" | "it" = "en"): string {
   const known = AUDIT_ACTION_LABELS[action]
-  if (known) return known
+  if (known) return locale === "it" ? IT_ACTION_LABELS[action] ?? known : known
   const [resource, verb] = action.split(".")
   const r = (resource ?? "").replace(/_/g, " ")
   const v = (verb ?? "").replace(/_/g, " ")
@@ -135,7 +153,8 @@ export function auditActionLabel(action: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-export function auditResourceLabel(resource: string): string {
+export function auditResourceLabel(resource: string, locale: "en" | "it" = "en"): string {
+  if (locale === "it" && IT_RESOURCE_LABELS[resource]) return IT_RESOURCE_LABELS[resource]!
   return AUDIT_RESOURCE_LABELS[resource] ?? resource.charAt(0).toUpperCase() + resource.slice(1).replace(/_/g, " ")
 }
 

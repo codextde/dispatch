@@ -16,6 +16,7 @@ import { useInbox } from "../inbox-provider"
 import { AttachButton } from "./composer-parts"
 import { EditorContent, isEditorEmpty, useCommentEditor } from "./editor"
 import { useUploads } from "./use-uploads"
+import { useI18n } from "@/lib/i18n"
 
 const storageKey = (id: string) => `dispatch:comment-draft:${id}`
 
@@ -50,6 +51,7 @@ export function CommentBox({
   onEscape?: () => void
 }) {
   const { slug, members, meId, bootstrap } = useInbox()
+  const { t, locale } = useI18n()
   const qc = useQueryClient()
   const uploads = useUploads(slug, bootstrap.settings.maxAttachmentMb)
   const [empty, setEmpty] = useState(true)
@@ -82,7 +84,7 @@ export function CommentBox({
       if (ctx?.prev) qc.setQueryData(inboxKeys.thread(slug, conversationId), ctx.prev)
       editor?.commands.setContent(input.body)
       setEmpty(false)
-      toast.error(err.message || "Comment not sent")
+      toast.error(err.message || (locale === "it" ? "Commento non inviato" : "Comment not sent"))
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: inboxKeys.thread(slug, conversationId) })
@@ -110,7 +112,7 @@ export function CommentBox({
   const [restored] = useState(() => (typeof window === "undefined" ? "" : readStored(conversationId)))
   const editor = useCommentEditor({
     members,
-    placeholder: placeholder ?? "Comment or @mention…",
+    placeholder: placeholder ?? (locale === "it" ? "Commenta o @menziona…" : "Comment or @mention…"),
     content: restored,
     onReady: (ed) => setEmpty(isEditorEmpty(ed)),
     autofocus: autoFocus,
@@ -163,21 +165,21 @@ export function CommentBox({
                 variant="ghost"
                 size="icon-sm"
                 className="max-md:size-9"
-                aria-label="Mention a teammate"
+                aria-label={t("inboxUiMentionTeammate")}
                 onClick={() => editor?.chain().focus().insertContent(editor.isEmpty || /\s$/.test(editor.getText()) ? "@" : " @").run()}
               >
                 <AtSign />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Mention</TooltipContent>
+            <TooltipContent>{locale === "it" ? "Menziona" : "Mention"}</TooltipContent>
           </Tooltip>
           <EmojiPickerPopover onPick={(emoji) => editor?.chain().focus().insertContent(emoji).run()} side="top" align="end">
-            <Button variant="ghost" size="icon-sm" className="max-md:size-9" aria-label="Insert emoji">
+            <Button variant="ghost" size="icon-sm" className="max-md:size-9" aria-label={locale === "it" ? "Inserisci emoji" : "Insert emoji"}>
               <FaceSlightlySmiling />
             </Button>
           </EmojiPickerPopover>
           <AttachButton onFiles={uploads.add} />
-          <Button size="icon-sm" className="ml-0.5 rounded-lg max-md:size-9" disabled={!canSend} onClick={submit} aria-label={variant === "chat" ? "Send message" : "Send comment"}>
+          <Button size="icon-sm" className="ml-0.5 rounded-lg max-md:size-9" disabled={!canSend} onClick={submit} aria-label={variant === "chat" ? (locale === "it" ? "Invia messaggio" : "Send message") : (locale === "it" ? "Invia commento" : "Send comment")}>
             <ArrowUp />
           </Button>
         </div>

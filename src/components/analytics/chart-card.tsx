@@ -5,6 +5,7 @@ import { useState } from "react"
 import { ChartLine, Table2 } from "lucide-react"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 /**
  * Card for one chart with an optional table view (every chart has a
@@ -29,6 +30,7 @@ export function ChartCard({
   className?: string
   action?: React.ReactNode
 }) {
+  const { t } = useI18n()
   const [view, setView] = useState<"chart" | "table">("chart")
   return (
     <section className={cn("flex min-w-0 flex-col rounded-xl border bg-card shadow-[0_1px_2px_0_rgb(0_0_0/0.03)]", className)}>
@@ -46,12 +48,12 @@ export function ChartCard({
               variant="outline"
               value={view}
               onValueChange={(v) => v && setView(v as "chart" | "table")}
-              aria-label="View"
+              aria-label={t("analyticsView")}
             >
-              <ToggleGroupItem value="chart" aria-label="Chart view" className="px-2">
+              <ToggleGroupItem value="chart" aria-label={t("analyticsChartView")} className="px-2">
                 <ChartLine />
               </ToggleGroupItem>
-              <ToggleGroupItem value="table" aria-label="Table view" className="px-2">
+              <ToggleGroupItem value="table" aria-label={t("analyticsTableView")} className="px-2">
                 <Table2 />
               </ToggleGroupItem>
             </ToggleGroup>

@@ -5,6 +5,7 @@ import { marked } from "marked"
 import DOMPurify from "isomorphic-dompurify"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 /** Typography for rendered markdown (no typography plugin in this project). */
 export const MARKDOWN_PROSE =
@@ -29,12 +30,14 @@ export function MarkdownEditor({
   placeholder?: string
   invalid?: boolean
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [tab, setTab] = useState<"write" | "preview">("write")
   const html = useMemo(() => (tab === "preview" ? renderMarkdown(value) : ""), [tab, value])
   return (
     <div className="overflow-hidden rounded-lg border border-input focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
       <div className="flex items-center justify-between gap-2 border-b border-border bg-surface/60 px-1.5 py-1">
-        <div role="tablist" aria-label="Editor mode" className="flex items-center gap-0.5">
+        <div role="tablist" aria-label={it ? "Modalità editor" : "Editor mode"} className="flex items-center gap-0.5">
           {(["write", "preview"] as const).map((t) => (
             <button
               key={t}
@@ -48,7 +51,7 @@ export function MarkdownEditor({
                 tab === t && "bg-background text-foreground shadow-sm ring-1 ring-border"
               )}
             >
-              {t}
+              {t === "write" ? (it ? "Scrivi" : "Write") : (it ? "Anteprima" : "Preview")}
             </button>
           ))}
         </div>
@@ -69,7 +72,7 @@ export function MarkdownEditor({
           {value.trim() ? (
             <div className={MARKDOWN_PROSE} dangerouslySetInnerHTML={{ __html: html }} />
           ) : (
-            <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
+            <p className="text-sm text-muted-foreground">{it ? "Non c’è ancora nulla da visualizzare." : "Nothing to preview yet."}</p>
           )}
         </div>
       )}

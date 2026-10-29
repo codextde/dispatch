@@ -23,16 +23,18 @@ import { inboxKeys } from "@/hooks/inbox/queries"
 import { useViewers } from "@/hooks/inbox/use-realtime"
 import { useInbox } from "../inbox-provider"
 import { AssigneePicker } from "../pickers"
+import { useI18n } from "@/lib/i18n"
 
 /** Header of an internal chat room: name / DM partner, members, rename, add people, leave. */
 export function ChatHeader({ conv, onToggleDetails }: { conv: ConversationDetail; onToggleDetails: () => void }) {
+  const { t } = useI18n()
   const { slug, member, meId } = useInbox()
   const router = useRouter()
   const qc = useQueryClient()
   const viewers = useViewers(conv.id).filter((v) => v.userId !== meId)
   const isDirect = !conv.subject && conv.chatMemberIds.length === 2
   const other = isDirect ? member(conv.chatMemberIds.find((id) => id !== meId)) : undefined
-  const title = isDirect ? memberName(other, "Direct message") : conv.subject || "Group chat"
+  const title = isDirect ? memberName(other, t("chatDirectMessage")) : conv.subject || t("chatGroupChat")
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState("")
   const [adding, setAdding] = useState(false)
@@ -44,7 +46,7 @@ export function ChatHeader({ conv, onToggleDetails }: { conv: ConversationDetail
       void qc.invalidateQueries({ queryKey: inboxKeys.chats(slug) })
       void qc.invalidateQueries({ queryKey: inboxKeys.lists(slug) })
       if (input.leave) {
-        toast.success("You left the chat")
+        toast.success(t("chatLeft"))
         router.replace(`/w/${slug}/chats`)
       }
     },
@@ -55,7 +57,7 @@ export function ChatHeader({ conv, onToggleDetails }: { conv: ConversationDetail
 
   return (
     <header className="relative flex h-14 shrink-0 items-center gap-2 border-b bg-card/80 px-2 pt-[env(safe-area-inset-top)] backdrop-blur md:px-4">
-      <Button variant="ghost" size="icon" className="-ml-1 size-10 md:hidden" aria-label="Back to chats" onClick={() => router.push(`/w/${slug}/chats`)}>
+      <Button variant="ghost" size="icon" className="-ml-1 size-10 md:hidden" aria-label={t("chatBack")} onClick={() => router.push(`/w/${slug}/chats`)}>
         <ArrowLeft />
       </Button>
       {isDirect ? (
@@ -69,10 +71,10 @@ export function ChatHeader({ conv, onToggleDetails }: { conv: ConversationDetail
         <h1 className="truncate text-[15px] font-semibold tracking-tight">{title}</h1>
         <p className="truncate text-xs text-muted-foreground" aria-live="polite">
           {typing.length
-            ? `${typing.join(", ")} ${typing.length === 1 ? "is" : "are"} typing…`
+            ? `${typing.join(", ")} ${t(typing.length === 1 ? "chatTypingOne" : "chatTypingMany")}`
             : isDirect
               ? (other?.title ?? other?.email)
-              : `${conv.chatMemberIds.length} members`}
+              : `${conv.chatMemberIds.length} ${t(conv.chatMemberIds.length === 1 ? "chatMembersOne" : "chatMembers")}`}
         </p>
       </div>
       {!isDirect && (
@@ -93,14 +95,14 @@ export function ChatHeader({ conv, onToggleDetails }: { conv: ConversationDetail
             update.mutate(add ? { addMemberIds: [userId] } : { removeMemberIds: [userId] })
           }}
         >
-          <Button variant="ghost" size="icon-sm" aria-label="Add or remove people">
+          <Button variant="ghost" size="icon-sm" aria-label={t("chatAddRemovePeople")}>
             <UserPlus />
           </Button>
         </AssigneePicker>
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" className="max-md:size-10" aria-label="Chat actions">
+          <Button variant="ghost" size="icon-sm" className="max-md:size-10" aria-label={t("chatActions")}>
             <Ellipsis />
           </Button>
         </DropdownMenuTrigger>
@@ -112,17 +114,17 @@ export function ChatHeader({ conv, onToggleDetails }: { conv: ConversationDetail
                 setRenaming(true)
               }}
             >
-              <Pencil /> Rename
+              <Pencil /> {t("chatRename")}
             </DropdownMenuItem>
           )}
           <DropdownMenuItem onSelect={onToggleDetails}>
-            <PanelRight /> Details
+            <PanelRight /> {t("chatDetails")}
           </DropdownMenuItem>
           {!isDirect && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => update.mutate({ leave: true })}>
-                <LogOut /> Leave chat
+                <LogOut /> {t("chatLeave")}
               </DropdownMenuItem>
             </>
           )}
@@ -141,16 +143,16 @@ export function ChatHeader({ conv, onToggleDetails }: { conv: ConversationDetail
             }}
           >
             <DialogHeader>
-              <DialogTitle>Rename chat</DialogTitle>
-              <DialogDescription>Everyone in the chat sees the new name.</DialogDescription>
+              <DialogTitle>{t("chatRenameTitle")}</DialogTitle>
+              <DialogDescription>{t("chatRenameDescription")}</DialogDescription>
             </DialogHeader>
-            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoFocus aria-label="Chat name" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoFocus aria-label={t("chatName")} />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setRenaming(false)}>
-                Cancel
+                {t("cancel")}
               </Button>
               <Button type="submit" disabled={!name.trim()}>
-                Save
+                {t("chatSave")}
               </Button>
             </DialogFooter>
           </form>

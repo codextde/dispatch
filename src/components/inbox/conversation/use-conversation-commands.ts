@@ -12,6 +12,7 @@ import { inboxKeys } from "@/hooks/inbox/queries"
 import { inboxUI } from "@/hooks/inbox/store"
 import { useConversationActions } from "@/hooks/inbox/use-conversation-actions"
 import { useInbox } from "../inbox-provider"
+import { useI18n } from "@/lib/i18n"
 
 /**
  * All actions available on an open conversation (header buttons, keyboard
@@ -20,6 +21,7 @@ import { useInbox } from "../inbox-provider"
  */
 export function useConversationCommands(conv: ConversationDetail | undefined, box: string) {
   const { slug, meId, bootstrap } = useInbox()
+  const { locale } = useI18n()
   const router = useRouter()
   const qc = useQueryClient()
   const { run } = useConversationActions()
@@ -49,7 +51,7 @@ export function useConversationCommands(conv: ConversationDetail | undefined, bo
   const del = useMutation({
     mutationFn: () => api.delete(`/api/w/${slug}/conversations/${id}`),
     onSuccess: () => {
-      toast.success("Conversation deleted permanently")
+      toast.success(locale === "it" ? "Conversazione eliminata definitivamente" : "Conversation deleted permanently")
       router.replace(nextHref())
       void qc.invalidateQueries({ queryKey: inboxKeys.lists(slug) })
       void qc.invalidateQueries({ queryKey: inboxKeys.counts(slug) })
@@ -62,35 +64,35 @@ export function useConversationCommands(conv: ConversationDetail | undefined, bo
     const assigned = conv.assigneeIds.includes(meId)
     return {
       toggleStatus: () =>
-        conv.status === "closed" ? apply({ status: "open" }, "Conversation reopened") : apply({ status: "closed" }, "Conversation closed"),
+        conv.status === "closed" ? apply({ status: "open" }, locale === "it" ? "Conversazione riaperta" : "Conversation reopened") : apply({ status: "closed" }, locale === "it" ? "Conversazione chiusa" : "Conversation closed"),
       toggleStar: () => run([conv.id], { starred: !conv.starred }),
-      togglePin: () => run([conv.id], { pinned: !conv.pinned }, { undo: conv.pinned ? "Unpinned" : "Pinned to the top" }),
+      togglePin: () => run([conv.id], { pinned: !conv.pinned }, { undo: conv.pinned ? (locale === "it" ? "Rimossa dai fissati" : "Unpinned") : (locale === "it" ? "Fissata in alto" : "Pinned to the top") }),
       togglePriority: () => run([conv.id], { priority: !conv.priority }),
-      toggleFollow: () => run([conv.id], { following: !conv.following }, { undo: conv.following ? "You'll no longer be notified" : "You'll be notified about new activity" }),
-      toggleMute: () => run([conv.id], { muted: !conv.muted }, { undo: conv.muted ? "Unmuted" : "Muted — no more notifications" }),
-      snooze: (until: Date | null) => apply({ snoozedUntil: until ? until.toISOString() : null }, until ? `Snoozed until ${untilLabel(until.toISOString())}` : "Unsnoozed"),
+      toggleFollow: () => run([conv.id], { following: !conv.following }, { undo: conv.following ? (locale === "it" ? "Non riceverai più notifiche" : "You'll no longer be notified") : (locale === "it" ? "Riceverai notifiche sulle nuove attività" : "You'll be notified about new activity") }),
+      toggleMute: () => run([conv.id], { muted: !conv.muted }, { undo: conv.muted ? (locale === "it" ? "Notifiche riattivate" : "Unmuted") : (locale === "it" ? "Silenziata — notifiche disattivate" : "Muted — no more notifications") }),
+      snooze: (until: Date | null) => apply({ snoozedUntil: until ? until.toISOString() : null }, until ? `${locale === "it" ? "Posticipata fino a" : "Snoozed until"} ${untilLabel(until.toISOString(), locale)}` : (locale === "it" ? "Posticipo rimosso" : "Unsnoozed")),
       toggleAssignee: (userId: string, assign: boolean) => run([conv.id], assign ? { addAssigneeIds: [userId] } : { removeAssigneeIds: [userId] }),
-      assignToMe: () => (assigned ? run([conv.id], { removeAssigneeIds: [meId] }, { undo: "Unassigned" }) : run([conv.id], { addAssigneeIds: [meId] }, { undo: "Assigned to you" })),
+      assignToMe: () => (assigned ? run([conv.id], { removeAssigneeIds: [meId] }, { undo: locale === "it" ? "Assegnazione rimossa" : "Unassigned" }) : run([conv.id], { addAssigneeIds: [meId] }, { undo: locale === "it" ? "Assegnata a te" : "Assigned to you" })),
       toggleLabel: (labelId: string, add: boolean) => run([conv.id], add ? { addLabelIds: [labelId] } : { removeLabelIds: [labelId] }),
-      moveToTeam: (teamId: string | null) => apply({ teamId }, "Moved"),
+      moveToTeam: (teamId: string | null) => apply({ teamId }, locale === "it" ? "Spostata" : "Moved"),
       rename: (subject: string | null) => run([conv.id], { subject }),
       markUnread: () => {
         run([conv.id], { read: false })
         router.push(listHref)
       },
       markRead: () => run([conv.id], { read: true }),
-      toggleSpam: () => apply({ spam: !conv.isSpam }, conv.isSpam ? "Marked as not spam" : "Marked as spam"),
-      toggleTrash: () => apply({ trash: !conv.isTrash }, conv.isTrash ? "Restored from trash" : "Moved to trash"),
+      toggleSpam: () => apply({ spam: !conv.isSpam }, conv.isSpam ? (locale === "it" ? "Contrassegnata come non spam" : "Marked as not spam") : (locale === "it" ? "Contrassegnata come spam" : "Marked as spam")),
+      toggleTrash: () => apply({ trash: !conv.isTrash }, conv.isTrash ? (locale === "it" ? "Ripristinata dal cestino" : "Restored from trash") : (locale === "it" ? "Spostata nel cestino" : "Moved to trash")),
       deleteForever: () => del.mutate(),
       copyLink: () => {
         void navigator.clipboard.writeText(`${window.location.origin}/w/${slug}/all/${conv.id}`)
-        toast.success("Link copied")
+        toast.success(locale === "it" ? "Link copiato" : "Link copied")
       },
       print: () => window.print(),
       back: () => router.push(listHref),
       nextHref,
     }
-  }, [conv, meId, apply, run, router, listHref, del, slug, nextHref])
+  }, [conv, meId, apply, run, router, listHref, del, slug, nextHref, locale])
 }
 
 export type ConversationCommands = NonNullable<ReturnType<typeof useConversationCommands>>

@@ -6,6 +6,7 @@ import { Panel, StatusBadge } from "@/components/admin/ui"
 import { CopyField } from "@/components/admin/client"
 import { SecretInput } from "@/components/admin/secret-input"
 import { SettingField, SettingsFormShell, SwitchField, useSettingsForm } from "@/components/admin/settings/form"
+import { useI18n } from "@/lib/i18n"
 
 export type OAuthSettingsValue = {
   google: { enabled: boolean; clientId: string; clientSecretEnc: string }
@@ -54,11 +55,11 @@ function ScopeList({ scopes }: { scopes: string[] }) {
   )
 }
 
-function statusOf(cfg: { enabled: boolean; clientId: string; clientSecretEnc: string }) {
+function statusOf(cfg: { enabled: boolean; clientId: string; clientSecretEnc: string }, it: boolean) {
   const complete = Boolean(cfg.clientId && cfg.clientSecretEnc)
-  if (cfg.enabled && complete) return <StatusBadge tone="ok">Active</StatusBadge>
-  if (complete) return <StatusBadge tone="neutral">Configured · disabled</StatusBadge>
-  return <StatusBadge tone="neutral" dot={false}>Not configured</StatusBadge>
+  if (cfg.enabled && complete) return <StatusBadge tone="ok">{it ? "Attivo" : "Active"}</StatusBadge>
+  if (complete) return <StatusBadge tone="neutral">{it ? "Configurato · disattivato" : "Configured · disabled"}</StatusBadge>
+  return <StatusBadge tone="neutral" dot={false}>{it ? "Non configurato" : "Not configured"}</StatusBadge>
 }
 
 export function OAuthSettingsForm({
@@ -70,6 +71,8 @@ export function OAuthSettingsForm({
   google: ProviderInfo
   microsoft: ProviderInfo
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const form = useSettingsForm("oauth", initial)
   const g = form.values.google
   const m = form.values.microsoft
@@ -77,19 +80,19 @@ export function OAuthSettingsForm({
     <SettingsFormShell form={form}>
       <Panel
         title="Google"
-        description="Connect Gmail and Google Workspace inboxes with one click, and optionally offer “Sign in with Google”."
-        actions={statusOf(form.baseline.google)}
+        description={it ? "Collega con un clic le caselle Gmail e Google Workspace e, se vuoi, consenti l’accesso con Google." : "Connect Gmail and Google Workspace inboxes with one click, and optionally offer “Sign in with Google”."}
+        actions={statusOf(form.baseline.google, it)}
       >
         <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,22rem)]">
           <div className="divide-y divide-border">
             <SwitchField
               id="google-enabled"
-              label="Enable Google"
-              description={google.usedForLogin ? "Also used for Google sign-in (Authentication settings)." : "Used to connect Gmail inboxes."}
+              label={it ? "Attiva Google" : "Enable Google"}
+              description={google.usedForLogin ? (it ? "Usato anche per l’accesso con Google (impostazioni di autenticazione)." : "Also used for Google sign-in (Authentication settings).") : (it ? "Usato per collegare le caselle Gmail." : "Used to connect Gmail inboxes.")}
               checked={g.enabled}
               onCheckedChange={(enabled) => form.setIn("google.enabled", enabled)}
             />
-            <SettingField label="Client ID" htmlFor="google-client-id" error={form.error("google.clientId")}>
+            <SettingField label="ID client" htmlFor="google-client-id" error={form.error("google.clientId")}>
               <Input
                 id="google-client-id"
                 value={g.clientId}
@@ -100,7 +103,7 @@ export function OAuthSettingsForm({
                 onChange={(e) => form.setIn("google.clientId", e.target.value)}
               />
             </SettingField>
-            <SettingField label="Client secret" htmlFor="google-client-secret">
+            <SettingField label={it ? "Segreto client" : "Client secret"} htmlFor="google-client-secret">
               <SecretInput
                 key={form.formKey}
                 id="google-client-secret"
@@ -110,31 +113,28 @@ export function OAuthSettingsForm({
                 placeholder="GOCSPX-…"
               />
             </SettingField>
-            <SettingField label="Authorized redirect URI" description="Register exactly this URI in the Google Cloud console.">
+            <SettingField label={it ? "URI di reindirizzamento autorizzato" : "Authorized redirect URI"} description={it ? "Registra esattamente questo URI nella console Google Cloud." : "Register exactly this URI in the Google Cloud console."}>
               <CopyField value={google.redirectUri} />
             </SettingField>
           </div>
           <div className="rounded-lg border border-border bg-surface/50 p-4">
-            <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Setup · Google Cloud</div>
+            <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{it ? "Configurazione · Google Cloud" : "Setup · Google Cloud"}</div>
             <Steps>
               <Step>
-                Create or pick a project in the <ExtLink href="https://console.cloud.google.com/projectcreate">Google Cloud console</ExtLink>.
+                {it ? "Crea o seleziona un progetto nella " : "Create or pick a project in the "}<ExtLink href="https://console.cloud.google.com/projectcreate">{it ? "console Google Cloud" : "Google Cloud console"}</ExtLink>.
               </Step>
               <Step>
-                Enable the <ExtLink href="https://console.cloud.google.com/apis/library/gmail.googleapis.com">Gmail API</ExtLink>.
+                {it ? "Attiva l’" : "Enable the "}<ExtLink href="https://console.cloud.google.com/apis/library/gmail.googleapis.com">API Gmail</ExtLink>.
               </Step>
               <Step>
-                Configure the <ExtLink href="https://console.cloud.google.com/apis/credentials/consent">OAuth consent screen</ExtLink> and add
-                the scopes:
+                {it ? "Configura la " : "Configure the "}<ExtLink href="https://console.cloud.google.com/apis/credentials/consent">{it ? "schermata di consenso OAuth" : "OAuth consent screen"}</ExtLink> {it ? "e aggiungi gli ambiti:" : "and add the scopes:"}
                 <ScopeList scopes={google.scopes} />
                 <span className="mt-1 block">
-                  <code className="font-mono text-[11.5px]">https://mail.google.com/</code> is a restricted scope: internal (Workspace-only)
-                  apps work right away, public apps need Google&apos;s verification.
+                  <code className="font-mono text-[11.5px]">https://mail.google.com/</code>{it ? " è un ambito soggetto a restrizioni: le app interne (solo Workspace) funzionano subito, quelle pubbliche richiedono la verifica di Google." : " is a restricted scope: internal (Workspace-only) apps work right away, public apps need Google's verification."}
                 </span>
               </Step>
               <Step>
-                Create an <ExtLink href="https://console.cloud.google.com/apis/credentials">OAuth client ID</ExtLink> of type{" "}
-                <em>Web application</em> with the redirect URI shown here, then paste the client ID and secret.
+                {it ? "Crea un " : "Create an "}<ExtLink href="https://console.cloud.google.com/apis/credentials">{it ? "ID client OAuth" : "OAuth client ID"}</ExtLink> {it ? "di tipo " : "of type "}<em>{it ? "Applicazione web" : "Web application"}</em>{it ? " con l’URI di reindirizzamento mostrato qui, poi incolla l’ID client e il segreto." : " with the redirect URI shown here, then paste the client ID and secret."}
               </Step>
             </Steps>
           </div>
@@ -143,21 +143,21 @@ export function OAuthSettingsForm({
 
       <Panel
         title="Microsoft"
-        description="Connect Outlook and Microsoft 365 mailboxes, and optionally offer “Sign in with Microsoft”."
-        actions={statusOf(form.baseline.microsoft)}
+        description={it ? "Collega le caselle Outlook e Microsoft 365 e, se vuoi, consenti l’accesso con Microsoft." : "Connect Outlook and Microsoft 365 mailboxes, and optionally offer “Sign in with Microsoft”."}
+        actions={statusOf(form.baseline.microsoft, it)}
       >
         <div className="grid gap-6 lg:grid-cols-[1fr_minmax(0,22rem)]">
           <div className="divide-y divide-border">
             <SwitchField
               id="microsoft-enabled"
-              label="Enable Microsoft"
+              label={it ? "Attiva Microsoft" : "Enable Microsoft"}
               description={
-                microsoft.usedForLogin ? "Also used for Microsoft sign-in (Authentication settings)." : "Used to connect Outlook / Microsoft 365 inboxes."
+                microsoft.usedForLogin ? (it ? "Usato anche per l’accesso con Microsoft (impostazioni di autenticazione)." : "Also used for Microsoft sign-in (Authentication settings).") : (it ? "Usato per collegare le caselle Outlook / Microsoft 365." : "Used to connect Outlook / Microsoft 365 inboxes.")
               }
               checked={m.enabled}
               onCheckedChange={(enabled) => form.setIn("microsoft.enabled", enabled)}
             />
-            <SettingField label="Application (client) ID" htmlFor="microsoft-client-id" error={form.error("microsoft.clientId")}>
+            <SettingField label={it ? "ID applicazione (client)" : "Application (client) ID"} htmlFor="microsoft-client-id" error={form.error("microsoft.clientId")}>
               <Input
                 id="microsoft-client-id"
                 value={m.clientId}
@@ -168,14 +168,14 @@ export function OAuthSettingsForm({
                 onChange={(e) => form.setIn("microsoft.clientId", e.target.value)}
               />
             </SettingField>
-            <SettingField label="Client secret value" htmlFor="microsoft-client-secret">
+            <SettingField label={it ? "Valore del segreto client" : "Client secret value"} htmlFor="microsoft-client-secret">
               <SecretInput
                 key={form.formKey}
                 id="microsoft-client-secret"
                 preview={form.secretPreview("microsoft.clientSecretEnc")}
                 value={form.secrets["microsoft.clientSecretEnc"]}
                 onChange={(v) => form.setSecret("microsoft.clientSecretEnc", v)}
-                placeholder="Secret value (not the secret ID)"
+                placeholder={it ? "Valore del segreto (non l’ID del segreto)" : "Secret value (not the secret ID)"}
               />
             </SettingField>
             <SettingField
@@ -183,9 +183,8 @@ export function OAuthSettingsForm({
               htmlFor="microsoft-tenant"
               description={
                 <>
-                  <code className="font-mono text-[12px]">common</code> allows work, school and personal accounts;{" "}
-                  <code className="font-mono text-[12px]">organizations</code> only work/school accounts; or enter your tenant ID or domain
-                  to restrict sign-in to your organization.
+                  <code className="font-mono text-[12px]">common</code> {it ? "consente account aziendali, scolastici e personali; " : "allows work, school and personal accounts; "}
+                  <code className="font-mono text-[12px]">organizations</code> {it ? "solo account aziendali o scolastici; oppure inserisci l’ID tenant o il dominio per limitare l’accesso alla tua organizzazione." : "only work/school accounts; or enter your tenant ID or domain to restrict sign-in to your organization."}
                 </>
               }
               error={form.error("microsoft.tenant")}
@@ -201,34 +200,32 @@ export function OAuthSettingsForm({
                 aria-invalid={Boolean(form.error("microsoft.tenant"))}
               />
             </SettingField>
-            <SettingField label="Redirect URI" description="Add it as a Web platform redirect URI in your app registration.">
+            <SettingField label={it ? "URI di reindirizzamento" : "Redirect URI"} description={it ? "Aggiungilo come URI di reindirizzamento della piattaforma Web nella registrazione dell’app." : "Add it as a Web platform redirect URI in your app registration."}>
               <CopyField value={microsoft.redirectUri} />
             </SettingField>
           </div>
           <div className="rounded-lg border border-border bg-surface/50 p-4">
-            <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Setup · Microsoft Entra ID</div>
+            <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{it ? "Configurazione · Microsoft Entra ID" : "Setup · Microsoft Entra ID"}</div>
             <Steps>
               <Step>
-                Open{" "}
-                <ExtLink href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade">App registrations</ExtLink>{" "}
-                and create a new registration. For <em>common</em>, choose “Accounts in any organizational directory and personal Microsoft
-                accounts”.
+                {it ? "Apri " : "Open "}
+                <ExtLink href="https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade">{it ? "Registrazioni app" : "App registrations"}</ExtLink>{" "}
+                {it ? "e crea una nuova registrazione. Per " : "and create a new registration. For "}<em>common</em>{it ? ", scegli “Account in qualsiasi directory organizzativa e account Microsoft personali”." : ", choose “Accounts in any organizational directory and personal Microsoft accounts”."}
               </Step>
               <Step>
-                Under <em>Authentication</em>, add a <em>Web</em> platform with the redirect URI shown here.
+                {it ? "In " : "Under "}<em>{it ? "Autenticazione" : "Authentication"}</em>{it ? ", aggiungi una piattaforma " : ", add a "}<em>Web</em>{it ? " con l’URI di reindirizzamento mostrato qui." : " platform with the redirect URI shown here."}
               </Step>
               <Step>
-                Under <em>API permissions</em>, add these delegated permissions:
+                {it ? "In " : "Under "}<em>{it ? "Autorizzazioni API" : "API permissions"}</em>{it ? ", aggiungi queste autorizzazioni delegate:" : ", add these delegated permissions:"}
                 <ScopeList scopes={microsoft.scopes} />
               </Step>
               <Step>
-                Under <em>Certificates &amp; secrets</em>, create a client secret and paste its <em>value</em> together with the Application
-                (client) ID. Note the expiry date — renew it before it lapses.
+                {it ? "In " : "Under "}<em>{it ? "Certificati e segreti" : "Certificates &amp; secrets"}</em>{it ? ", crea un segreto client e incollane il " : ", create a client secret and paste its "}<em>{it ? "valore" : "value"}</em>{it ? " insieme all’ID applicazione (client). Prendi nota della scadenza e rinnovalo prima che scada." : " together with the Application (client) ID. Note the expiry date — renew it before it lapses."}
               </Step>
               <Step>
-                For <em>Sign in with Microsoft</em>: under <em>Token configuration</em>, add the optional ID-token claims{" "}
+                {it ? "Per " : "For "}<em>Sign in with Microsoft</em>{it ? ": in " : ": under "}<em>{it ? "Configurazione token" : "Token configuration"}</em>{it ? ", aggiungi le attestazioni facoltative del token ID" : ", add the optional ID-token claims"}{" "}
                 <code className="font-mono text-[12px]">email</code> and <code className="font-mono text-[12px]">xms_edov</code> (verified-domain
-                flag). Work accounts without them can&apos;t sign in the first time.
+                {it ? " (indicatore del dominio verificato). Gli account aziendali senza queste attestazioni non potranno accedere la prima volta." : " (verified-domain flag). Work accounts without them can&apos;t sign in the first time."}
               </Step>
             </Steps>
           </div>

@@ -1,14 +1,18 @@
+"use client"
+
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
+import { useI18n } from "@/lib/i18n"
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
+  const { locale } = useI18n()
   return (
     <nav
       role="navigation"
-      aria-label="pagination"
+      aria-label={locale === "it" ? "Paginazione" : "Pagination"}
       data-slot="pagination"
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
@@ -63,35 +67,37 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
-  text = "Previous",
+  text,
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const { locale } = useI18n()
   return (
     <PaginationLink
-      aria-label="Go to previous page"
+      aria-label={locale === "it" ? "Vai alla pagina precedente" : "Go to previous page"}
       size="default"
       className={cn("pl-1.5!", className)}
       {...props}
     >
       <ChevronLeftIcon data-icon="inline-start" />
-      <span className="hidden sm:block">{text}</span>
+      <span className="hidden sm:block">{text ?? (locale === "it" ? "Precedente" : "Previous")}</span>
     </PaginationLink>
   )
 }
 
 function PaginationNext({
   className,
-  text = "Next",
+  text,
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  const { locale } = useI18n()
   return (
     <PaginationLink
-      aria-label="Go to next page"
+      aria-label={locale === "it" ? "Vai alla pagina successiva" : "Go to next page"}
       size="default"
       className={cn("pr-1.5!", className)}
       {...props}
     >
-      <span className="hidden sm:block">{text}</span>
+      <span className="hidden sm:block">{text ?? (locale === "it" ? "Successiva" : "Next")}</span>
       <ChevronRightIcon data-icon="inline-end" />
     </PaginationLink>
   )
@@ -101,6 +107,7 @@ function PaginationEllipsis({
   className,
   ...props
 }: React.ComponentProps<"span">) {
+  const { locale } = useI18n()
   return (
     <span
       aria-hidden
@@ -113,7 +120,7 @@ function PaginationEllipsis({
     >
       <MoreHorizontalIcon
       />
-      <span className="sr-only">More pages</span>
+      <span className="sr-only">{locale === "it" ? "Altre pagine" : "More pages"}</span>
     </span>
   )
 }

@@ -13,6 +13,7 @@ import { updateInboxCredentialsAction } from "@/server/workspace/actions/inboxes
 import { ConnectionTestPanel } from "@/components/settings/inboxes/connection-test"
 import { ServerFields, validateServerDraft, type ServerDraft } from "@/components/settings/inboxes/server-fields"
 import type { ConnectionTestResult, InboxDetail } from "@/components/settings/inboxes/types"
+import { useI18n } from "@/lib/i18n"
 
 /**
  * Update IMAP/SMTP server settings and rotate passwords. Blank passwords keep
@@ -20,6 +21,8 @@ import type { ConnectionTestResult, InboxDetail } from "@/components/settings/in
  * IMAP works.
  */
 export function CredentialsDialog({ inbox }: { inbox: InboxDetail }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const { org } = useOrg()
   const initialImap: ServerDraft = {
     host: inbox.connection.imap?.host ?? "",
@@ -83,13 +86,13 @@ export function CredentialsDialog({ inbox }: { inbox: InboxDetail }) {
         onSuccess: (res) => {
           setResult(res.result)
           if (res.saved) setOpen(false)
-          else toast.error("Couldn't sign in with these settings — nothing was saved.")
+          else toast.error(it ? "Accesso non riuscito con queste impostazioni: non è stato salvato nulla." : "Couldn't sign in with these settings — nothing was saved.")
         },
         success: (res) =>
           res.saved
             ? res.result.smtp.ok
-              ? "Credentials updated — syncing again"
-              : "Credentials saved. Incoming mail works, but sending still fails."
+              ? it ? "Credenziali aggiornate: nuova sincronizzazione in corso" : "Credentials updated — syncing again"
+              : it ? "Credenziali salvate. La ricezione funziona, ma l’invio non è ancora riuscito." : "Credentials saved. Incoming mail works, but sending still fails."
             : "",
         onError: (_err, fieldErrors) => fieldErrors && setErrors(fieldErrors),
       }
@@ -107,33 +110,33 @@ export function CredentialsDialog({ inbox }: { inbox: InboxDetail }) {
     >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <KeyRound /> Update credentials
+          <KeyRound /> {it ? "Aggiorna credenziali" : "Update credentials"}
         </Button>
       </DialogTrigger>
       <DialogContent className="flex max-h-[92dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
         <DialogHeader className="border-b px-5 pt-5 pb-4">
-          <DialogTitle>Update credentials</DialogTitle>
+          <DialogTitle>{it ? "Aggiorna credenziali" : "Update credentials"}</DialogTitle>
           <DialogDescription>
-            Change server settings or rotate the password for {inbox.email}. Leave the password empty to keep the current one.
+            {it ? "Modifica le impostazioni del server o cambia la password di" : "Change server settings or rotate the password for"} {inbox.email}. {it ? "Lascia vuota la password per mantenere quella attuale." : "Leave the password empty to keep the current one."}
           </DialogDescription>
         </DialogHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-5">
           <section className="flex flex-col gap-3">
-            <MicroLabel>Incoming mail · IMAP</MicroLabel>
+            <MicroLabel>{it ? "Posta in entrata · IMAP" : "Incoming mail · IMAP"}</MicroLabel>
             <ServerFields
               kind="imap"
               value={imap}
               onChange={setImap}
               errors={errors}
               passwordOptional
-              passwordPlaceholder="••••••••  (unchanged)"
+              passwordPlaceholder={it ? "••••••••  (invariata)" : "••••••••  (unchanged)"}
             />
           </section>
           <section className="flex flex-col gap-3">
-            <MicroLabel>Outgoing mail · SMTP</MicroLabel>
+            <MicroLabel>{it ? "Posta in uscita · SMTP" : "Outgoing mail · SMTP"}</MicroLabel>
             <ServerFields kind="smtp" value={smtp} onChange={setSmtp} errors={errors} showCredentials={false} />
             <SettingsRow
-              label="Use the same username and password as IMAP"
+              label={it ? "Usa lo stesso nome utente e la stessa password di IMAP" : "Use the same username and password as IMAP"}
               htmlFor="cred-smtp-same"
               className="rounded-lg border px-3 py-2.5 first:pt-2.5 last:pb-2.5"
             >
@@ -147,7 +150,7 @@ export function CredentialsDialog({ inbox }: { inbox: InboxDetail }) {
                 errors={errors}
                 hideServer
                 passwordOptional
-                passwordPlaceholder="••••••••  (unchanged)"
+                passwordPlaceholder={it ? "••••••••  (invariata)" : "••••••••  (unchanged)"}
               />
             )}
           </section>
@@ -162,11 +165,11 @@ export function CredentialsDialog({ inbox }: { inbox: InboxDetail }) {
         </div>
         <DialogFooter className="mx-0 mb-0 px-5 py-3">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-            Cancel
+            {it ? "Annulla" : "Cancel"}
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending && <Loader2 className="animate-spin" />}
-            Test &amp; save
+            {it ? "Verifica e salva" : "Test & save"}
           </Button>
         </DialogFooter>
       </DialogContent>

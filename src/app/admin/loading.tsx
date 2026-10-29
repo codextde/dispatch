@@ -1,9 +1,13 @@
+"use client"
+
 import { Skeleton } from "@/components/ui/skeleton"
+import { useI18n } from "@/lib/i18n"
 
 /** Generic admin skeleton shown while a page's data loads. */
 export default function AdminLoading() {
+  const { locale } = useI18n()
   return (
-    <div aria-busy="true" aria-label="Loading">
+    <div aria-busy="true" aria-label={locale === "it" ? "Caricamento" : "Loading"}>
       <div className="mb-8 space-y-3">
         <Skeleton className="h-3 w-24" />
         <Skeleton className="h-7 w-72 max-w-full" />

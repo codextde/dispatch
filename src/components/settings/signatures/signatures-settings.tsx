@@ -17,6 +17,7 @@ import { useServerAction } from "@/components/settings/use-server-action"
 import { deleteSignature } from "@/server/workspace/actions/signatures"
 import { SignatureEditor, type AccountOption, type SignatureDraft, type SignatureScope } from "./signature-editor"
 import { SignaturePreview, type PreviewUser } from "./signature-preview"
+import { useI18n } from "@/lib/i18n"
 
 export type SignatureItem = {
   id: string
@@ -43,14 +44,15 @@ function SignatureCard({
   onDuplicate: () => void
   onDelete: () => void
 }) {
+  const { t } = useI18n()
   const used = item.accountIds.map((id) => accounts.get(id)).filter(Boolean) as AccountOption[]
   return (
     <li className="group flex min-w-0 flex-col overflow-hidden rounded-lg border bg-background transition-colors hover:border-foreground/20">
       <div className="flex items-center gap-2 px-3.5 pt-3 pb-2">
         {item.scope === "workspace" ? (
-          <Globe className="size-3.5 shrink-0 text-muted-foreground" aria-label="Workspace signature" />
+          <Globe className="size-3.5 shrink-0 text-muted-foreground" aria-label={t("workspaceSignature")} />
         ) : (
-          <User className="size-3.5 shrink-0 text-muted-foreground" aria-label="Personal signature" />
+          <User className="size-3.5 shrink-0 text-muted-foreground" aria-label={t("personalSignature")} />
         )}
         <button
           type="button"
@@ -69,17 +71,17 @@ function SignatureCard({
           <DropdownMenuContent align="end" className="w-48">
             {item.editable && (
               <DropdownMenuItem onClick={onEdit}>
-                <Pencil /> Edit
+                <Pencil /> {t("editSignature")}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={onDuplicate}>
-              <Copy /> {item.editable ? "Duplicate" : "Duplicate as personal"}
+              <Copy /> {item.editable ? t("duplicateSignature") : t("duplicatePersonal")}
             </DropdownMenuItem>
             {item.editable && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onClick={onDelete}>
-                  <Trash2 /> Delete
+                  <Trash2 /> {t("deleteSignature")}
                 </DropdownMenuItem>
               </>
             )}
@@ -92,7 +94,7 @@ function SignatureCard({
       <div className="mt-auto flex flex-wrap items-center gap-1.5 px-3.5 pt-3 pb-3 text-xs text-muted-foreground">
         {used.length ? (
           <>
-            <span>Default for</span>
+            <span>{t("defaultFor")}</span>
             {used.map((a) => (
               <span key={a.id} className="inline-flex max-w-full items-center gap-1 rounded-md border bg-surface px-1.5 py-0.5 text-foreground">
                 <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: a.color }} aria-hidden />
@@ -102,7 +104,7 @@ function SignatureCard({
           </>
         ) : (
           <span>
-            Not the default for any inbox · updated <LocalTime date={item.updatedAt} format="relative" titleFormat="datetime" />
+            {t("noDefaultInbox")} · {t("updated")} <LocalTime date={item.updatedAt} format="relative" titleFormat="datetime" />
           </span>
         )}
       </div>
@@ -123,6 +125,7 @@ export function SignaturesSettings({
   previewUser: PreviewUser
   canManageWorkspace: boolean
 }) {
+  const { t, locale } = useI18n()
   const [editing, setEditing] = useState<SignatureDraft | null>(null)
   const [deleting, setDeleting] = useState<SignatureItem | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -168,28 +171,28 @@ export function SignaturesSettings({
 
   return (
     <SettingsPage
-      eyebrow="Productivity"
-      title="Signatures"
-      quiet="that sign off every reply"
-      description="Signatures are added to outgoing messages. Set a default per inbox, and use variables so one workspace signature works for the whole team."
+      eyebrow={t("productivity")}
+      title={t("signaturesTitle")}
+      quiet={t("signaturesQuiet")}
+      description={t("signaturesDescription")}
       width="wide"
       actions={
         <Button onClick={() => setEditing(newDraft("personal"))}>
-          <Plus /> New signature
+          <Plus /> {t("newSignature")}
         </Button>
       }
     >
       <SettingsSection
-        title="Workspace signatures"
-        description="Shared signatures for shared inboxes. Each teammate's details are filled in when they send."
+        title={t("workspaceSignatures")}
+        description={t("workspaceSignaturesDescription")}
         action={
           canManageWorkspace ? (
             <Button variant="outline" size="sm" onClick={() => setEditing(newDraft("workspace"))}>
-              <Plus /> Add
+              <Plus /> {t("add")}
             </Button>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Lock className="size-3.5" /> Managed by admins
+              <Lock className="size-3.5" /> {t("managedByAdmins")}
             </span>
           )
         }
@@ -199,7 +202,7 @@ export function SignaturesSettings({
         ) : (
           <EmptyState
             icon={<PenLine />}
-            title="No workspace signatures"
+            title={t("noWorkspaceSignatures")}
             description={
               canManageWorkspace
                 ? "Create a consistent signature for your shared inboxes — with {{user.name}} it adapts to whoever replies."
@@ -208,7 +211,7 @@ export function SignaturesSettings({
           >
             {canManageWorkspace && (
               <Button size="sm" onClick={() => setEditing(newDraft("workspace"))}>
-                <Plus /> Create workspace signature
+                <Plus /> {t("createWorkspaceSignature")}
               </Button>
             )}
           </EmptyState>
@@ -216,20 +219,20 @@ export function SignaturesSettings({
       </SettingsSection>
 
       <SettingsSection
-        title="My signatures"
-        description="Personal signatures you can pick in the composer or set as the default of your own inboxes."
+        title={t("mySignatures")}
+        description={t("personalSignaturesDescription")}
         action={
           <Button variant="outline" size="sm" onClick={() => setEditing(newDraft("personal"))}>
-            <Plus /> Add
+            <Plus /> {t("add")}
           </Button>
         }
       >
         {personal.length ? (
           renderGrid(personal)
         ) : (
-          <EmptyState icon={<User />} title="No personal signatures" description="Add a signature with your name, title and contact details.">
+          <EmptyState icon={<User />} title={t("noPersonalSignatures")} description={t("signatureDetailsDescription")}>
             <Button size="sm" variant="outline" onClick={() => setEditing(newDraft("personal"))}>
-              <Plus /> Create my signature
+              <Plus /> {t("createMySignature")}
             </Button>
           </EmptyState>
         )}
@@ -254,14 +257,14 @@ export function SignaturesSettings({
         title={`Delete “${deleting?.name ?? ""}”?`}
         description={
           deleting?.accountIds.length
-            ? `It is the default signature of ${deleting.accountIds.length} inbox${deleting.accountIds.length === 1 ? "" : "es"}; they will have no default signature. This can't be undone.`
-            : "This can't be undone."
+            ? (locale === "it" ? `È la firma predefinita di ${deleting.accountIds.length} caselle: non avranno più una firma predefinita. Questa azione non può essere annullata.` : `It is the default signature of ${deleting.accountIds.length} inbox${deleting.accountIds.length === 1 ? "" : "es"}; they will have no default signature. This can't be undone.`)
+            : (locale === "it" ? "Questa azione non può essere annullata." : "This can't be undone.")
         }
-        confirmLabel="Delete signature"
+        confirmLabel={locale === "it" ? "Elimina firma" : "Delete signature"}
         destructive
         onConfirm={async () => {
           if (!deleting) return
-          const res = await run(() => deleteSignature({ slug, id: deleting.id }), { success: "Signature deleted" })
+          const res = await run(() => deleteSignature({ slug, id: deleting.id }), { success: locale === "it" ? "Firma eliminata" : "Signature deleted" })
           return res.ok
         }}
       />

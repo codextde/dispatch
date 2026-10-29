@@ -56,6 +56,7 @@ import { useOrg } from "@/components/app/org-provider"
 import { firstName, memberName, untilLabel } from "@/lib/inbox/format"
 import type { ConversationDetail } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { inboxUI, useInboxUI, type PickerKind } from "@/hooks/inbox/store"
 import { useNow } from "@/hooks/inbox/use-now"
 import { useViewers } from "@/hooks/inbox/use-realtime"
@@ -86,6 +87,7 @@ function HeaderButton({ label, shortcut, onClick, active, children, className }:
 }
 
 function EditableSubject({ conv, onRename, readOnly }: { conv: ConversationDetail; onRename: (s: string | null) => void; readOnly: boolean }) {
+  const { locale } = useI18n()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState("")
   const subject = conv.subject || "(no subject)"
@@ -112,7 +114,7 @@ function EditableSubject({ conv, onRename, readOnly }: { conv: ConversationDetai
               setEditing(false)
             }
           }}
-          aria-label="Conversation subject"
+          aria-label={locale === "it" ? "Oggetto della conversazione" : "Conversation subject"}
           maxLength={300}
           className="w-full rounded-md border bg-card px-2 py-1 text-[15px] font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
@@ -141,6 +143,7 @@ function Hint({ action }: { action: ShortcutAction }) {
 
 export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: { conv: ConversationDetail; cmd: ConversationCommands; detailsOpen: boolean; onToggleDetails: () => void }) {
   const { account, team, label, member, meId, bootstrap } = useInbox()
+  const { t, locale } = useI18n()
   const { can } = useOrg()
   const hint = useShortcutHint()
   const picker = useInboxUI((s) => s.picker)
@@ -159,7 +162,7 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
   return (
     <header className="relative shrink-0 border-b bg-card/80 backdrop-blur supports-backdrop-filter:bg-card/70 print:border-0">
       <div className="flex h-12 items-center gap-1.5 px-2 pt-[env(safe-area-inset-top)] md:px-4">
-        <Button variant="ghost" size="icon" className="-ml-1 size-10 md:hidden" aria-label="Back to list" onClick={cmd.back}>
+        <Button variant="ghost" size="icon" className="-ml-1 size-10 md:hidden" aria-label={t("inboxUiBackToList")} onClick={cmd.back}>
           <ArrowLeft />
         </Button>
         <EditableSubject conv={conv} onRename={cmd.rename} readOnly={!writable} />
@@ -169,7 +172,7 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
           {viewers.length > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="mr-1 flex -space-x-1.5 max-sm:hidden" aria-label="Also viewing">
+                <div className="mr-1 flex -space-x-1.5 max-sm:hidden" aria-label={t("inboxUiViewing")}>
                   {viewers.slice(0, 4).map((v) => {
                     const m = member(v.userId)
                     return (
@@ -182,7 +185,7 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                {viewers.map((v) => `${firstName(member(v.userId))}${v.composing ? ` (${v.composing === "reply" ? "replying" : "commenting"})` : ""}`).join(", ")} viewing
+                {viewers.map((v) => `${firstName(member(v.userId))}${v.composing ? ` (${t(v.composing === "reply" ? "inboxUiReplying" : "inboxUiCommenting")})` : ""}`).join(", ")} {t("inboxUiViewing")}
               </TooltipContent>
             </Tooltip>
           )}
@@ -195,7 +198,7 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
               onClick={cmd.toggleStatus}
             >
               {conv.status === "closed" ? <RotateCcw /> : <CircleCheck />}
-              {conv.status === "closed" ? "Reopen" : "Close"}
+              {conv.status === "closed" ? t("reopen") : t("close")}
               {hint("close") && (
                 <Kbd className={cn("ml-0.5 max-lg:hidden", conv.status !== "closed" && "bg-primary-foreground/15 text-primary-foreground/80")}>{hint("close")}</Kbd>
               )}
@@ -204,7 +207,7 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
 
           {writable && (
             <AssigneePicker open={picker === "assign"} onOpenChange={(o) => setPicker(o ? "assign" : null)} value={conv.assigneeIds} onToggle={cmd.toggleAssignee}>
-              <Button variant="ghost" size="sm" className={cn("h-8 gap-1 px-1.5", MOBILE_ANCHOR)} aria-label="Assign">
+              <Button variant="ghost" size="sm" className={cn("h-8 gap-1 px-1.5", MOBILE_ANCHOR)} aria-label={t("inboxUiAssign")}>
                 {assignees.length ? (
                   <span className="flex -space-x-1.5">
                     {assignees.slice(0, 3).map((a) => (
@@ -219,24 +222,24 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
           )}
           {writable && (
             <LabelPicker open={picker === "label"} onOpenChange={(o) => setPicker(o ? "label" : null)} value={conv.labelIds} onToggle={cmd.toggleLabel}>
-              <Button variant="ghost" size="icon-sm" className={MOBILE_ANCHOR} aria-label="Labels">
+              <Button variant="ghost" size="icon-sm" className={MOBILE_ANCHOR} aria-label={t("inboxUiLabels")}>
                 <Tag />
               </Button>
             </LabelPicker>
           )}
           {writable && (
             <SnoozePicker open={picker === "snooze"} onOpenChange={(o) => setPicker(o ? "snooze" : null)} snoozedUntil={conv.snoozedUntil} onSnooze={cmd.snooze}>
-              <Button variant="ghost" size="icon-sm" className={cn(MOBILE_ANCHOR, snoozed && "text-amber-600")} aria-label="Snooze">
+              <Button variant="ghost" size="icon-sm" className={cn(MOBILE_ANCHOR, snoozed && "text-amber-600")} aria-label={t("inboxUiSnooze")}>
                 <Clock />
               </Button>
             </SnoozePicker>
           )}
-          <HeaderButton label={conv.starred ? "Unstar" : "Star"} shortcut={hint("star") ?? undefined} onClick={cmd.toggleStar} active={conv.starred} className="max-sm:hidden">
+          <HeaderButton label={conv.starred ? t("unstar") : t("star")} shortcut={hint("star") ?? undefined} onClick={cmd.toggleStar} active={conv.starred} className="max-sm:hidden">
             <Star className={cn(conv.starred && "fill-amber-400 text-amber-400")} />
           </HeaderButton>
           {bootstrap.teams.length > 0 && writable && (
             <TeamPicker open={picker === "team"} onOpenChange={(o) => setPicker(o ? "team" : null)} value={conv.teamId} onSelect={(t) => (cmd.moveToTeam(t), setPicker(null))}>
-              <Button variant="ghost" size="icon-sm" className={MOBILE_ANCHOR} aria-label="Move to team">
+              <Button variant="ghost" size="icon-sm" className={MOBILE_ANCHOR} aria-label={t("moveToTeam")}>
                 <Users />
               </Button>
             </TeamPicker>
@@ -244,100 +247,100 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="max-md:size-10" aria-label="More actions">
+              <Button variant="ghost" size="icon-sm" className="max-md:size-10" aria-label={t("inboxUiMoreActions")}>
                 <Ellipsis />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
               {writable && (
                 <DropdownMenuItem onSelect={cmd.toggleStatus} className="md:hidden">
-                  {conv.status === "closed" ? <RotateCcw /> : <CircleCheck />} {conv.status === "closed" ? "Reopen" : "Close"}
+                  {conv.status === "closed" ? <RotateCcw /> : <CircleCheck />} {conv.status === "closed" ? t("reopen") : t("close")}
                   <Hint action="close" />
                 </DropdownMenuItem>
               )}
               {writable && (
                 <>
                   <DropdownMenuItem className="md:hidden" onSelect={() => setTimeout(() => setPicker("assign"), 0)}>
-                    <UserPlus /> Assign…<Hint action="assign" />
+                    <UserPlus /> {t("assign")}…<Hint action="assign" />
                   </DropdownMenuItem>
                   <DropdownMenuItem className="md:hidden" onSelect={() => setTimeout(() => setPicker("label"), 0)}>
-                    <Tag /> Labels…<Hint action="label" />
+                    <Tag /> {t("labelsAction")}…<Hint action="label" />
                   </DropdownMenuItem>
                   <DropdownMenuItem className="md:hidden" onSelect={() => setTimeout(() => setPicker("snooze"), 0)}>
-                    <Clock /> Snooze…<Hint action="snooze" />
+                    <Clock /> {t("snooze")}…<Hint action="snooze" />
                   </DropdownMenuItem>
                 </>
               )}
               <DropdownMenuItem onSelect={cmd.toggleStar} className="sm:hidden">
-                <Star /> {conv.starred ? "Unstar" : "Star"}
+                <Star /> {conv.starred ? t("unstar") : t("star")}
               </DropdownMenuItem>
               {writable && (
                 <DropdownMenuItem onSelect={cmd.assignToMe}>
-                  <UserPlus /> {conv.assigneeIds.includes(meId) ? "Unassign me" : "Assign to me"}
+                  <UserPlus /> {conv.assigneeIds.includes(meId) ? t("unassignMe") : t("assignMe")}
                   <Hint action="assignMe" />
                 </DropdownMenuItem>
               )}
               {writable && (
                 <DropdownMenuItem onSelect={cmd.togglePriority}>
-                  <Flag className={cn(conv.priority && "fill-red-500 text-red-500")} /> {conv.priority ? "Remove priority" : "Mark as priority"}
+                  <Flag className={cn(conv.priority && "fill-red-500 text-red-500")} /> {conv.priority ? t("inboxUiRemovePriority") : t("inboxUiMarkPriority")}
                 </DropdownMenuItem>
               )}
               {bootstrap.teams.length > 0 && writable && (
                 <DropdownMenuItem onSelect={() => setTimeout(() => setPicker("team"), 0)}>
-                  <Users /> Move to team…
+                  <Users /> {t("moveToTeam")}…
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={cmd.markUnread}>
-                <Mail /> Mark as unread<Hint action="markUnread" />
+                <Mail /> {t("markUnread")}<Hint action="markUnread" />
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={cmd.togglePin}>
-                {conv.pinned ? <PinOff /> : <Pin />} {conv.pinned ? "Unpin" : "Pin to top"}
+                {conv.pinned ? <PinOff /> : <Pin />} {conv.pinned ? (locale === "it" ? "Rimuovi pin" : "Unpin") : (locale === "it" ? "Fissa in alto" : "Pin to top")}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={cmd.toggleFollow}>
-                {conv.following ? <BellOff /> : <Bell />} {conv.following ? "Unfollow" : "Follow"}
+                {conv.following ? <BellOff /> : <Bell />} {conv.following ? t("inboxUiUnfollow") : t("inboxUiFollow")}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={cmd.toggleMute}>
-                {conv.muted ? <Volume2 /> : <VolumeX />} {conv.muted ? "Unmute" : "Mute notifications"}
+                {conv.muted ? <Volume2 /> : <VolumeX />} {conv.muted ? t("inboxUiUnmute") : t("inboxUiMuteNotifications")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={cmd.copyLink}>
-                <Copy /> Copy link
+                <Copy /> {t("copyLink")}
               </DropdownMenuItem>
               {writable && conv.kind === "email" && (
                 <DropdownMenuItem onSelect={() => setTimeout(() => setPicker("merge"), 0)}>
-                  <GitMerge /> Merge into…
+                  <GitMerge /> {locale === "it" ? "Unisci in…" : "Merge into…"}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onSelect={cmd.print} className="max-md:hidden">
-                <Printer /> Print
+                <Printer /> {locale === "it" ? "Stampa" : "Print"}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={onToggleDetails}>
-                <PanelRight /> {detailsOpen ? "Hide details" : "Show details"}
+                <PanelRight /> {detailsOpen ? t("hideDetails") : t("showDetails")}
               </DropdownMenuItem>
               {writable && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={cmd.toggleSpam}>
-                    {conv.isSpam ? <ShieldCheck /> : <ShieldAlert />} {conv.isSpam ? "Not spam" : "Mark as spam"}
+                    {conv.isSpam ? <ShieldCheck /> : <ShieldAlert />} {conv.isSpam ? t("inboxUiNotSpam") : t("inboxUiMarkSpam")}
                     <Hint action="spam" />
                   </DropdownMenuItem>
                   {canDelete && (
                     <DropdownMenuItem variant={conv.isTrash ? "default" : "destructive"} onSelect={cmd.toggleTrash}>
-                      {conv.isTrash ? <ArchiveRestore /> : <Trash2 />} {conv.isTrash ? "Restore" : "Move to trash"}
+                      {conv.isTrash ? <ArchiveRestore /> : <Trash2 />} {conv.isTrash ? t("restore") : t("moveToTrash")}
                       <Hint action="trash" />
                     </DropdownMenuItem>
                   )}
                   {canDelete && conv.isTrash && (
-                    <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
-                      <Trash2 /> Delete permanently
+              <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
+                      <Trash2 /> {t("deleteForever")}
                     </DropdownMenuItem>
                   )}
                 </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <HeaderButton label={detailsOpen ? "Hide details" : "Show details"} onClick={onToggleDetails} active={detailsOpen} className="max-md:hidden">
+          <HeaderButton label={detailsOpen ? t("hideDetails") : t("showDetails")} onClick={onToggleDetails} active={detailsOpen} className="max-md:hidden">
             <PanelRight />
           </HeaderButton>
         </div>
@@ -358,27 +361,27 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
         )}
         {conv.status === "closed" && (
           <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-            <CircleCheck className="size-3" /> Closed
+            <CircleCheck className="size-3" /> {locale === "it" ? "Chiusa" : "Closed"}
           </span>
         )}
         {snoozed && (
           <button type="button" onClick={() => setPicker("snooze")} className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300">
-            <Clock className="size-3" /> Snoozed until {untilLabel(conv.snoozedUntil)}
+            <Clock className="size-3" /> {t("inboxUiSnoozedUntil")} {untilLabel(conv.snoozedUntil, locale)}
           </button>
         )}
         {conv.priority && (
           <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-red-600 dark:text-red-400">
-            <Flag className="size-3 fill-current" /> Priority
+            <Flag className="size-3 fill-current" /> {t("inboxUiPriority")}
           </span>
         )}
         {conv.isSpam && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">Spam</span>}
-        {conv.isTrash && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">In trash</span>}
+        {conv.isTrash && <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-destructive">{t("inboxUiInTrash")}</span>}
         {labels.map((l) => (
           <span key={l!.id} className="group/label inline-flex items-center gap-1 rounded-full border bg-background py-0.5 pr-1 pl-2 text-foreground/80">
             <span className="size-1.5 rounded-full" style={{ backgroundColor: l!.color }} />
             {l!.name}
             {writable && (
-              <button type="button" aria-label={`Remove label ${l!.name}`} onClick={() => cmd.toggleLabel(l!.id, false)} className="rounded-full p-0.5 text-muted-foreground opacity-60 hover:bg-muted hover:text-foreground hover:opacity-100">
+              <button type="button" aria-label={`${t("inboxUiRemove")} ${l!.name}`} onClick={() => cmd.toggleLabel(l!.id, false)} className="rounded-full p-0.5 text-muted-foreground opacity-60 hover:bg-muted hover:text-foreground hover:opacity-100">
                 <X className="size-2.5" />
               </button>
             )}
@@ -390,17 +393,17 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
             onClick={() => setPicker("label")}
             className="inline-flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-muted-foreground hover:border-solid hover:text-foreground md:hidden"
           >
-            <Plus className="size-3" /> Label
+            <Plus className="size-3" /> {t("inboxUiLabels")}
           </button>
         )}
         {assignees.length > 0 && (
           <span className="inline-flex items-center gap-1 text-muted-foreground md:hidden">
-            · {assignees.map((a) => (a!.id === meId ? "You" : firstName(a))).join(", ")}
+            · {assignees.map((a) => (a!.id === meId ? t("inboxUiYou") : firstName(a))).join(", ")}
           </span>
         )}
         {assignees.length > 0 && (
           <span className="ml-auto text-muted-foreground max-md:hidden">
-            Assigned to {assignees.map((a) => (a!.id === meId ? "you" : memberName(a))).join(", ")}
+            {t("inboxUiToLabel")} {assignees.map((a) => (a!.id === meId ? t("inboxUiYou") : memberName(a))).join(", ")}
           </span>
         )}
       </div>
@@ -410,13 +413,13 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this conversation permanently?</AlertDialogTitle>
-            <AlertDialogDescription>All messages, comments and attachments are removed for everyone. This cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>{t("inboxUiDeleteConversationTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("inboxUiDeleteConversationDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("inboxUiCancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={cmd.deleteForever}>
-              Delete forever
+              {t("deleteForever")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

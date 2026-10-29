@@ -1,5 +1,6 @@
 import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { headers } from "next/headers"
 
 /**
  * Dark graphite brand panel with a green dot-matrix "signal" visual. Always
@@ -69,14 +70,24 @@ export function DotMatrix({ className }: { className?: string }) {
   )
 }
 
-const FEATURES = [
-  "Shared inboxes on Gmail, Outlook or any IMAP mailbox",
-  "Internal comments, @mentions and assignments",
-  "Rules, analytics and a full REST API",
-  "Open source — self-host free or use the cloud",
-]
+const FEATURES = {
+  en: [
+    "Shared inboxes on Gmail, Outlook or any IMAP mailbox",
+    "Internal comments, @mentions and assignments",
+    "Rules, analytics and a full REST API",
+    "Open source — self-host free or use the cloud",
+  ],
+  it: [
+    "Caselle condivise su Gmail, Outlook o qualsiasi mailbox IMAP",
+    "Commenti interni, @menzioni e assegnazioni",
+    "Regole, analisi e una REST API completa",
+    "Open source — self-host gratuito o servizio cloud",
+  ],
+} as const
 
-export function SignalPanel({ productName = "Dispatch", className }: { productName?: string; className?: string }) {
+export async function SignalPanel({ productName = "Dispatch", className }: { productName?: string; className?: string }) {
+  const italian = ((await headers()).get("accept-language") ?? "").toLowerCase().startsWith("it")
+  const features = FEATURES[italian ? "it" : "en"]
   return (
     <div
       className={cn(
@@ -93,7 +104,7 @@ export function SignalPanel({ productName = "Dispatch", className }: { productNa
         }}
       />
       <div className="relative font-mono text-[11px] uppercase tracking-wider text-white/50">
-        {productName} · Collaborative inbox
+        {productName} · {italian ? "Casella condivisa" : "Collaborative inbox"}
       </div>
 
       <div className="relative mx-auto w-full max-w-md py-10">
@@ -102,11 +113,11 @@ export function SignalPanel({ productName = "Dispatch", className }: { productNa
 
       <div className="relative max-w-md">
         <p className="text-2xl leading-snug font-medium tracking-tight text-balance">
-          Email is a team sport.{" "}
-          <span className="text-white/45">Assign, discuss and resolve — without forwarding a single message.</span>
+          {italian ? "L’email è un lavoro di squadra." : "Email is a team sport."}{" "}
+          <span className="text-white/45">{italian ? "Assegna, discuti e risolvi — senza inoltrare nemmeno un messaggio." : "Assign, discuss and resolve — without forwarding a single message."}</span>
         </p>
         <ul className="mt-8 space-y-2.5">
-          {FEATURES.map((f) => (
+          {features.map((f) => (
             <li key={f} className="flex items-start gap-2.5 text-sm text-white/70">
               <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-brand/15">
                 <Check className="size-2.5 text-brand" strokeWidth={3} />

@@ -16,6 +16,8 @@ import {
   SuperAdminControl,
   type SessionItem,
 } from "@/components/admin/users/user-controls"
+import { CredentialsControl } from "@/components/admin/users/credentials-control"
+import { localizeRoleName } from "@/lib/i18n"
 
 export async function generateMetadata({ params }: PageProps<"/admin/users/[id]">): Promise<Metadata> {
   await requireSuperAdminPage()
@@ -32,6 +34,7 @@ const IMPERSONATE_ERRORS: Record<string, string> = {
 
 export default async function AdminUserDetailPage({ params, searchParams }: PageProps<"/admin/users/[id]">) {
   const { user: me, session: mySession } = await requireSuperAdminPage()
+  const it = me.locale === "it"
   const { id } = await params
   const sp = await searchParams
   const detail = await getUserDetail(id)
@@ -39,31 +42,31 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
   const { user, memberships, sessions, events, soleOwned, activeSuperAdmins } = detail
 
   const isSelf = user.id === me.id
-  const impersonateError = typeof sp.impersonate_error === "string" ? IMPERSONATE_ERRORS[sp.impersonate_error] : undefined
+  const impersonateError = typeof sp.impersonate_error === "string" ? (it ? ({ self: "Non puoi accedere come te stesso.", disabled: "Non puoi accedere come un account disattivato. Riattiva prima l’account.", super_admin: "Non puoi accedere come un altro super amministratore." }[sp.impersonate_error] ?? IMPERSONATE_ERRORS[sp.impersonate_error]) : IMPERSONATE_ERRORS[sp.impersonate_error]) : undefined
   const lastActiveSuperAdmin = user.isSuperAdmin && user.status === "active" && activeSuperAdmins <= 1
 
   const superAdminBlocked = user.isSuperAdmin
     ? isSelf
-      ? "You can't remove your own super admin access."
+      ? (it ? "Non puoi rimuovere il tuo accesso da super amministratore." : "You can't remove your own super admin access.")
       : lastActiveSuperAdmin
-        ? "This is the last active super admin."
+        ? (it ? "Questo è l’ultimo super amministratore attivo." : "This is the last active super admin.")
         : null
     : user.status !== "active"
-      ? "Enable the account first."
+      ? (it ? "Riattiva prima l’account." : "Enable the account first.")
       : null
   const statusBlocked =
-    user.status === "active" ? (isSelf ? "You can't disable your own account." : lastActiveSuperAdmin ? "This is the last active super admin." : null) : null
+    user.status === "active" ? (isSelf ? (it ? "Non puoi disattivare il tuo account." : "You can't disable your own account.") : lastActiveSuperAdmin ? (it ? "Questo è l’ultimo super amministratore attivo." : "This is the last active super admin.") : null) : null
   const deleteBlocked = isSelf
-    ? "You can't delete your own account."
+    ? (it ? "Non puoi eliminare il tuo account." : "You can't delete your own account.")
     : lastActiveSuperAdmin
-      ? "This is the last super admin and can't be deleted."
+      ? (it ? "Questo è l’ultimo super amministratore e non può essere eliminato." : "This is the last super admin and can't be deleted.")
       : soleOwned.length
-        ? "Transfer ownership of these workspaces first:"
+        ? (it ? "Trasferisci prima la proprietà di questi workspace:" : "Transfer ownership of these workspaces first:")
         : null
 
   const sessionItems: SessionItem[] = sessions.map((s) => ({
     id: s.id,
-    deviceLabel: s.deviceLabel || "Unknown device",
+    deviceLabel: s.deviceLabel || (it ? "Dispositivo sconosciuto" : "Unknown device"),
     ip: s.ip,
     createdAt: s.createdAt.toISOString(),
     lastUsedAt: s.lastUsedAt.toISOString(),
@@ -77,21 +80,21 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
   return (
     <>
       <AdminPageHeader
-        back={{ href: "/admin/users", label: "Users" }}
-        eyebrow="User"
+        back={{ href: "/admin/users", label: it ? "Utenti" : "Users" }}
+        eyebrow={it ? "Utente" : "User"}
         title={user.name || user.email}
         quiet={user.name ? user.email : undefined}
         description={
           <span className="flex flex-wrap items-center gap-1.5">
             {user.isSuperAdmin && (
               <StatusBadge tone="brand" dot={false}>
-                Super admin
+                {it ? "Super amministratore" : "Super admin"}
               </StatusBadge>
             )}
-            <StatusBadge tone={user.status === "active" ? "ok" : "error"}>{user.status === "active" ? "Active" : "Disabled"}</StatusBadge>
+            <StatusBadge tone={user.status === "active" ? "ok" : "error"}>{user.status === "active" ? (it ? "Attivo" : "Active") : (it ? "Disattivato" : "Disabled")}</StatusBadge>
             <span className="text-muted-foreground">
-              · joined <LocalTime date={user.createdAt} format="relative" titleFormat="datetime" /> · last seen{" "}
-              <LocalTime date={user.lastSeenAt} format="relative" titleFormat="datetime" fallback="never" />
+              · {it ? "iscritto" : "joined"} <LocalTime date={user.createdAt} format="relative" titleFormat="datetime" /> · {it ? "ultimo accesso" : "last seen"}{" "}
+              <LocalTime date={user.lastSeenAt} format="relative" titleFormat="datetime" fallback={it ? "mai" : "never"} />
             </span>
           </span>
         }
@@ -100,7 +103,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
             <UserAvatar name={user.name} email={user.email} src={user.avatarUrl} size="lg" className="hidden sm:flex" />
             {canImpersonate && (
               <PostButton action={`/admin/impersonate/${user.id}`} variant="default">
-                <UserRound /> Impersonate
+                <UserRound /> {it ? "Accedi come utente" : "Impersonate"}
               </PostButton>
             )}
           </>
@@ -115,32 +118,36 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="grid min-w-0 content-start gap-6">
-          <Panel title="Profile">
+          <Panel title={it ? "Profilo" : "Profile"}>
             <KeyValueList
               items={[
-                { label: "User ID", value: user.id, mono: true },
+                { label: it ? "ID utente" : "User ID", value: user.id, mono: true },
                 { label: "Email", value: user.email },
-                { label: "Name", value: user.name || <span className="text-muted-foreground">Not set</span> },
-                { label: "Time zone", value: user.timezone || <span className="text-muted-foreground">Instance default</span> },
-                { label: "Created", value: <LocalTime date={user.createdAt} /> },
+                { label: it ? "Nome" : "Name", value: user.name || <span className="text-muted-foreground">{it ? "Non impostato" : "Not set"}</span> },
+                { label: it ? "Fuso orario" : "Time zone", value: user.timezone || <span className="text-muted-foreground">{it ? "Predefinito istanza" : "Instance default"}</span> },
+                { label: it ? "Creato" : "Created", value: <LocalTime date={user.createdAt} /> },
                 {
-                  label: "Last seen",
+                  label: it ? "Ultimo accesso" : "Last seen",
                   value: user.lastSeenAt ? (
                     <>
                       <LocalTime date={user.lastSeenAt} /> (<LocalTime date={user.lastSeenAt} format="relative" />)
                     </>
                   ) : (
-                    "Never"
+                    it ? "Mai" : "Never"
                   ),
                 },
-                ...(user.awayUntil && user.awayUntil > new Date() ? [{ label: "Away until", value: <LocalTime date={user.awayUntil} /> }] : []),
+                ...(user.awayUntil && user.awayUntil > new Date() ? [{ label: it ? "Assente fino al" : "Away until", value: <LocalTime date={user.awayUntil} /> }] : []),
               ]}
             />
           </Panel>
 
-          <Panel title="Workspaces" description={`Member of ${memberships.length} ${memberships.length === 1 ? "workspace" : "workspaces"}`} bodyClassName="p-0">
+          <Panel title={it ? "Credenziali di accesso" : "Login credentials"} description={it ? "Modifica l’email di accesso o imposta una password locale. L’accesso con codice email resta disponibile." : "Change the login email or set a local password. The existing email-code login remains available."}>
+            <CredentialsControl id={user.id} email={user.email} />
+          </Panel>
+
+          <Panel title="Workspace" description={it ? `Membro di ${memberships.length} workspace` : `Member of ${memberships.length} ${memberships.length === 1 ? "workspace" : "workspaces"}`} bodyClassName="p-0">
             {memberships.length === 0 ? (
-              <EmptyState icon={Building2} title="No workspaces" description="This person hasn't joined or created a workspace yet." />
+              <EmptyState icon={Building2} title={it ? "Nessun workspace" : "No workspaces"} description={it ? "Questa persona non ha ancora creato né aderito a un workspace." : "This person hasn't joined or created a workspace yet."} />
             ) : (
               <ul className="divide-y divide-border">
                 {memberships.map((m) => (
@@ -158,14 +165,14 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">{m.orgName}</div>
                         <div className="truncate font-mono text-[12px] text-muted-foreground">
-                          /{m.orgSlug} · joined <LocalTime date={m.joinedAt} format="relative" titleFormat="datetime" />
+                          /{m.orgSlug} · {it ? "iscritto" : "joined"} <LocalTime date={m.joinedAt} format="relative" titleFormat="datetime" />
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                        {m.suspendedAt && <StatusBadge tone="error">Suspended</StatusBadge>}
-                        {m.status !== "active" && <StatusBadge tone="warn">Membership suspended</StatusBadge>}
+                        {m.suspendedAt && <StatusBadge tone="error">{it ? "Sospeso" : "Suspended"}</StatusBadge>}
+                        {m.status !== "active" && <StatusBadge tone="warn">{it ? "Appartenenza sospesa" : "Membership suspended"}</StatusBadge>}
                         <StatusBadge tone={m.roleKey === "owner" ? "brand" : "neutral"} dot={false}>
-                          {m.roleName}
+                          {localizeRoleName(m.roleKey, m.roleName, it ? "it" : "en")}
                         </StatusBadge>
                       </div>
                     </Link>
@@ -176,20 +183,20 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
           </Panel>
 
           <Panel
-            title="Active sessions"
-            description={`${sessions.length} signed-in ${sessions.length === 1 ? "device" : "devices"}. Sessions last one year and renew while in use.`}
+            title={it ? "Sessioni attive" : "Active sessions"}
+            description={it ? `${sessions.length} ${sessions.length === 1 ? "dispositivo connesso" : "dispositivi connessi"}. Le sessioni durano un anno e si rinnovano durante l’uso.` : `${sessions.length} signed-in ${sessions.length === 1 ? "device" : "devices"}. Sessions last one year and renew while in use.`}
             bodyClassName="p-0"
           >
             {sessions.length === 0 ? (
-              <EmptyState icon={KeyRound} title="Not signed in anywhere" />
+              <EmptyState icon={KeyRound} title={it ? "Nessun accesso attivo" : "Not signed in anywhere"} />
             ) : (
               <SessionsList userId={user.id} sessions={sessionItems} isSelf={isSelf} />
             )}
           </Panel>
 
-          <Panel title="Recent activity" description="Last 20 audit events by this user" bodyClassName="p-0">
+          <Panel title={it ? "Attività recente" : "Recent activity"} description={it ? "Ultimi 20 eventi di registro di questo utente" : "Last 20 audit events by this user"} bodyClassName="p-0">
             {events.length === 0 ? (
-              <EmptyState icon={History} title="No recorded activity" />
+              <EmptyState icon={History} title={it ? "Nessuna attività registrata" : "No recorded activity"} />
             ) : (
               <ul className="divide-y divide-border">
                 {events.map((e) => (
@@ -201,7 +208,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
                           {e.orgName}
                         </Link>
                       ) : (
-                        "Instance"
+                        it ? "Istanza" : "Instance"
                       )}
                       {e.targetType && ` · ${e.targetType}`}
                       {e.ip && ` · ${e.ip}`}
@@ -215,13 +222,13 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
         </div>
 
         <div className="grid min-w-0 content-start gap-6">
-          <Panel title="Access" description="Instance-level permissions and sign-in">
+          <Panel title={it ? "Accesso" : "Access"} description={it ? "Permessi dell’istanza e accesso" : "Instance-level permissions and sign-in"}>
             <div className="grid gap-3">
               <SuperAdminControl id={user.id} email={user.email} isSuperAdmin={user.isSuperAdmin} blockedReason={superAdminBlocked} />
               <AccountStatusControl id={user.id} email={user.email} status={user.status} blockedReason={statusBlocked} />
               {!canImpersonate && !isSelf && (
                 <p className="text-xs text-muted-foreground">
-                  {user.isSuperAdmin ? "Super admins can't be impersonated." : "Disabled accounts can't be impersonated."}
+                  {user.isSuperAdmin ? (it ? "Non è possibile accedere come un super amministratore." : "Super admins can't be impersonated.") : (it ? "Non è possibile accedere come un account disattivato." : "Disabled accounts can't be impersonated.")}
                 </p>
               )}
             </div>
@@ -229,7 +236,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
 
           <section className="rounded-lg border border-destructive/30 bg-card">
             <header className="border-b border-destructive/20 px-4 py-3 md:px-5">
-              <MicroLabel className="text-destructive">Danger zone</MicroLabel>
+              <MicroLabel className="text-destructive">{it ? "Zona pericolosa" : "Danger zone"}</MicroLabel>
             </header>
             <div className="p-4 md:p-5">
               <DeleteUserControl

@@ -78,6 +78,7 @@ export async function getBoxCounts(ctx: Ctx, scope: InboxScope): Promise<BoxCoun
 }
 
 export async function listChats(ctx: Ctx): Promise<ChatSummary[]> {
+  if (ctx.org.settings.features?.chat === false) return []
   const me = ctx.user.id
   const rows = await db
     .select({

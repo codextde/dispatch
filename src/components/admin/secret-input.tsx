@@ -5,6 +5,7 @@ import { Eye, EyeOff, KeyRound, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 /**
  * Input for a stored secret. The current value is never sent to the client —
@@ -34,6 +35,8 @@ export function SecretInput({
   className?: string
   "aria-invalid"?: boolean
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [editing, setEditing] = useState(!preview)
   const [draft, setDraft] = useState("")
   const [visible, setVisible] = useState(false)
@@ -50,20 +53,20 @@ export function SecretInput({
         >
           <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />
           <span className="truncate font-mono text-[12.5px]">{preview}</span>
-          {!clearing && <span className="ml-auto hidden shrink-0 text-[11px] text-muted-foreground sm:inline">stored encrypted</span>}
+          {!clearing && <span className="ml-auto hidden shrink-0 text-[11px] text-muted-foreground sm:inline">{it ? "memorizzato in forma cifrata" : "stored encrypted"}</span>}
         </div>
         {clearing ? (
           <Button type="button" variant="ghost" size="sm" onClick={() => onChange(undefined)} disabled={disabled}>
-            <Undo2 /> Undo
+            <Undo2 /> {it ? "Annulla" : "Undo"}
           </Button>
         ) : (
           <>
             <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)} disabled={disabled}>
-              Replace
+              {it ? "Sostituisci" : "Replace"}
             </Button>
             {allowClear && (
               <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")} disabled={disabled}>
-                Remove
+                {it ? "Rimuovi" : "Remove"}
               </Button>
             )}
           </>
@@ -81,7 +84,7 @@ export function SecretInput({
           autoComplete="new-password"
           spellCheck={false}
           value={draft}
-          placeholder={placeholder}
+          placeholder={it && placeholder === "Paste the new value" ? "Incolla il nuovo valore" : placeholder}
           disabled={disabled}
           aria-invalid={ariaInvalid}
           className="pr-9 font-mono text-[13px]"
@@ -94,7 +97,7 @@ export function SecretInput({
           type="button"
           onClick={() => setVisible((v) => !v)}
           className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-sm p-1 text-muted-foreground hover:text-foreground"
-          aria-label={visible ? "Hide value" : "Show value"}
+          aria-label={visible ? (it ? "Nascondi valore" : "Hide value") : (it ? "Mostra valore" : "Show value")}
         >
           {visible ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
         </button>

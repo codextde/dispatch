@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import {
   AtSign,
   CalendarClock,
@@ -20,6 +20,7 @@ import {
   Search,
   Send,
   Settings,
+  SlidersHorizontal,
   ShieldAlert,
   SquareCheckBig,
   SquarePen,
@@ -31,6 +32,8 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Kbd } from "@/components/ui/kbd"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { UserMenu, WorkspaceSwitcher } from "@/components/app/user-menu"
@@ -43,9 +46,17 @@ import { useShortcutLabel } from "@/hooks/inbox/use-hotkeys"
 import { memberName } from "@/lib/inbox/format"
 import type { LabelSummary } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { useInbox } from "./inbox-provider"
 import { NotificationsButton } from "./notifications-popover"
 import { useShortcutHint } from "./shortcut-hint"
+import { useServerAction } from "@/components/settings/use-server-action"
+import { updateSidebarPreferences } from "@/server/workspace/actions/personal"
+
+const CUSTOMIZABLE_BOXES = ["assigned", "mentions", "starred", "snoozed", "drafts", "scheduled", "sent"] as const
+type CustomizableBox = (typeof CUSTOMIZABLE_BOXES)[number]
+const CUSTOMIZABLE_SECTIONS = ["teams", "inboxes", "labels", "chats"] as const
+type CustomizableSection = (typeof CUSTOMIZABLE_SECTIONS)[number]
 
 const PRIMARY: { box: string; label: string; icon: LucideIcon; count?: "unread" | "total" }[] = [
   { box: "inbox", label: "Inbox", icon: Inbox, count: "unread" },
@@ -178,7 +189,15 @@ function labelTree(labels: LabelSummary[]): LabelNode[] {
 export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; onCollapse?: () => void }) {
   const shortcutLabel = useShortcutLabel()
   const { slug, bootstrap, member, meId } = useInbox()
-  const { can } = useOrg()
+  const { can, org } = useOrg()
+  const { t, locale } = useI18n()
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+  const initialSidebarPreferences = bootstrap.me.preferences.sidebar as
+    | { hiddenItems?: CustomizableBox[]; hiddenSections?: CustomizableSection[] }
+    | undefined
+  const [hiddenItems, setHiddenItems] = useState<CustomizableBox[]>(initialSidebarPreferences?.hiddenItems ?? [])
+  const [hiddenSections, setHiddenSections] = useState<CustomizableSection[]>(initialSidebarPreferences?.hiddenSections ?? [])
+  const { pending: savingSidebar, run: saveSidebar } = useServerAction()
   const hint = useShortcutHint()
   const params = useParams<{ box?: string; conversationId?: string }>()
   const current = params.box ? decodeURIComponent(params.box) : ""
@@ -188,7 +207,23 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
   const [showMore, setShowMore] = usePersistentState("dispatch:sidebar:more", false)
   const base = `/w/${slug}`
   const tree = useMemo(() => labelTree(bootstrap.labels), [bootstrap.labels])
-  const moreActive = MORE.some((m) => m.box === current)
+  const workspaceHiddenItems = org.navigation.hiddenItems
+  const workspaceHiddenSections = org.navigation.hiddenSections
+  const hiddenPrimary = PRIMARY.filter((item) => CUSTOMIZABLE_BOXES.includes(item.box as CustomizableBox) && hiddenItems.includes(item.box as CustomizableBox) && !workspaceHiddenItems.includes(item.box))
+  const moreItems = [...MORE, ...hiddenPrimary]
+  const moreActive = moreItems.some((m) => m.box === current)
+  const boxLabel: Record<string, Parameters<typeof t>[0]> = { inbox: "inbox", assigned: "assigned", mentions: "mentions", starred: "starred", snoozed: "snoozed", drafts: "drafts", scheduled: "scheduled", sent: "sent", unassigned: "unassigned", all: "allConversations", closed: "closed", spam: "spam", trash: "trash" }
+
+  const saveSidebarPreferences = (items: CustomizableBox[], sections: CustomizableSection[]) =>
+    saveSidebar(
+      () => updateSidebarPreferences({ slug, hiddenItems: items, hiddenSections: sections }),
+      {
+        onSuccess: () => {
+          setHiddenItems(items)
+          setHiddenSections(sections)
+        },
+      }
+    )
 
   const renderLabel = (l: LabelNode, depth: number): React.ReactNode => (
     <div key={l.id}>
@@ -200,7 +235,7 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
           dot={l.color}
           count={counts[`label.${l.id}`]}
           onNavigate={onNavigate}
-          trailing={l.visibility === "private" ? <UserRound className="size-3 text-muted-foreground" aria-label="Private label" /> : null}
+          trailing={l.visibility === "private" ? <UserRound className="size-3 text-muted-foreground" aria-label={t("inboxUiPrivate")} /> : null}
         />
       </div>
       {l.children.map((c) => renderLabel(c, depth + 1))}
@@ -214,13 +249,26 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
         {onCollapse && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" onClick={onCollapse} aria-label="Collapse sidebar">
+              <Button variant="ghost" size="icon-sm" onClick={onCollapse} aria-label={t("less")}>
                 <PanelLeftClose />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Collapse sidebar</TooltipContent>
+            <TooltipContent>{t("less")}</TooltipContent>
           </Tooltip>
         )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={locale === "it" ? "Personalizza barra laterale" : "Customize sidebar"}
+              onClick={() => setCustomizeOpen(true)}
+            >
+              <SlidersHorizontal />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{locale === "it" ? "Personalizza barra laterale" : "Customize sidebar"}</TooltipContent>
+        </Tooltip>
       </div>
 
       <div className="flex shrink-0 gap-1.5 px-2 pb-2">
@@ -232,7 +280,7 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
           }}
         >
           <SquarePen />
-          Compose
+          {t("compose")}
           {hint("compose") && <Kbd className="ml-auto bg-primary-foreground/15 text-primary-foreground/80 max-lg:hidden">{hint("compose")}</Kbd>}
         </Button>
         <Tooltip>
@@ -241,7 +289,7 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
               variant="outline"
               size="icon"
               className="max-lg:size-10"
-              aria-label="Search"
+              aria-label={t("search")}
               onClick={() => {
                 onNavigate?.()
                 inboxUI.set({ paletteOpen: true, paletteQuery: "" })
@@ -251,20 +299,20 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            Search <Kbd>{shortcutLabel("mod+k")[0]}</Kbd>
+            {t("search")} <Kbd>{shortcutLabel("mod+k")[0]}</Kbd>
           </TooltipContent>
         </Tooltip>
       </div>
 
-      <nav aria-label="Mailboxes" className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+      <nav aria-label={t("inboxUiMailboxes")} className="scrollbar-thin min-h-0 flex-1 overflow-y-auto px-2 pb-4">
         <div className="flex flex-col gap-px">
-          {PRIMARY.map((item) => (
+        {PRIMARY.filter((item) => !workspaceHiddenItems.includes(item.box) && (!hiddenItems.includes(item.box as CustomizableBox) || current === item.box)).map((item) => (
             <NavItem
               key={item.box}
               href={`${base}/${item.box}`}
               active={current === item.box}
               icon={item.icon}
-              label={item.label}
+              label={t(boxLabel[item.box] ?? "inbox")}
               count={item.count ? counts[item.box] : undefined}
               tone={item.count === "unread" && item.box !== "mentions" ? "brand" : "muted"}
               onNavigate={onNavigate}
@@ -277,24 +325,24 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
             className="flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] text-muted-foreground outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring max-lg:h-10"
           >
             <ChevronRight className={cn("size-4 transition-transform", (showMore || moreActive) && "rotate-90")} />
-            {showMore || moreActive ? "Less" : "More"}
+            {showMore || moreActive ? t("less") : t("more")}
           </button>
           {(showMore || moreActive) &&
-            MORE.map((item) => (
+            moreItems.map((item) => (
               <NavItem
                 key={item.box}
                 href={`${base}/${item.box}`}
                 active={current === item.box}
                 icon={item.icon}
-                label={item.label}
+                label={t(boxLabel[item.box] ?? "inbox")}
                 count={item.count ? counts[item.box] : undefined}
                 onNavigate={onNavigate}
               />
             ))}
         </div>
 
-        {bootstrap.teams.length > 0 && (
-          <Section id="teams" title="Teams">
+        {bootstrap.teams.length > 0 && !workspaceHiddenSections.includes("teams") && (!hiddenSections.includes("teams") || current.startsWith("team.")) && (
+          <Section id="teams" title={t("teams")}>
             {bootstrap.teams
               .filter((t) => t.isMember || can("conversations.view_all"))
               .map((t) => (
@@ -312,16 +360,16 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
           </Section>
         )}
 
-        {bootstrap.accounts.length > 0 && (
+        {bootstrap.accounts.length > 0 && !workspaceHiddenSections.includes("inboxes") && (!hiddenSections.includes("inboxes") || current.startsWith("inbox.")) && (
           <Section
             id="inboxes"
-            title="Inboxes"
+            title={t("inboxes")}
             action={
               (can("inboxes.manage") || can("inboxes.connect_personal")) && (
                 <Link
                   href={`${base}/settings/inboxes`}
                   onClick={onNavigate}
-                  aria-label="Connect an inbox"
+                  aria-label={locale === "it" ? "Collega una casella" : "Connect an inbox"}
                   className="flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 outline-none group-hover/section:opacity-100 hover:bg-sidebar-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring max-lg:opacity-100"
                 >
                   <Plus className="size-3.5" />
@@ -344,12 +392,12 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
                   a.status === "error" ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <TriangleAlert className="size-3.5 shrink-0 text-destructive" aria-label="Sync error" />
+                        <TriangleAlert className="size-3.5 shrink-0 text-destructive" aria-label={locale === "it" ? "Errore di sincronizzazione" : "Sync error"} />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-64">{a.lastError || "This inbox has a connection problem."}</TooltipContent>
                     </Tooltip>
                   ) : a.isPersonal ? (
-                    <UserRound className="size-3 shrink-0 text-muted-foreground" aria-label="Personal inbox" />
+                    <UserRound className="size-3 shrink-0 text-muted-foreground" aria-label={locale === "it" ? "Casella personale" : "Personal inbox"} />
                   ) : null
                 }
               />
@@ -357,15 +405,15 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
           </Section>
         )}
 
-        {tree.length > 0 && (
-          <Section id="labels" title="Labels">
+        {tree.length > 0 && !workspaceHiddenSections.includes("labels") && (!hiddenSections.includes("labels") || current.startsWith("label.")) && (
+          <Section id="labels" title={t("labels")}>
             {tree.map((l) => renderLabel(l, 0))}
           </Section>
         )}
 
-        <Section
+        {org.features.chat && !workspaceHiddenSections.includes("chats") && (!hiddenSections.includes("chats") || current === "chats") && <Section
           id="chats"
-          title="Chats"
+          title={t("inboxUiChats")}
           action={
             can("chats.create") && (
               <button
@@ -374,7 +422,7 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
                   onNavigate?.()
                   inboxUI.set({ newChatOpen: true })
                 }}
-                aria-label="New chat"
+                aria-label={t("inboxUiNewChat")}
                 className="flex size-6 items-center justify-center rounded text-muted-foreground opacity-0 outline-none group-hover/section:opacity-100 hover:bg-sidebar-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring max-lg:opacity-100"
               >
                 <Plus className="size-3.5" />
@@ -382,10 +430,10 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
             )
           }
         >
-          {chats.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground">No chats yet.</p>}
+          {chats.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground">{t("inboxUiNoChats")}</p>}
           {chats.slice(0, 30).map((chat) => {
             const other = chat.isDirect ? member(chat.memberIds.find((id) => id !== meId)) : undefined
-            const name = chat.isDirect ? memberName(other, "Direct message") : chat.name || "Group chat"
+            const name = chat.isDirect ? memberName(other, locale === "it" ? "Messaggio diretto" : "Direct message") : chat.name || (locale === "it" ? "Chat di gruppo" : "Group chat")
             const active = current === "chats" && conversationId === chat.id
             return (
               <Link
@@ -406,47 +454,151 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
                   <Hash className="size-4 shrink-0 text-muted-foreground" />
                 )}
                 <span className="min-w-0 flex-1 truncate">{name}</span>
-                {chat.unread && <span className="size-2 shrink-0 rounded-full bg-brand" aria-label="Unread" />}
+                {chat.unread && <span className="size-2 shrink-0 rounded-full bg-brand" aria-label={locale === "it" ? "Da leggere" : "Unread"} />}
               </Link>
             )
           })}
-        </Section>
+        </Section>}
       </nav>
 
       <div className="flex shrink-0 items-center gap-0.5 border-t border-sidebar-border px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
         <UserMenu compact className="mr-auto" />
         <NotificationsButton onNavigate={onNavigate} />
-        <Tooltip>
+        {!workspaceHiddenSections.includes("tasks") && <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon-sm" asChild className="max-lg:size-10">
-              <Link href={`${base}/tasks`} onClick={onNavigate} aria-label="Tasks">
+              <Link href={`${base}/tasks`} onClick={onNavigate} aria-label={t("inboxUiTasks")}>
                 <SquareCheckBig />
               </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Tasks</TooltipContent>
-        </Tooltip>
-        <Tooltip>
+          <TooltipContent>{t("inboxUiTasks")}</TooltipContent>
+        </Tooltip>}
+        {!workspaceHiddenSections.includes("contacts") && <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon-sm" asChild className="max-lg:size-10">
-              <Link href={`${base}/contacts`} onClick={onNavigate} aria-label="Contacts">
+              <Link href={`${base}/contacts`} onClick={onNavigate} aria-label={t("inboxUiContacts")}>
                 <Contact />
               </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Contacts</TooltipContent>
-        </Tooltip>
+          <TooltipContent>{t("inboxUiContacts")}</TooltipContent>
+        </Tooltip>}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon-sm" asChild className="max-lg:size-10">
-              <Link href={`${base}/settings`} onClick={onNavigate} aria-label="Settings">
+              <Link href={`${base}/settings`} onClick={onNavigate} aria-label={t("inboxUiSettings")}>
                 <Settings />
               </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Settings</TooltipContent>
+          <TooltipContent>{t("inboxUiSettings")}</TooltipContent>
         </Tooltip>
       </div>
+
+      <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{locale === "it" ? "Personalizza la barra laterale" : "Customize your sidebar"}</DialogTitle>
+            <DialogDescription>
+              {locale === "it"
+                ? "Scegli cosa tenere in vista. Le voci di navigazione nascoste restano sotto Altro; le sezioni si possono riattivare qui. La scelta si sincronizza con il tuo account."
+                : "Choose what to keep in view. Hidden items remain available under More, and your choices sync with your account."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <section className="space-y-1" aria-labelledby="sidebar-items-heading">
+            <h3 id="sidebar-items-heading" className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+              {locale === "it" ? "Voci principali" : "Main navigation"}
+            </h3>
+            <p className="mb-2 text-xs text-muted-foreground">
+              {locale === "it" ? "La Posta in arrivo resta sempre visibile." : "Inbox always stays visible."}
+            </p>
+            {PRIMARY.map((item) => {
+              const customizable = CUSTOMIZABLE_BOXES.includes(item.box as CustomizableBox)
+              const workspaceDisabled = workspaceHiddenItems.includes(item.box)
+              const visible = !workspaceDisabled && !hiddenItems.includes(item.box as CustomizableBox)
+              const id = `sidebar-item-${item.box}`
+              return (
+                <div key={item.box} className="flex items-center justify-between gap-4 rounded-md px-2 py-2 hover:bg-muted/50">
+                  <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer text-[13px] font-medium">
+                    {t(boxLabel[item.box] ?? "inbox")}
+                  </label>
+                  <Switch
+                    id={id}
+                    checked={visible}
+                    disabled={!customizable || workspaceDisabled || savingSidebar}
+                    aria-label={locale === "it" ? `Mostra ${t(boxLabel[item.box] ?? "inbox")}` : `Show ${t(boxLabel[item.box] ?? "inbox")}`}
+                    onCheckedChange={(checked) => {
+                      if (!customizable) return
+                      const next = checked
+                        ? hiddenItems.filter((box) => box !== item.box)
+                        : [...hiddenItems, item.box as CustomizableBox]
+                      void saveSidebarPreferences(next, hiddenSections)
+                    }}
+                  />
+                </div>
+              )
+            })}
+          </section>
+
+          <section className="space-y-1 border-t pt-4" aria-labelledby="sidebar-sections-heading">
+            <h3 id="sidebar-sections-heading" className="mb-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+              {locale === "it" ? "Sezioni" : "Sections"}
+            </h3>
+            <p className="mb-2 text-xs text-muted-foreground">
+              {locale === "it" ? "Le sezioni nascoste spariscono dalla barra, ma puoi riattivarle da qui." : "Hidden sections disappear from the sidebar, but you can turn them back on here."}
+            </p>
+            {CUSTOMIZABLE_SECTIONS.filter((section) => section !== "chats" || org.features.chat).map((section) => {
+              const labels: Record<CustomizableSection, string> = {
+                teams: t("teams"),
+                inboxes: t("inboxes"),
+                labels: t("labels"),
+                chats: t("inboxUiChats"),
+              }
+              const workspaceDisabled = workspaceHiddenSections.includes(section)
+              const visible = !workspaceDisabled && !hiddenSections.includes(section)
+              const id = `sidebar-section-${section}`
+              return (
+                <div key={section} className="flex items-center justify-between gap-4 rounded-md px-2 py-2 hover:bg-muted/50">
+                  <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer text-[13px] font-medium">
+                    {labels[section]}
+                  </label>
+                  <Switch
+                    id={id}
+                    checked={visible}
+                    disabled={workspaceDisabled || savingSidebar}
+                    aria-label={locale === "it" ? `Mostra sezione ${labels[section]}` : `Show ${labels[section]} section`}
+                    onCheckedChange={(checked) => {
+                      const next = checked
+                        ? hiddenSections.filter((entry) => entry !== section)
+                        : [...hiddenSections, section]
+                      void saveSidebarPreferences(hiddenItems, next)
+                    }}
+                  />
+                </div>
+              )
+            })}
+          </section>
+
+          <div className="flex items-center justify-between gap-3 border-t pt-3">
+            <p className="text-xs text-muted-foreground">
+              {savingSidebar
+                ? (locale === "it" ? "Salvataggio…" : "Saving…")
+                : (locale === "it" ? "Le modifiche vengono salvate automaticamente." : "Changes are saved automatically.")}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={savingSidebar || (hiddenItems.length === 0 && hiddenSections.length === 0)}
+              onClick={() => void saveSidebarPreferences([], [])}
+            >
+              {locale === "it" ? "Ripristina" : "Reset"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

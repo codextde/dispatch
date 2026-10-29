@@ -4,19 +4,21 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import { ArrowLeft, ArrowRight, CheckCircle2, Info, MailCheck, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
-import { requestLoginCodeAction, verifyLoginCodeAction } from "@/app/login/actions"
+import { loginWithPasswordAction, requestLoginCodeAction, verifyLoginCodeAction } from "@/app/login/actions"
 import { cn } from "@/lib/utils"
+import { localizeError, useI18n } from "@/lib/i18n"
 
 const RESEND_COOLDOWN = 30
 
 export type LoginNotice = { tone: "success" | "error" | "info"; text: string }
 
 /**
- * Passwordless sign-in: email → 6-digit code (or the magic link in the same
- * email). Used by /login and by /setup ("continue setup").
+ * Sign-in supports a local password and keeps the existing magic-link flow as
+ * a recovery/fallback method.
  */
 export function LoginForm({
   next,
@@ -34,15 +36,23 @@ export function LoginForm({
   signupHint?: string
 }) {
   const [step, setStep] = useState<"email" | "code">("email")
+  const [mode, setMode] = useState<"password" | "magic">("password")
   const [email, setEmail] = useState(initialEmail)
+  const [password, setPassword] = useState("")
   const [code, setCode] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [delivered, setDelivered] = useState(true)
   const [cooldown, setCooldown] = useState(0)
   const [redirecting, setRedirecting] = useState(false)
+  const { t, locale } = useI18n()
   const [pending, startTransition] = useTransition()
   const emailRef = useRef<HTMLInputElement>(null)
   const codeRef = useRef<HTMLInputElement>(null)
+
+  function changeLocale(nextLocale: "en" | "it") {
+    document.cookie = `dispatch-locale=${nextLocale}; path=/; max-age=31536000; samesite=lax`
+    window.location.reload()
+  }
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -55,7 +65,7 @@ export function LoginForm({
     startTransition(async () => {
       const res = await requestLoginCodeAction({ email, next })
       if (!res.ok) {
-        setError(res.error)
+        setError(localizeError(res.error, locale))
         return
       }
       setEmail(res.data.email)
@@ -67,6 +77,15 @@ export function LoginForm({
     })
   }
 
+  function loginWithPassword() {
+    setError(null)
+    startTransition(async () => {
+      const res = await loginWithPasswordAction({ email, password, next })
+      if (res && !res.ok) setError(localizeError(res.error, locale))
+      else setRedirecting(true)
+    })
+  }
+
   function verify(value: string) {
     if (value.length !== 6 || pending) return
     setError(null)
@@ -74,7 +93,7 @@ export function LoginForm({
       // On success the action redirects (client-side navigation) and never returns a result
       const res = await verifyLoginCodeAction({ email, code: value, next })
       if (res && !res.ok) {
-        setError(res.error)
+        setError(localizeError(res.error, locale))
         setCode("")
         return
       }
@@ -96,18 +115,17 @@ export function LoginForm({
           <MailCheck className="size-5 text-brand" />
         </div>
         <h1 className="text-[26px] leading-tight font-semibold tracking-tight">
-          Check your email<span className="text-quiet">.</span>
+          {t("checkEmail")}<span className="text-quiet">.</span>
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          We sent an email to <span className="font-medium break-words text-foreground">{email}</span>. Enter the 6-digit code from
-          it below or click the sign-in link.
+          {locale === "it" ? "Abbiamo inviato un’email a" : "We sent an email to"} <span className="font-medium break-words text-foreground">{email}</span>. {t("codeHelp")}
         </p>
 
         {!delivered && (
           <div className="mt-5 flex gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-[13px] leading-relaxed text-amber-900 dark:text-amber-200">
             <Terminal className="mt-0.5 size-4 shrink-0" />
             <p>
-              Email delivery isn&apos;t configured yet. Your sign-in link and code were printed to the server logs (
+              {t("emailNotConfigured")} (
               <code className="font-mono text-[12px]">docker compose logs app</code>).
             </p>
           </div>
@@ -153,7 +171,7 @@ export function LoginForm({
 
           <Button type="submit" size="lg" className="mt-4 h-10 w-full rounded-md" disabled={code.length !== 6 || pending || redirecting}>
             {pending || redirecting ? <Spinner /> : null}
-            {redirecting ? "Signing you in…" : "Sign in"}
+            {redirecting ? t("signingIn") : t("signIn")}
           </Button>
         </form>
 
@@ -168,7 +186,7 @@ export function LoginForm({
               setTimeout(() => emailRef.current?.focus(), 0)
             }}
           >
-            <ArrowLeft className="size-3.5" /> Use a different email
+            <ArrowLeft className="size-3.5" /> {t("useDifferentEmail")}
           </button>
           <button
             type="button"
@@ -176,7 +194,7 @@ export function LoginForm({
             className="rounded-sm font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring disabled:font-normal disabled:text-muted-foreground disabled:no-underline"
             onClick={() => requestCode({ resend: true })}
           >
-            {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
+            {cooldown > 0 ? `${t("resendIn")} ${cooldown}s` : t("resendCode")}
           </button>
         </div>
       </div>
@@ -190,23 +208,27 @@ export function LoginForm({
   return (
     <div>
       {notice && <NoticeBanner notice={notice} />}
-      <div className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Sign in</div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{t("signIn")}</div>
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="sr-only">{t("language")}</span>
+          <select value={locale} onChange={(e) => changeLocale(e.target.value as "en" | "it")} className="rounded-md border bg-card px-2 py-1 text-xs text-foreground outline-none focus:ring-2 focus:ring-ring">
+            <option value="en">English</option>
+            <option value="it">Italiano</option>
+          </select>
+        </label>
+      </div>
       <h1 className="text-[26px] leading-tight font-semibold tracking-tight text-balance">
-        Welcome back<span className="text-quiet">. Let&apos;s get you to your inbox.</span>
+        {t("welcome")}
       </h1>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        No passwords here. Enter your email and we&apos;ll send you a sign-in link and code.
-      </p>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("signInHelp")}</p>
 
       <form
         className="mt-7"
-        onSubmit={(e) => {
-          e.preventDefault()
-          requestCode()
-        }}
+        onSubmit={(e) => { e.preventDefault(); mode === "password" ? loginWithPassword() : requestCode() }}
       >
         <Label htmlFor="login-email" className="mb-1.5 text-[13px]">
-          Work email
+          {t("workEmail")}
         </Label>
         <Input
           ref={emailRef}
@@ -219,7 +241,7 @@ export function LoginForm({
           spellCheck={false}
           required
           autoFocus
-          placeholder="you@company.com"
+          placeholder={t("emailPlaceholder")}
           value={email}
           onChange={(e) => {
             setEmail(e.target.value)
@@ -229,13 +251,37 @@ export function LoginForm({
           aria-describedby={error ? "login-error" : undefined}
           className="h-10 bg-card"
         />
+        {mode === "password" && (
+          <>
+            <Label htmlFor="login-password" className="mb-1.5 mt-4 text-[13px]">{t("password")}</Label>
+            <PasswordInput
+              id="login-password"
+              name="password"
+              showLabel={t("showPassword")}
+              hideLabel={t("hidePassword")}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); if (error) setError(null) }}
+              className="h-10 bg-card"
+            />
+          </>
+        )}
         {error && <ErrorText id="login-error">{error}</ErrorText>}
         <Button type="submit" size="lg" className="mt-3 h-10 w-full rounded-md" disabled={pending || !email.trim()}>
           {pending ? <Spinner /> : null}
-          Continue with email
+          {mode === "password" ? t("continue") : t("sendCode")}
           {!pending && <ArrowRight />}
         </Button>
       </form>
+
+      <button
+        type="button"
+        className="mt-4 w-full text-center text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        onClick={() => { setMode(mode === "password" ? "magic" : "password"); setError(null) }}
+      >
+        {mode === "password" ? t("useCode") : t("usePassword")}
+      </button>
 
       {hasProviders && (
         <>
@@ -248,14 +294,14 @@ export function LoginForm({
             {providers?.google && (
               <Button asChild variant="outline" size="lg" className="h-10 rounded-md bg-card">
                 <a href={oauthHref("google")}>
-                  <GoogleIcon /> Continue with Google
+                  <GoogleIcon /> {t("continueWithGoogle")}
                 </a>
               </Button>
             )}
             {providers?.microsoft && (
               <Button asChild variant="outline" size="lg" className="h-10 rounded-md bg-card">
                 <a href={oauthHref("microsoft")}>
-                  <MicrosoftIcon /> Continue with Microsoft
+                  <MicrosoftIcon /> {t("continueWithMicrosoft")}
                 </a>
               </Button>
             )}
@@ -267,7 +313,7 @@ export function LoginForm({
         <p className="mt-6 flex gap-2 text-xs leading-relaxed text-muted-foreground">
           <Info className="mt-px size-3.5 shrink-0" />
           <span>
-            Email delivery isn&apos;t configured yet. Your sign-in link and code will be printed to the server logs (
+            {t("emailNotConfigured")} (
             <code className="font-mono">docker compose logs app</code>).
           </span>
         </p>

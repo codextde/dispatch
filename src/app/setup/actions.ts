@@ -20,6 +20,7 @@ import {
   verifySetupCode,
 } from "@/server/setup"
 import { establishSession } from "@/app/login/complete-login"
+import { PASSWORD_MIN_LENGTH } from "@/server/auth/password"
 
 async function auditSetup(userId: string, email: string, actionName: string, metadata: Record<string, unknown> = {}) {
   const meta = await getRequestMeta()
@@ -42,8 +43,9 @@ export const createOwnerAction = action(
     setupCode: z.string().max(40).optional(),
     name: z.string().trim().min(1, "Enter your name").max(80),
     email: emailSchema,
+    password: z.string().min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`).max(4000),
   }),
-  async ({ setupCode, name, email }) => {
+  async ({ setupCode, name, email, password }) => {
     const status = await getSetupStatus()
     if (status.completed) throw new ApiError(403, "Setup has already been completed.")
     if (status.hasSuperAdmin) throw new ApiError(409, "An instance owner already exists. Sign in to continue setup.")
@@ -58,7 +60,7 @@ export const createOwnerAction = action(
 
     let user
     try {
-      user = await createFirstSuperAdmin({ name, email })
+      user = await createFirstSuperAdmin({ name, email, password })
     } catch (err) {
       if (err instanceof SetupError) throw new ApiError(409, err.message)
       throw err

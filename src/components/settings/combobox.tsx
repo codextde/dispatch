@@ -6,6 +6,7 @@ import { ChevronsUpDown, X } from "lucide-react"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { localizeDictionaryText, useI18n } from "@/lib/i18n"
 
 export type ComboOption = {
   value: string
@@ -58,6 +59,7 @@ export function Combobox({
   "aria-invalid"?: boolean
   contentClassName?: string
 }) {
+  const { locale } = useI18n()
   const [open, setOpen] = useState(false)
   const listId = useId()
   const selected = options.find((o) => o.value === value)
@@ -76,14 +78,14 @@ export function Combobox({
         >
           <span className={cn("flex min-w-0 items-center gap-2 truncate", !selected && "text-muted-foreground")}>
             {selected?.icon}
-            <span className="truncate">{selected?.label ?? placeholder}</span>
+            <span className="truncate">{selected?.label ?? localizeDictionaryText(placeholder, locale)}</span>
           </span>
           <span className="flex shrink-0 items-center gap-1">
             {clearable && selected && (
               <span
                 role="button"
                 tabIndex={-1}
-                aria-label="Clear"
+                aria-label={localizeDictionaryText("Clear", locale) as string}
                 className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -99,9 +101,9 @@ export function Combobox({
       </PopoverTrigger>
       <PopoverContent id={listId} className={cn("w-(--radix-popover-trigger-width) min-w-56 p-0", contentClassName)} align="start">
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+          <CommandInput placeholder={localizeDictionaryText(searchPlaceholder, locale) as string} />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>{localizeDictionaryText(emptyText, locale)}</CommandEmpty>
             {groupOptions(options).map(([group, opts]) => (
               <CommandGroup key={group || "_"} heading={group || undefined}>
                 {opts.map((o) => (
@@ -153,6 +155,7 @@ export function MultiCombobox({
   disabled?: boolean
   maxChips?: number
 }) {
+  const { locale } = useI18n()
   const [open, setOpen] = useState(false)
   const listId = useId()
   const selected = value.map((v) => options.find((o) => o.value === v)).filter(Boolean) as ComboOption[]
@@ -170,7 +173,7 @@ export function MultiCombobox({
           className={cn(triggerClass, "h-auto", className)}
         >
           <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-            {selected.length === 0 && <span className="text-muted-foreground">{placeholder}</span>}
+            {selected.length === 0 && <span className="text-muted-foreground">{localizeDictionaryText(placeholder, locale)}</span>}
             {selected.slice(0, maxChips).map((o) => (
               <span
                 key={o.value}
@@ -181,7 +184,7 @@ export function MultiCombobox({
                 <span
                   role="button"
                   tabIndex={-1}
-                  aria-label={`Remove ${o.label}`}
+                  aria-label={localizeDictionaryText(`Remove ${o.label}`, locale) as string}
                   className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation()
@@ -193,7 +196,7 @@ export function MultiCombobox({
               </span>
             ))}
             {selected.length > maxChips && (
-              <span className="text-xs text-muted-foreground">+{selected.length - maxChips} more</span>
+              <span className="text-xs text-muted-foreground">+{selected.length - maxChips} {locale === "it" ? "altri" : "more"}</span>
             )}
           </span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
@@ -201,9 +204,9 @@ export function MultiCombobox({
       </PopoverTrigger>
       <PopoverContent id={listId} className="w-(--radix-popover-trigger-width) min-w-56 p-0" align="start">
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+          <CommandInput placeholder={localizeDictionaryText(searchPlaceholder, locale) as string} />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>{localizeDictionaryText(emptyText, locale)}</CommandEmpty>
             {groupOptions(options).map(([group, opts]) => (
               <CommandGroup key={group || "_"} heading={group || undefined}>
                 {opts.map((o) => (

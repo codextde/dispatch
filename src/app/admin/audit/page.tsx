@@ -38,7 +38,8 @@ function one(v: string | string[] | undefined) {
 }
 
 export default async function AdminAuditPage({ searchParams }: PageProps<"/admin/audit">) {
-  await requireSuperAdminPage()
+  const { user } = await requireSuperAdminPage()
+  const it = user.locale === "it"
   const sp = await searchParams
   const filters = {
     orgId: one(sp.org) ?? null,
@@ -87,10 +88,10 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
   return (
     <>
       <AdminPageHeader
-        eyebrow="Operations"
-        title="Audit log"
-        quiet="Every sign-in and admin action."
-        description="Instance-level events and activity from every workspace, newest first. Secret values are never recorded."
+        eyebrow={it ? "Operazioni" : "Operations"}
+        title={it ? "Registro attività" : "Audit log"}
+        quiet={it ? "Ogni accesso e azione amministrativa." : "Every sign-in and admin action."}
+        description={it ? "Eventi dell’istanza e attività di tutti i workspace, dal più recente. I valori segreti non vengono mai registrati." : "Instance-level events and activity from every workspace, newest first. Secret values are never recorded."}
       />
 
       <AuditFilters workspaces={options.workspaces} suggestions={[...options.prefixes, ...options.actions]} />
@@ -99,19 +100,19 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
         <div className="rounded-lg border border-border bg-card">
           <EmptyState
             icon={ScrollText}
-            title={filtered ? "No events match these filters" : "No audit events yet"}
+            title={filtered ? (it ? "Nessun evento corrisponde ai filtri" : "No events match these filters") : (it ? "Nessun evento registrato" : "No audit events yet")}
             description={
               filtered
-                ? "Try a broader date range or a shorter action prefix."
-                : "Sign-ins, settings changes and admin actions will appear here."
+                ? (it ? "Prova un intervallo di date più ampio o un prefisso azione più breve." : "Try a broader date range or a shorter action prefix.")
+                : (it ? "Qui compariranno accessi, modifiche alle impostazioni e azioni amministrative." : "Sign-ins, settings changes and admin actions will appear here.")
             }
           />
         </div>
       ) : (
         <>
           <p className="mb-2 text-[13px] text-muted-foreground" aria-live="polite">
-            {formatNumber(events.total)} {events.total === 1 ? "event" : "events"}
-            {filtered ? " match" : " recorded"}
+            {formatNumber(events.total)} {it ? (events.total === 1 ? "evento" : "eventi") : (events.total === 1 ? "event" : "events")}
+            {filtered ? (it ? " corrispondenti" : " match") : (it ? " registrati" : " recorded")}
           </p>
           <AuditTable rows={rows} />
           <Pager page={events.page} pageSize={events.pageSize} total={events.total} />

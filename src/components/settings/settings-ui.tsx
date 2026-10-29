@@ -6,6 +6,42 @@ import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { cn } from "@/lib/utils"
+import { localizeDictionaryText, useI18n } from "@/lib/i18n"
+
+const SETTINGS_LABEL_KEYS = {
+  Personal: "personal",
+  Workspace: "workspace",
+  Productivity: "productivity",
+  Administration: "administration",
+  Profile: "profile",
+  Preferences: "preferences",
+  Notifications: "notifications",
+  Security: "security",
+  "Security & devices": "security",
+  "My inboxes": "myInboxes",
+  General: "general",
+  Members: "members",
+  Teams: "teams",
+  "Roles & permissions": "roles",
+  Inboxes: "inboxes",
+  "Shared inboxes": "inboxes",
+  Labels: "labels",
+  "Canned responses": "responses",
+  Signatures: "signatures",
+  Rules: "rules",
+  "API & webhooks": "integrations",
+  Billing: "billing",
+  "Audit log": "auditLog",
+  Analytics: "analytics",
+} as const
+
+type SettingsLabelKey = (typeof SETTINGS_LABEL_KEYS)[keyof typeof SETTINGS_LABEL_KEYS]
+
+function localizeSettingsLabel(value: React.ReactNode, locale: string, t: (key: SettingsLabelKey) => string) {
+  if (locale !== "it" || typeof value !== "string") return value
+  const key = SETTINGS_LABEL_KEYS[value as keyof typeof SETTINGS_LABEL_KEYS]
+  return key ? t(key) : localizeDictionaryText(value, locale as "en" | "it")
+}
 
 /**
  * Building blocks for settings pages. Page pattern:
@@ -17,12 +53,15 @@ import { cn } from "@/lib/utils"
  *   </SettingsPage>
  */
 
-export function MicroLabel({ className, ...props }: React.ComponentProps<"span">) {
+export function MicroLabel({ className, children, ...props }: React.ComponentProps<"span">) {
+  const { locale } = useI18n()
   return (
     <span
       className={cn("font-mono text-[11px] font-medium tracking-wider text-muted-foreground uppercase", className)}
       {...props}
-    />
+    >
+      {localizeDictionaryText(children, locale)}
+    </span>
   )
 }
 
@@ -46,6 +85,7 @@ export function SettingsPage({
   className?: string
   width?: "default" | "wide" | "full"
 }) {
+  const { locale, t } = useI18n()
   return (
     <div
       className={cn(
@@ -58,12 +98,12 @@ export function SettingsPage({
     >
       <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          {eyebrow && <MicroLabel className="mb-2 block">{eyebrow}</MicroLabel>}
+          {eyebrow && <MicroLabel className="mb-2 block">{localizeSettingsLabel(eyebrow, locale, t)}</MicroLabel>}
           <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-[28px] sm:leading-tight">
-            {title}
-            {quiet && <span className="text-quiet"> {quiet}</span>}
+            {localizeSettingsLabel(title, locale, t)}
+            {quiet && <span className="text-quiet"> {localizeSettingsLabel(quiet, locale, t)}</span>}
           </h1>
-          {description && <p className="mt-2 max-w-2xl text-sm text-pretty text-muted-foreground">{description}</p>}
+          {description && <p className="mt-2 max-w-2xl text-sm text-pretty text-muted-foreground">{localizeSettingsLabel(description, locale, t)}</p>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
       </header>
@@ -97,6 +137,7 @@ export function SettingsSection({
   /** Remove body padding (for tables and lists that bleed to the edges) */
   flush?: boolean
 }) {
+  const { locale, t } = useI18n()
   return (
     <section
       id={id}
@@ -110,9 +151,9 @@ export function SettingsSection({
         <div className={cn("flex flex-col gap-3 px-5 pt-5 sm:flex-row sm:items-start sm:justify-between", !children && "pb-5")}>
           <div className="min-w-0">
             {title && (
-              <h2 className={cn("text-[15px] font-semibold tracking-tight", tone === "danger" && "text-destructive")}>{title}</h2>
+                <h2 className={cn("text-[15px] font-semibold tracking-tight", tone === "danger" && "text-destructive")}>{localizeSettingsLabel(title, locale, t)}</h2>
             )}
-            {description && <p className="mt-1 text-[13px] text-pretty text-muted-foreground">{description}</p>}
+            {description && <p className="mt-1 text-[13px] text-pretty text-muted-foreground">{localizeSettingsLabel(description, locale, t)}</p>}
           </div>
           {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
         </div>
@@ -158,6 +199,7 @@ export function SettingsRow({
   className?: string
   align?: "center" | "start"
 }) {
+  const { locale, t } = useI18n()
   return (
     <div
       className={cn(
@@ -169,12 +211,12 @@ export function SettingsRow({
       <div className="min-w-0 sm:max-w-[60%]">
         {htmlFor ? (
           <label htmlFor={htmlFor} className="text-sm font-medium">
-            {label}
+            {localizeSettingsLabel(label, locale, t)}
           </label>
         ) : (
-          <div className="text-sm font-medium">{label}</div>
+          <div className="text-sm font-medium">{localizeSettingsLabel(label, locale, t)}</div>
         )}
-        {description && <div className="mt-0.5 text-[13px] text-pretty text-muted-foreground">{description}</div>}
+        {description && <div className="mt-0.5 text-[13px] text-pretty text-muted-foreground">{localizeSettingsLabel(description, locale, t)}</div>}
       </div>
       {children !== undefined && <div className="flex shrink-0 items-center gap-2 sm:justify-end">{children}</div>}
     </div>
@@ -204,19 +246,20 @@ export function FormField({
   children: React.ReactNode
   className?: string
 }) {
+  const { t, locale } = useI18n()
   return (
     <div className={cn("flex flex-col gap-1.5", className)} data-invalid={error ? true : undefined}>
       <label htmlFor={htmlFor} className="flex items-baseline gap-1.5 text-[13px] font-medium">
-        {label}
-        {optional && <span className="text-xs font-normal text-muted-foreground">Optional</span>}
+        {localizeDictionaryText(label, locale)}
+        {optional && <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>}
       </label>
       {children}
       {error ? (
         <p role="alert" className="text-xs text-destructive">
-          {error}
+          {localizeDictionaryText(error, locale)}
         </p>
       ) : description ? (
-        <p className="text-xs text-pretty text-muted-foreground">{description}</p>
+        <p className="text-xs text-pretty text-muted-foreground">{localizeDictionaryText(description, locale)}</p>
       ) : null}
     </div>
   )
@@ -231,8 +274,8 @@ export function SaveBar({
   pending,
   onSave,
   onReset,
-  label = "You have unsaved changes",
-  saveLabel = "Save changes",
+  label,
+  saveLabel,
 }: {
   dirty: boolean
   pending?: boolean
@@ -241,6 +284,7 @@ export function SaveBar({
   label?: string
   saveLabel?: string
 }) {
+  const { t } = useI18n()
   return (
     <AnimatePresence>
       {dirty && (
@@ -253,22 +297,22 @@ export function SaveBar({
         >
           <div
             role="region"
-            aria-label="Unsaved changes"
+            aria-label={label ?? t("unsavedChanges")}
             className="pointer-events-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-xl border bg-popover/95 py-2 pr-2 pl-4 shadow-lg ring-1 ring-black/5 backdrop-blur supports-backdrop-filter:bg-popover/80"
           >
             <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium">
               <span className="size-1.5 shrink-0 animate-pulse-dot rounded-full bg-warning" aria-hidden />
-              <span className="truncate">{label}</span>
+              <span className="truncate">{label ?? t("unsavedChanges")}</span>
             </span>
             <div className="flex shrink-0 items-center gap-1.5">
               {onReset && (
                 <Button variant="ghost" size="sm" onClick={onReset} disabled={pending}>
-                  Reset
+                  {t("reset")}
                 </Button>
               )}
               <Button size="sm" onClick={onSave} disabled={pending}>
                 {pending && <Loader2 className="animate-spin" />}
-                {saveLabel}
+                {saveLabel ?? t("saveChanges")}
               </Button>
             </div>
           </div>
@@ -291,12 +335,13 @@ export function EmptyState({
   children?: React.ReactNode
   className?: string
 }) {
+  const { locale } = useI18n()
   return (
     <Empty className={cn("border border-dashed bg-surface/40 py-10", className)}>
       <EmptyHeader>
         {icon && <EmptyMedia variant="icon">{icon}</EmptyMedia>}
-        <EmptyTitle>{title}</EmptyTitle>
-        {description && <EmptyDescription>{description}</EmptyDescription>}
+        <EmptyTitle>{localizeDictionaryText(title, locale)}</EmptyTitle>
+        {description && <EmptyDescription>{localizeDictionaryText(description, locale)}</EmptyDescription>}
       </EmptyHeader>
       {children && <EmptyContent>{children}</EmptyContent>}
     </Empty>
@@ -326,6 +371,7 @@ export function StatusBadge({
   className?: string
   pulse?: boolean
 }) {
+  const { locale } = useI18n()
   const tones = {
     success: "bg-success/10 text-[color-mix(in_oklch,var(--success),var(--foreground)_35%)] ring-success/25",
     warning: "bg-warning/15 text-[color-mix(in_oklch,var(--warning),var(--foreground)_50%)] ring-warning/30",
@@ -349,7 +395,7 @@ export function StatusBadge({
       )}
     >
       <span className={cn("size-1.5 rounded-full", dots[tone], pulse && "animate-pulse-dot")} aria-hidden />
-      {children}
+      {localizeDictionaryText(children, locale)}
     </span>
   )
 }

@@ -8,7 +8,7 @@ const rank: Record<AccessLevel, number> = { read: 1, reply: 2, manage: 3 }
 const max = (a: AccessLevel | undefined, b: AccessLevel): AccessLevel => (!a || rank[b] > rank[a] ? b : a)
 
 /** Who is looking: only ids and permissions matter (so recipients can be checked without a session). */
-type Ctx = { org: Pick<OrgContext["org"], "id">; user: Pick<OrgContext["user"], "id">; permissions: Set<string> }
+type Ctx = { org: Pick<OrgContext["org"], "id"> & Partial<Pick<OrgContext["org"], "settings">>; user: Pick<OrgContext["user"], "id">; permissions: Set<string> }
 
 /**
  * Inbox (email account) access for a user in a workspace.
@@ -90,24 +90,23 @@ export async function getAccountAccess(ctx: Ctx): Promise<Map<string, AccessLeve
 export function visibleConversationsWhere(ctx: Ctx, accountIds: string[]): SQL {
   const c = schema.conversations
   const userId = ctx.user.id
+  const emailVisibility = and(
+    ne(c.kind, "chat"),
+    or(gt(c.messageCount, 0), eq(c.createdBy, userId)),
+    or(
+      accountIds.length ? inArray(c.accountId, accountIds) : sql`false`,
+      sql`exists (select 1 from conversation_assignees ca where ca.conversation_id = ${c.id} and ca.user_id = ${userId} and ca.assigned_by is distinct from ${userId}::uuid)`,
+      and(isNull(c.accountId), eq(c.createdBy, userId)),
+      sql`exists (select 1 from comments cm where cm.conversation_id = ${c.id} and cm.deleted_at is null and ${userId}::uuid = any(cm.mentions) and cm.author_id is distinct from ${userId}::uuid)`
+    )
+  )!
+  const chatEnabled = ctx.org.settings?.features?.chat !== false
   return and(
     eq(c.orgId, ctx.org.id),
     isNull(c.mergedIntoId),
-    or(
-      and(eq(c.kind, "chat"), sql`${userId}::uuid = any(${c.chatMemberIds})`),
-      and(
-        ne(c.kind, "chat"),
-        or(gt(c.messageCount, 0), eq(c.createdBy, userId)),
-        or(
-          accountIds.length ? inArray(c.accountId, accountIds) : sql`false`,
-          // Assigned by someone else (or a rule/auto-assignment). Self-assignments don't outlive revoked inbox access.
-          sql`exists (select 1 from conversation_assignees ca where ca.conversation_id = ${c.id} and ca.user_id = ${userId} and ca.assigned_by is distinct from ${userId}::uuid)`,
-          // Explicit share by *someone else* (self-mentions must not preserve revoked access)
-          sql`exists (select 1 from comments cm where cm.conversation_id = ${c.id} and cm.deleted_at is null and ${userId}::uuid = any(cm.mentions) and cm.author_id is distinct from ${userId}::uuid)`,
-          and(isNull(c.accountId), eq(c.createdBy, userId))
-        )
-      )
-    )
+    chatEnabled
+      ? or(and(eq(c.kind, "chat"), sql`${userId}::uuid = any(${c.chatMemberIds})`), emailVisibility)
+      : emailVisibility
   )!
 }
 

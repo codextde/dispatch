@@ -146,6 +146,34 @@ export const updateConversationBehaviour = action(
   }
 )
 
+export const updateWorkspaceFeatures = action(
+  z.object({ slug, chat: z.boolean() }),
+  async ({ slug: s, chat }) => {
+    const ctx = await workspaceAction(s, "settings.manage")
+    await patchOrgSettings(ctx.org.id, (cur) => ({ ...cur, features: { ...cur.features, chat } }))
+    await auditAction(ctx, "settings.updated", { type: "organization", id: ctx.org.id }, { section: "features", chat })
+    await publish({ orgId: ctx.org.id, type: "org.updated", actorId: ctx.user.id })
+    revalidateWorkspace()
+    return { chat }
+  }
+)
+
+export const updateWorkspaceNavigation = action(
+  z.object({ slug, hiddenItems: z.array(z.string()).max(20), hiddenSections: z.array(z.string()).max(20) }),
+  async ({ slug: s, hiddenItems, hiddenSections }) => {
+    const ctx = await workspaceAction(s, "settings.manage")
+    const allowedItems = new Set(["assigned", "mentions", "starred", "snoozed", "drafts", "scheduled", "sent"])
+    const allowedSections = new Set(["teams", "inboxes", "labels", "chats", "tasks", "contacts"])
+    const items = [...new Set(hiddenItems)].filter((item) => allowedItems.has(item))
+    const sections = [...new Set(hiddenSections)].filter((section) => allowedSections.has(section))
+    await patchOrgSettings(ctx.org.id, (cur) => ({ ...cur, navigation: { hiddenItems: items, hiddenSections: sections } }))
+    await auditAction(ctx, "settings.updated", { type: "organization", id: ctx.org.id }, { section: "navigation", hiddenItems: items, hiddenSections: sections })
+    await publish({ orgId: ctx.org.id, type: "org.updated", actorId: ctx.user.id })
+    revalidateWorkspace()
+    return { hiddenItems: items, hiddenSections: sections }
+  }
+)
+
 export const updateBusinessHours = action(
   z.object({
     slug,

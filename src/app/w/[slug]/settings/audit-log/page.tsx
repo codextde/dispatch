@@ -24,10 +24,10 @@ export default async function AuditLogPage({ params, searchParams }: PageProps<"
 
   return (
     <SettingsPage
-      eyebrow="Administration"
-      title="Audit log"
-      quiet="— who changed what, and when."
-      description="Security-relevant events in this workspace: members, roles, inboxes, integrations, billing and settings."
+      eyebrow={ctx.user.locale === "it" ? "Amministrazione" : "Administration"}
+      title={ctx.user.locale === "it" ? "Registro attività" : "Audit log"}
+      quiet={ctx.user.locale === "it" ? "— chi ha cambiato cosa e quando." : "— who changed what, and when."}
+      description={ctx.user.locale === "it" ? "Eventi rilevanti per la sicurezza di questo workspace: membri, ruoli, caselle, integrazioni, fatturazione e impostazioni." : "Security-relevant events in this workspace: members, roles, inboxes, integrations, billing and settings."}
       width="wide"
     >
       <AuditLog

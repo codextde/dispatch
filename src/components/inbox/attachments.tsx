@@ -8,6 +8,7 @@ import { formatBytes } from "@/lib/inbox/format"
 import type { AttachmentInfo } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import type { UploadItem } from "./composer/use-uploads"
+import { useI18n } from "@/lib/i18n"
 
 const IMAGE_RE = /^image\/(png|jpe?g|gif|webp|avif|bmp)$/
 export const isPreviewableImage = (a: Pick<AttachmentInfo, "contentType">) => IMAGE_RE.test(a.contentType)
@@ -21,6 +22,7 @@ function FileIcon({ type, className }: { type: string; className?: string }) {
 
 /** Attachments of a message or comment: image thumbnails (lightbox), PDF preview, downloads. */
 export function AttachmentList({ attachments, className }: { attachments: AttachmentInfo[]; className?: string }) {
+  const { locale } = useI18n()
   const [preview, setPreview] = useState<AttachmentInfo | null>(null)
   const visible = attachments.filter((a) => !a.isInline)
   if (!visible.length) return null
@@ -56,7 +58,7 @@ export function AttachmentList({ attachments, className }: { attachments: Attach
               </Button>
             )}
             <Button variant="ghost" size="icon-xs" asChild>
-              <a href={a.url} download={a.filename} aria-label={`Download ${a.filename}`}>
+              <a href={a.url} download={a.filename} aria-label={`${locale === "it" ? "Scarica" : "Download"} ${a.filename}`}>
                 <Download />
               </a>
             </Button>
@@ -67,7 +69,7 @@ export function AttachmentList({ attachments, className }: { attachments: Attach
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent className="max-h-[92dvh] w-auto max-w-[min(92vw,1100px)] gap-2 p-2 sm:max-w-[min(92vw,1100px)]">
           <DialogTitle className="truncate px-1 pr-10 text-sm">{preview?.filename}</DialogTitle>
-          <DialogDescription className="sr-only">Image preview</DialogDescription>
+          <DialogDescription className="sr-only">{locale === "it" ? "Anteprima immagine" : "Image preview"}</DialogDescription>
           {preview && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element -- authenticated same-origin file */}
@@ -75,7 +77,7 @@ export function AttachmentList({ attachments, className }: { attachments: Attach
               <div className="flex justify-end gap-2 px-1 pb-1">
                 <Button variant="outline" size="sm" asChild>
                   <a href={preview.url} download={preview.filename}>
-                    <Download /> Download
+                    <Download /> {locale === "it" ? "Scarica" : "Download"}
                   </a>
                 </Button>
               </div>

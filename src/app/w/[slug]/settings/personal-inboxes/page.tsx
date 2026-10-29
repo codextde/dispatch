@@ -17,10 +17,10 @@ export default async function PersonalInboxesPage({ params, searchParams }: Page
 
   return (
     <SettingsPage
-      eyebrow="Personal"
-      title="My inboxes"
-      quiet="private to you"
-      description={`Connect your own mailboxes to ${ctx.org.name}. Their conversations are only visible to you — you can still assign, comment and share individual threads.`}
+      eyebrow={ctx.user.locale === "it" ? "Personale" : "Personal"}
+      title={ctx.user.locale === "it" ? "Le mie caselle" : "My inboxes"}
+      quiet={ctx.user.locale === "it" ? "visibili solo a te" : "private to you"}
+      description={ctx.user.locale === "it" ? `Collega le tue caselle a ${ctx.org.name}. Le relative conversazioni saranno visibili solo a te: potrai comunque assegnare, commentare e condividere singoli thread.` : `Connect your own mailboxes to ${ctx.org.name}. Their conversations are only visible to you — you can still assign, comment and share individual threads.`}
       actions={inboxes.length > 0 ? <ConnectInboxWizard options={options} /> : undefined}
     >
       <ConnectResultBanner

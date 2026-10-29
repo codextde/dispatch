@@ -3,6 +3,7 @@
 import { useCallback, useState, useTransition } from "react"
 import { toast } from "sonner"
 import type { ActionResult } from "@/server/action"
+import { localizeError, useI18n } from "@/lib/i18n"
 
 export type { ActionResult }
 
@@ -23,6 +24,7 @@ type RunOptions<T> = {
  *   run(() => updateLabel({ slug, id, name }), { success: "Label saved" })
  */
 export function useServerAction() {
+  const { locale } = useI18n()
   const [pending, startTransition] = useTransition()
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
@@ -43,13 +45,14 @@ export function useServerAction() {
             opts.onSuccess?.(res.data)
           } else {
             setFieldErrors(res.fieldErrors ?? {})
-            if (!opts.silentError) toast.error(res.error)
-            opts.onError?.(res.error, res.fieldErrors)
+            const message = localizeError(res.error, locale)
+            if (!opts.silentError) toast.error(message)
+            opts.onError?.(message, res.fieldErrors)
           }
           resolve(res)
         })
       }),
-    []
+    [locale]
   )
 
   return { pending, run, fieldErrors, setFieldErrors }

@@ -37,10 +37,10 @@ export default async function InboxesPage({ params, searchParams }: PageProps<"/
 
   return (
     <SettingsPage
-      eyebrow="Workspace"
-      title="Shared inboxes"
-      quiet="your team works from"
-      description="Connect team mailboxes over IMAP/SMTP or with Google and Microsoft, and decide who can see and reply to each one."
+      eyebrow={ctx.user.locale === "it" ? "Workspace" : "Workspace"}
+      title={ctx.user.locale === "it" ? "Caselle condivise" : "Shared inboxes"}
+      quiet={ctx.user.locale === "it" ? "da cui lavora il team" : "your team works from"}
+      description={ctx.user.locale === "it" ? "Collega le caselle del team tramite IMAP/SMTP, Google o Microsoft e scegli chi può visualizzarle e rispondere." : "Connect team mailboxes over IMAP/SMTP or with Google and Microsoft, and decide who can see and reply to each one."}
       actions={inboxes.length > 0 ? <ConnectInboxWizard options={options} /> : undefined}
     >
       <ConnectResultBanner

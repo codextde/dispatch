@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTheme } from "next-themes"
 import { Ellipsis } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 /**
  * Renders sanitized email HTML in a sandboxed iframe:
@@ -45,6 +46,7 @@ blockquote[type=cite],.dispatch-quote blockquote{margin:.4em 0 0 .6ex;border-lef
 }
 
 export function MessageFrame({ html, simple, className, title = "Email message" }: { html: string; simple: boolean; className?: string; title?: string }) {
+  const { t } = useI18n()
   const { resolvedTheme } = useTheme()
   const dark = simple && resolvedTheme === "dark"
   const ref = useRef<HTMLIFrameElement>(null)
@@ -124,7 +126,7 @@ export function MessageFrame({ html, simple, className, title = "Email message" 
           type="button"
           onClick={toggleQuote}
           aria-expanded={showQuote}
-          aria-label={showQuote ? "Hide quoted text" : "Show quoted text"}
+          aria-label={t(showQuote ? "messageHideQuote" : "messageShowQuote")}
           className={cn(
             "mt-1 flex h-4 items-center rounded-full px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring",
             simple ? "bg-muted text-muted-foreground hover:bg-accent" : "bg-neutral-200 text-neutral-600 hover:bg-neutral-300"

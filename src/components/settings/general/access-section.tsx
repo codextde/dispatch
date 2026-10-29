@@ -9,6 +9,7 @@ import { ColorDot, FormField, SectionFooter, SettingsRow, SettingsRows, Settings
 import { useServerAction } from "@/components/settings/use-server-action"
 import { DomainChips } from "@/components/settings/general/domain-chips"
 import { updateWorkspaceAccess } from "@/server/workspace/actions/general"
+import { useI18n } from "@/lib/i18n"
 
 type Access = { allowedDomains: string[]; autoJoinDomains: boolean; requireDomainForInvites: boolean; defaultRoleId: string }
 
@@ -29,6 +30,8 @@ export function AccessSection({
   /** SaaS mode: domains also need the instance administrator's approval */
   approvalRequired?: boolean
 }) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
   const [saved, setSaved] = useState(initial)
   const [form, setForm] = useState(initial)
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
@@ -39,13 +42,13 @@ export function AccessSection({
 
   return (
     <SettingsSection
-      title="Joining the workspace"
-      description="Control who can join and which role new members get."
+      title={it ? "Accesso al workspace" : "Joining the workspace"}
+      description={it ? "Scegli chi può entrare e quale ruolo ricevono i nuovi membri." : "Control who can join and which role new members get."}
       footer={
         <SectionFooter>
           {dirty && (
             <Button variant="ghost" size="sm" onClick={() => setForm(saved)} disabled={pending}>
-              Reset
+              {t("reset")}
             </Button>
           )}
           <Button
@@ -53,7 +56,7 @@ export function AccessSection({
             disabled={!dirty || pending}
             onClick={() =>
               run(() => updateWorkspaceAccess({ slug, ...form }), {
-                success: "Access settings saved",
+                success: t("genAccessSaved"),
                 onSuccess: (d) => {
                   const next = { ...form, allowedDomains: d.allowedDomains }
                   setForm(next)
@@ -63,39 +66,39 @@ export function AccessSection({
             }
           >
             {pending && <Loader2 className="animate-spin" />}
-            Save
+            {t("saveChanges")}
           </Button>
         </SectionFooter>
       }
     >
       <div className="flex flex-col gap-5">
         <FormField
-          label="Company email domains"
+          label={it ? "Domini email aziendali" : "Company email domains"}
           htmlFor="domains"
-          description="Type a domain and press Enter. Used for auto-join and invitation restrictions below."
+          description={it ? "Inserisci un dominio e premi Invio. Verrà usato per l’accesso automatico e per limitare gli inviti qui sotto." : "Type a domain and press Enter. Used for auto-join and invitation restrictions below."}
         >
           <DomainChips id="domains" value={form.allowedDomains} flagged={flagged} onChange={(allowedDomains) => setForm({ ...form, allowedDomains })} />
         </FormField>
         {flagged.length > 0 && form.autoJoinDomains && (
           <p className="-mt-3 flex items-start gap-1.5 text-xs text-[color-mix(in_oklch,var(--warning),var(--foreground)_45%)]">
             <AlertTriangle className="mt-px size-3.5 shrink-0" />
-            {flagged.join(", ")} {flagged.length === 1 ? "is a public email provider" : "are public email providers"} — auto-join would let
-            anyone in. Remove {flagged.length === 1 ? "it" : "them"} or turn auto-join off.
+            {(flagged.length === 1 ? t("genPublicDomainOne") : t("genPublicDomainMany"))
+              .replace("{domain}", flagged[0] ?? "")
+              .replace("{domains}", flagged.join(", "))}
           </p>
         )}
         {unverified.length > 0 && form.autoJoinDomains && (
           <p className="-mt-3 flex items-start gap-1.5 text-xs text-[color-mix(in_oklch,var(--warning),var(--foreground)_45%)]">
             <AlertTriangle className="mt-px size-3.5 shrink-0" />
-            Auto-join only works for domains where a workspace admin has an email address
-            {approvalRequired ? " and that the instance administrator has approved" : ""} — {unverified.join(", ")}{" "}
-            {unverified.length === 1 ? "isn't" : "aren't"} verified.
+            {t("genUnverifiedDomains").replace("{domains}", unverified.join(", ")).replace(".", "")}
+            {approvalRequired ? t("genAdminApproval") : ""}
           </p>
         )}
         <SettingsRows>
           <SettingsRow
             htmlFor="auto-join"
-            label="Auto-join by email domain"
-            description={`New accounts with an address at these domains join automatically with the default role. Only domains of your admins' own addresses qualify${approvalRequired ? ", once the instance administrator has approved them" : ""}.`}
+            label={it ? "Accesso automatico tramite dominio email" : "Auto-join by email domain"}
+            description={`${t("genNewAccountsJoin")}${approvalRequired ? t("genAdminApproval") : ""}`}
           >
             <Switch
               id="auto-join"
@@ -106,8 +109,8 @@ export function AccessSection({
           </SettingsRow>
           <SettingsRow
             htmlFor="restrict-invites"
-            label="Only invite company addresses"
-            description="Invitations can only be sent to addresses at these domains."
+            label={it ? "Invita solo indirizzi aziendali" : "Only invite company addresses"}
+            description={it ? "Gli inviti possono essere inviati solo a indirizzi di questi domini." : "Invitations can only be sent to addresses at these domains."}
           >
             <Switch
               id="restrict-invites"
@@ -116,7 +119,7 @@ export function AccessSection({
               onCheckedChange={(v) => setForm({ ...form, requireDomainForInvites: v })}
             />
           </SettingsRow>
-          <SettingsRow htmlFor="default-role" label="Default role" description="Pre-selected when inviting and used for auto-join.">
+          <SettingsRow htmlFor="default-role" label={it ? "Ruolo predefinito" : "Default role"} description={it ? "Selezionato automaticamente quando inviti qualcuno e usato per l’accesso automatico." : "Pre-selected when inviting and used for auto-join."}>
             <Select value={form.defaultRoleId} onValueChange={(v) => setForm({ ...form, defaultRoleId: v })}>
               <SelectTrigger id="default-role" className="w-48">
                 <SelectValue />

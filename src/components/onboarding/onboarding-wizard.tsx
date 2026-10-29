@@ -30,12 +30,24 @@ import {
   type InviteResult,
 } from "@/app/onboarding/actions"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 const STEPS: RailStep[] = [
   { id: "workspace", label: "Workspace" },
   { id: "invite", label: "Invite your team" },
   { id: "start", label: "Get started" },
 ]
+
+function localizeError(message: string, it: boolean) {
+  if (!it) return message
+  const known: Record<string, string> = {
+    "Already a member": "È già membro del workspace",
+    "Already invited": "Invito già inviato",
+    "Invalid email address": "Indirizzo email non valido",
+    "Email is required": "L’indirizzo email è obbligatorio",
+  }
+  return known[message] ?? message
+}
 
 export type OnboardingWizardProps = {
   initialStep: 0 | 1 | 2
@@ -50,6 +62,13 @@ export type OnboardingWizardProps = {
 }
 
 export function OnboardingWizard(props: OnboardingWizardProps) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
+  const steps = it ? [
+    { id: "workspace", label: "Workspace" },
+    { id: "invite", label: "Invita il team" },
+    { id: "start", label: "Inizia" },
+  ] satisfies RailStep[] : STEPS
   const router = useRouter()
   const [step, setStep] = useState<number>(props.initialStep)
   const [workspace, setWorkspace] = useState(props.workspace)
@@ -72,7 +91,7 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
         yourName: props.needsName ? yourName : undefined,
       })
       if (!res.ok) {
-        setError(res.error)
+        setError(localizeError(res.error, it))
         return
       }
       setWorkspace(res.data)
@@ -87,13 +106,13 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
     startTransition(async () => {
       const res = await inviteTeammatesAction({ slug: workspace.slug, emails })
       if (!res.ok) {
-        setError(res.error)
+        setError(localizeError(res.error, it))
         return
       }
       setResults(res.data)
       setEmails([])
       const sent = res.data.filter((r) => r.status === "invited").length
-      if (sent) toast.success(`${sent} invitation${sent === 1 ? "" : "s"} created`)
+      if (sent) toast.success(it ? `${sent} inviti creati` : `${sent} invitation${sent === 1 ? "" : "s"} created`)
     })
   }
 
@@ -104,10 +123,10 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
       const res = await finishOnboardingAction({ slug: workspace.slug, demo: kind === "demo" })
       if (!res.ok) {
         setFinishing(null)
-        toast.error(res.error)
+        toast.error(localizeError(res.error, it))
         return
       }
-      if (res.data.demoError) toast.error(`Demo data couldn't be loaded: ${res.data.demoError}`)
+      if (res.data.demoError) toast.error(it ? `Impossibile caricare i dati demo: ${res.data.demoError}` : `Demo data couldn't be loaded: ${res.data.demoError}`)
       const base = `/w/${workspace.slug}`
       window.location.assign(kind === "connect" ? `${base}/settings/inboxes?connect=1` : `${base}/inbox`)
     })
@@ -116,17 +135,12 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
   return (
     <div>
       <div className="mb-8">
-        <StepProgress steps={STEPS} current={step} />
+        <StepProgress steps={steps} current={step} />
       </div>
 
       {step === 0 && (
         <section>
-          <Heading
-            eyebrow="New workspace"
-            title="Create your workspace."
-            quiet="It takes a minute."
-            description="A workspace holds your team's shared inboxes, conversations, labels and rules."
-          />
+          <Heading eyebrow={t("newWorkspace")} title={t("createWorkspaceTitle")} quiet={t("takesAMinute")} description={t("workspaceDescription")} />
           <form
             className="grid gap-5"
             onSubmit={(e) => {
@@ -137,7 +151,7 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
             {props.needsName && (
               <div className="grid gap-1.5">
                 <Label htmlFor="your-name" className="text-[13px]">
-                  Your name
+                  {t("yourName")}
                 </Label>
                 <Input
                   id="your-name"
@@ -145,7 +159,7 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
                   value={yourName}
                   maxLength={80}
                   onChange={(e) => setYourName(e.target.value)}
-                  placeholder="How your teammates see you"
+                  placeholder={t("teammateNamePlaceholder")}
                   className="h-10 bg-card"
                   autoFocus
                 />
@@ -163,13 +177,13 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
             {props.billingNote && (
               <div className="flex items-center gap-2 rounded-lg border border-brand/30 bg-brand-soft px-3 py-2.5 text-[13px]">
                 <Sparkles className="size-4 shrink-0" />
-                {props.billingNote}. No credit card needed to start.
+                {props.billingNote}. {t("noCardNeeded")}
               </div>
             )}
             <Footer>
               {props.cancelHref ? (
                 <Button asChild variant="ghost" size="lg" className="h-10 rounded-md">
-                  <a href={props.cancelHref}>Cancel</a>
+                  <a href={props.cancelHref}>{t("cancel")}</a>
                 </Button>
               ) : (
                 <span />
@@ -180,7 +194,7 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
                 className="h-10 rounded-md px-5"
                 disabled={pending || !form.name.trim() || slugState === "unavailable" || slugState === "checking"}
               >
-                {pending && <Spinner />} Create workspace {!pending && <ArrowRight />}
+                {pending && <Spinner />} {t("createWorkspace")} {!pending && <ArrowRight />}
               </Button>
             </Footer>
           </form>
@@ -189,12 +203,7 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
 
       {step === 1 && workspace && (
         <section>
-          <Heading
-            eyebrow={workspace.name}
-            title="Invite your team."
-            quiet="Email is better together."
-            description="Teammates join as members. You can change roles and invite more people later in Settings → Members."
-          />
+          <Heading eyebrow={workspace.name} title={t("inviteYourTeam")} quiet={t("emailBetterTogether")} description={t("inviteDescription")} />
           <form
             className="grid gap-4"
             onSubmit={(e) => {
@@ -204,18 +213,18 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
           >
             <div className="grid gap-1.5">
               <Label htmlFor="invite-emails" className="text-[13px]">
-                Email addresses
+                {t("emailAddresses")}
               </Label>
               <TagInput
                 id="invite-emails"
                 value={emails}
                 onChange={setEmails}
-                placeholder="maya@company.com, leo@company.com"
+                placeholder={t("inviteEmailsPlaceholder")}
                 normalize={(v) => v.trim().toLowerCase()}
-                validate={(v) => (EMAIL_RE.test(v) ? null : `“${v}” is not a valid email address`)}
+                validate={(v) => (EMAIL_RE.test(v) ? null : it ? `“${v}” non è un indirizzo email valido` : `“${v}” is not a valid email address`)}
                 className="min-h-10 bg-card"
               />
-              <p className="text-xs text-muted-foreground">Separate addresses with commas, spaces or Enter.</p>
+              <p className="text-xs text-muted-foreground">{t("separateAddresses")}</p>
             </div>
             {error && (
               <p role="alert" className="text-[13px] text-destructive">
@@ -225,12 +234,12 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
             {!props.emailConfigured && (
               <p className="flex gap-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-[13px] text-muted-foreground">
                 <Mail className="mt-px size-4 shrink-0" />
-                Email delivery isn&apos;t configured on this instance yet — you&apos;ll get invitation links to share yourself.
+                {t("emailNotConfiguredInvite")}
               </p>
             )}
             <div className="flex justify-end">
               <Button type="submit" variant={results ? "outline" : "default"} className="rounded-md" disabled={pending || !emails.length}>
-                {pending ? <Spinner /> : <Send />} Send invitations
+                {pending ? <Spinner /> : <Send />} {t("sendInvitations")}
               </Button>
             </div>
           </form>
@@ -248,14 +257,14 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
                   )}
                   <span className="min-w-0 flex-1 truncate">{r.email}</span>
                   <span className="text-xs text-muted-foreground">
-                    {r.status === "invited" ? (r.delivered ? "Invitation sent" : "Share the link") : r.reason}
+                    {r.status === "invited" ? (r.delivered ? (it ? "Invito inviato" : "Invitation sent") : (it ? "Condividi il link" : "Share the link")) : localizeError(r.reason ?? "", it)}
                   </span>
                   {r.url && (
                     <div className="flex w-full min-w-0 items-center gap-1 rounded-md border border-border bg-surface py-0.5 pr-0.5 pl-2.5">
                       <code className="min-w-0 flex-1 truncate font-mono text-[12px]" title={r.url}>
                         {r.url}
                       </code>
-                      <CopyButton value={r.url} label={`Copy invitation link for ${r.email}`} />
+                      <CopyButton value={r.url} label={it ? `Copia il link di invito per ${r.email}` : `Copy invitation link for ${r.email}`} />
                     </div>
                   )}
                 </li>
@@ -264,9 +273,9 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
           )}
 
           <Footer>
-            <span className="text-[13px] text-muted-foreground">{results ? "" : "You can skip this for now."}</span>
+            <span className="text-[13px] text-muted-foreground">{results ? "" : t("skipForNow")}</span>
             <Button size="lg" className="h-10 rounded-md px-5" onClick={() => setStep(2)} disabled={pending}>
-              {results ? "Continue" : "Skip for now"} <ArrowRight />
+              {results ? t("continue") : t("skipForNow")} <ArrowRight />
             </Button>
           </Footer>
         </section>
@@ -276,15 +285,15 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
         <section>
           <Heading
             eyebrow={workspace.name}
-            title="You're all set."
-            quiet="How do you want to start?"
-            description="Connect a shared mailbox like support@ to start collaborating — or look around with sample data first."
+            title={t("allSet")}
+            quiet={t("howStart")}
+            description={t("startDescription")}
           />
           <div className="grid gap-2.5">
             <StartCard
               icon={PlugZap}
-              title="Connect an inbox"
-              description="Gmail, Microsoft 365 / Outlook or any IMAP mailbox. Takes about a minute."
+              title={t("connectInbox")}
+              description={t("connectInboxDescription")}
               recommended
               loading={finishing === "connect"}
               disabled={pending}
@@ -292,16 +301,16 @@ export function OnboardingWizard(props: OnboardingWizardProps) {
             />
             <StartCard
               icon={Sparkles}
-              title="Explore with demo data"
-              description="Sample conversations, teammates, tasks and rules. Remove it anytime."
+              title={t("exploreDemo")}
+              description={t("exploreDemoDescription")}
               loading={finishing === "demo"}
               disabled={pending}
               onClick={() => finish("demo")}
             />
             <StartCard
               icon={Inbox}
-              title="Go to the inbox"
-              description="Start with an empty workspace and set things up yourself."
+              title={t("goToInbox")}
+              description={t("goToInboxDescription")}
               loading={finishing === "inbox"}
               disabled={pending}
               onClick={() => finish("inbox")}
@@ -347,6 +356,7 @@ function StartCard({
   disabled?: boolean
   onClick: () => void
 }) {
+  const { t } = useI18n()
   return (
     <button
       type="button"
@@ -371,7 +381,7 @@ function StartCard({
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
           {title}
           {recommended && (
-            <span className="rounded-sm bg-brand-soft px-1.5 py-px font-mono text-[10px] uppercase tracking-wider">Recommended</span>
+            <span className="rounded-sm bg-brand-soft px-1.5 py-px font-mono text-[10px] uppercase tracking-wider">{t("recommended")}</span>
           )}
         </span>
         <span className="mt-0.5 block text-[13px] text-muted-foreground">{description}</span>

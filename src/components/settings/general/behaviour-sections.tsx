@@ -10,18 +10,20 @@ import { SectionFooter, SettingsRow, SettingsRows, SettingsSection } from "@/com
 import { useServerAction } from "@/components/settings/use-server-action"
 import { updateBusinessHours, updateConversationBehaviour } from "@/server/workspace/actions/general"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 function SaveFooter({ dirty, pending, onSave, onReset, hint }: { dirty: boolean; pending: boolean; onSave: () => void; onReset: () => void; hint?: React.ReactNode }) {
+  const { t } = useI18n()
   return (
     <SectionFooter hint={hint}>
       {dirty && (
         <Button variant="ghost" size="sm" onClick={onReset} disabled={pending}>
-          Reset
+          {t("reset")}
         </Button>
       )}
       <Button size="sm" disabled={!dirty || pending} onClick={onSave}>
         {pending && <Loader2 className="animate-spin" />}
-        Save
+        {t("saveChanges")}
       </Button>
     </SectionFooter>
   )
@@ -30,14 +32,16 @@ function SaveFooter({ dirty, pending, onSave, onReset, hint }: { dirty: boolean;
 type Behaviour = { reopenOnReply: boolean; closeOnReply: boolean; undoSendSeconds: number }
 
 export function ConversationSection({ slug, initial }: { slug: string; initial: Behaviour }) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
   const [saved, setSaved] = useState(initial)
   const [form, setForm] = useState(initial)
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
   const { pending, run } = useServerAction()
   return (
     <SettingsSection
-      title="Conversations"
-      description="Defaults for how conversations move through the workspace."
+      title={it ? "Conversazioni" : "Conversations"}
+      description={it ? "Impostazioni predefinite per la gestione delle conversazioni nel workspace." : "Defaults for how conversations move through the workspace."}
       footer={
         <SaveFooter
           dirty={dirty}
@@ -45,7 +49,7 @@ export function ConversationSection({ slug, initial }: { slug: string; initial: 
           onReset={() => setForm(saved)}
           onSave={() =>
             run(() => updateConversationBehaviour({ slug, ...form }), {
-              success: "Conversation settings saved",
+              success: t("genConversationSaved"),
               onSuccess: () => setSaved(form),
             })
           }
@@ -55,32 +59,32 @@ export function ConversationSection({ slug, initial }: { slug: string; initial: 
       <SettingsRows>
         <SettingsRow
           htmlFor="reopen"
-          label="Reopen on customer reply"
-          description="Move a closed conversation back to the inbox when the customer writes again."
+          label={it ? "Riapri alla risposta del cliente" : "Reopen on customer reply"}
+          description={it ? "Riporta una conversazione chiusa nella posta in arrivo quando il cliente scrive di nuovo." : "Move a closed conversation back to the inbox when the customer writes again."}
         >
           <Switch id="reopen" checked={form.reopenOnReply} onCheckedChange={(v) => setForm({ ...form, reopenOnReply: v })} />
         </SettingsRow>
         <SettingsRow
           htmlFor="close-on-reply"
-          label="Close when replying"
-          description="Close conversations automatically after a teammate sends a reply."
+          label={it ? "Chiudi dopo la risposta" : "Close when replying"}
+          description={it ? "Chiudi automaticamente le conversazioni dopo la risposta di un collega." : "Close conversations automatically after a teammate sends a reply."}
         >
           <Switch id="close-on-reply" checked={form.closeOnReply} onCheckedChange={(v) => setForm({ ...form, closeOnReply: v })} />
         </SettingsRow>
         <SettingsRow
           htmlFor="undo-default"
-          label="Undo send"
-          description="Default delay before emails leave the outbox. Members can override it in their preferences."
+          label={it ? "Annulla invio" : "Undo send"}
+          description={it ? "Attesa predefinita prima che le email escano dalla posta in uscita. I membri possono modificarla nelle preferenze." : "Default delay before emails leave the outbox. Members can override it in their preferences."}
         >
           <Select value={String(form.undoSendSeconds)} onValueChange={(v) => setForm({ ...form, undoSendSeconds: Number(v) })}>
             <SelectTrigger id="undo-default" className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">Off</SelectItem>
+              <SelectItem value="0">{t("off")}</SelectItem>
               {[5, 10, 15, 20, 30].map((s) => (
                 <SelectItem key={s} value={String(s)}>
-                  {s} seconds
+                  {s} {it ? "secondi" : "seconds"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -105,6 +109,8 @@ const DAYS = [
 ]
 
 export function BusinessHoursSection({ slug, initial, timezone }: { slug: string; initial: Hours; timezone: string }) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
   const [saved, setSaved] = useState(initial)
   const [form, setForm] = useState(initial)
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
@@ -113,24 +119,24 @@ export function BusinessHoursSection({ slug, initial, timezone }: { slug: string
 
   return (
     <SettingsSection
-      title="Business hours"
-      description={`When your team is available, in the workspace timezone (${timezone.replace(/_/g, " ")}).`}
-      action={<Switch checked={form.enabled} onCheckedChange={(v) => setForm({ ...form, enabled: v })} aria-label="Business hours" />}
+      title={it ? "Orari di attività" : "Business hours"}
+      description={it ? `Orari di disponibilità del team, nel fuso orario del workspace (${timezone.replace(/_/g, " ")}).` : `When your team is available, in the workspace timezone (${timezone.replace(/_/g, " ")}).`}
+      action={<Switch checked={form.enabled} onCheckedChange={(v) => setForm({ ...form, enabled: v })} aria-label={t("genBusinessHours")} />}
       footer={
         <SaveFooter
           dirty={dirty}
           pending={pending}
           onReset={() => setForm(saved)}
-          hint={invalid ? <span className="text-destructive">Pick at least one day and an end time after the start.</span> : undefined}
+          hint={invalid ? <span className="text-destructive">{t("genBusinessHoursError")}</span> : undefined}
           onSave={() => {
             if (invalid) return
-            run(() => updateBusinessHours({ slug, ...form }), { success: "Business hours saved", onSuccess: () => setSaved(form) })
+            run(() => updateBusinessHours({ slug, ...form }), { success: t("genBusinessHoursSaved"), onSuccess: () => setSaved(form) })
           }}
         />
       }
     >
       <div className={cn("flex flex-col gap-4", !form.enabled && "pointer-events-none opacity-50")} aria-disabled={!form.enabled}>
-        <div role="group" aria-label="Working days" className="flex flex-wrap gap-1.5">
+        <div role="group" aria-label={t("genWorkingDays")} className="flex flex-wrap gap-1.5">
           {DAYS.map((d) => {
             const on = form.days.includes(d.value)
             return (
@@ -138,7 +144,7 @@ export function BusinessHoursSection({ slug, initial, timezone }: { slug: string
                 key={d.value}
                 type="button"
                 aria-pressed={on}
-                aria-label={d.long}
+                aria-label={t(({ Monday: "genMonday", Tuesday: "genTuesday", Wednesday: "genWednesday", Thursday: "genThursday", Friday: "genFriday", Saturday: "genSaturday", Sunday: "genSunday" } as const)[d.long as "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"])}
                 disabled={!form.enabled}
                 onClick={() => setForm({ ...form, days: on ? form.days.filter((x) => x !== d.value) : [...form.days, d.value] })}
                 className={cn(
@@ -146,14 +152,14 @@ export function BusinessHoursSection({ slug, initial, timezone }: { slug: string
                   on ? "border-foreground/80 bg-foreground text-background" : "bg-background text-muted-foreground hover:bg-muted dark:bg-input/30"
                 )}
               >
-                {d.short}
+                {t(({ Mon: "genMon", Tue: "genTue", Wed: "genWed", Thu: "genThu", Fri: "genFri", Sat: "genSat", Sun: "genSun" } as const)[d.short as "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun"])}
               </button>
             )
           })}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-[13px]">
           <label htmlFor="bh-start" className="text-muted-foreground">
-            From
+            {t("genFrom")}
           </label>
           <Input
             id="bh-start"
@@ -164,7 +170,7 @@ export function BusinessHoursSection({ slug, initial, timezone }: { slug: string
             onChange={(e) => setForm({ ...form, start: e.target.value })}
           />
           <label htmlFor="bh-end" className="text-muted-foreground">
-            to
+            {t("genTo")}
           </label>
           <Input
             id="bh-end"

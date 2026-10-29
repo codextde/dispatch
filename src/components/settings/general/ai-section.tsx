@@ -4,11 +4,13 @@ import { useState } from "react"
 import { CheckCircle2, KeyRound, Loader2, PowerOff, Sparkles, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FormField, SectionFooter, SettingsSection, StatusBadge } from "@/components/settings/settings-ui"
 import { OptionCards } from "@/components/settings/personal/option-cards"
 import { useServerAction } from "@/components/settings/use-server-action"
 import { testWorkspaceAi, updateWorkspaceAi } from "@/server/workspace/actions/general"
+import { useI18n } from "@/lib/i18n"
 
 export type AiMode = "instance" | "off" | "custom"
 export type AiState = {
@@ -30,6 +32,7 @@ export function AiSection({
   initial: AiState
   instance: { allowOrgKeys: boolean; available: boolean; provider: string; model: string }
 }) {
+  const { t } = useI18n()
   const [saved, setSaved] = useState(initial)
   const [form, setForm] = useState(initial)
   const [apiKey, setApiKey] = useState("")
@@ -47,23 +50,23 @@ export function AiSection({
 
   const status =
     saved.mode === "off" ? (
-      <StatusBadge tone="neutral">Off</StatusBadge>
+      <StatusBadge tone="neutral">{t("off")}</StatusBadge>
     ) : saved.mode === "custom" ? (
-      <StatusBadge tone="success">Workspace key</StatusBadge>
+      <StatusBadge tone="success">{t("aiWorkspaceKey")}</StatusBadge>
     ) : instance.available ? (
-      <StatusBadge tone="success">Instance default</StatusBadge>
+      <StatusBadge tone="success">{t("aiInstanceDefault")}</StatusBadge>
     ) : (
-      <StatusBadge tone="neutral">Not configured</StatusBadge>
+      <StatusBadge tone="neutral">{t("aiNotConfigured")}</StatusBadge>
     )
 
   return (
     <SettingsSection
       title={
         <span className="flex items-center gap-2">
-          AI assistant {status}
+          {t("aiAssistant")} {status}
         </span>
       }
-      description="Summaries, reply drafts, rewriting and translation in the composer."
+      description={t("aiDescription")}
       footer={
         <SectionFooter
           hint={
@@ -73,7 +76,7 @@ export function AiSection({
                 {test.text}
               </span>
             ) : form.mode === "custom" ? (
-              "API keys are encrypted at rest and never shown again."
+              t("aiSecureKey")
             ) : undefined
           }
         >
@@ -91,7 +94,7 @@ export function AiSection({
               }
             >
               {tester.pending ? <Loader2 className="animate-spin" /> : <Zap />}
-              Test connection
+              {t("aiTestConnection")}
             </Button>
           )}
           <Button
@@ -99,7 +102,7 @@ export function AiSection({
             disabled={!dirty || save.pending}
             onClick={() =>
               save.run(() => updateWorkspaceAi(payload()), {
-                success: "AI settings saved",
+                success: t("aiSettingsSaved"),
                 onSuccess: () => {
                   const next = {
                     ...form,
@@ -114,51 +117,51 @@ export function AiSection({
             }
           >
             {save.pending && <Loader2 className="animate-spin" />}
-            Save
+            {t("saveChanges")}
           </Button>
         </SectionFooter>
       }
     >
       <div className="flex flex-col gap-5">
         <OptionCards<AiMode>
-          label="AI provider"
+          label={t("aiProvider")}
           value={form.mode}
           onChange={(v) => set("mode", v)}
           options={[
             {
               value: "instance",
-              label: "Instance default",
+              label: t("aiInstanceDefault"),
               icon: <Sparkles />,
               description: instance.available
-                ? `Provided by your administrator (${instance.model || instance.provider}).`
-                : "Your administrator hasn't configured AI yet.",
+                ? t("aiProvidedByAdmin").replace("{model}", instance.model || instance.provider)
+                : t("aiAdminNotConfigured"),
             },
             {
               value: "custom",
-              label: "Our own API key",
+              label: t("aiOwnKey"),
               icon: <KeyRound />,
-              description: instance.allowOrgKeys ? "Bring your own Anthropic or OpenAI-compatible key." : "Disabled by your administrator.",
+              description: instance.allowOrgKeys ? t("aiBringKey") : t("aiDisabledByAdmin"),
               disabled: !instance.allowOrgKeys,
             },
-            { value: "off", label: "Off", icon: <PowerOff />, description: "Hide AI features for everyone in this workspace." },
+            { value: "off", label: t("off"), icon: <PowerOff />, description: t("aiHideFeatures") },
           ]}
         />
 
         {form.mode === "custom" && (
           <div className="grid gap-4 rounded-lg border bg-surface/40 p-4 sm:grid-cols-2">
-            <FormField label="Provider" htmlFor="ai-provider">
+            <FormField label={t("aiProviderField")} htmlFor="ai-provider">
               <Select value={form.provider} onValueChange={(v) => set("provider", v as AiState["provider"])}>
                 <SelectTrigger id="ai-provider" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="anthropic">Anthropic</SelectItem>
-                  <SelectItem value="openai">OpenAI-compatible</SelectItem>
+                  <SelectItem value="openai">{t("aiOpenAICompatible")}</SelectItem>
                 </SelectContent>
               </Select>
             </FormField>
-            <FormField label="Model" htmlFor="ai-model" optional description={`Default: ${DEFAULT_MODEL[form.provider]}`}>
-              <Input
+            <FormField label={t("aiModel")} htmlFor="ai-model" optional description={t("aiDefaultModel").replace("{model}", DEFAULT_MODEL[form.provider])}>
+              <PasswordInput
                 id="ai-model"
                 spellCheck={false}
                 placeholder={DEFAULT_MODEL[form.provider]}
@@ -167,33 +170,32 @@ export function AiSection({
               />
             </FormField>
             <FormField
-              label="API key"
+              label={t("aiApiKey")}
               htmlFor="ai-key"
               className="sm:col-span-2"
               optional={form.provider === "openai"}
               description={
                 hasStoredKey ? (
                   <span className="flex flex-wrap items-center gap-x-2">
-                    Saved key <span className="font-mono">{saved.keyPreview}</span> — leave blank to keep it.
+                    {t("aiSavedKey")} <span className="font-mono">{saved.keyPreview}</span> — {t("aiLeaveBlank")}
                     <button type="button" className="underline underline-offset-2 hover:text-foreground" onClick={() => setClearKey(true)}>
-                      Remove key
+                      {t("aiRemoveKey")}
                     </button>
                   </span>
                 ) : clearKey ? (
                   <span>
-                    The saved key will be removed.{" "}
+                    {t("aiKeyWillBeRemoved")}{" "}
                     <button type="button" className="underline underline-offset-2 hover:text-foreground" onClick={() => setClearKey(false)}>
-                      Undo
+                      {t("aiUndo")}
                     </button>
                   </span>
                 ) : form.provider === "openai" ? (
-                  "Not needed for keyless local servers such as Ollama."
+                  t("aiKeylessHelp")
                 ) : undefined
               }
             >
-              <Input
+              <PasswordInput
                 id="ai-key"
-                type="password"
                 autoComplete="off"
                 spellCheck={false}
                 placeholder={hasStoredKey ? "••••••••••••" : form.provider === "anthropic" ? "sk-ant-…" : "sk-…"}
@@ -205,14 +207,14 @@ export function AiSection({
               />
             </FormField>
             <FormField
-              label="Base URL"
+              label={t("aiBaseUrl")}
               htmlFor="ai-base"
               optional
               className="sm:col-span-2"
               description={
                 form.provider === "openai"
-                  ? "For OpenRouter, Azure, Ollama, LM Studio, vLLM … e.g. http://localhost:11434/v1"
-                  : "Only needed for a proxy or gateway in front of the Anthropic API."
+                  ? t("aiOpenAIBaseHelp")
+                  : t("aiAnthropicBaseHelp")
               }
             >
               <Input

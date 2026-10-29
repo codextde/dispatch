@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, CalendarClock, ChevronDown, Ellipsis, Forward, ImageOff, Paperclip, Reply, ReplyAll, Send, Undo2 } from "lucide-react"
+import { AlertCircle, CalendarClock, ChevronDown, Ellipsis, Forward, ImageOff, Inbox, Paperclip, Reply, ReplyAll, Send, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,6 +20,7 @@ import { api } from "@/lib/api-client"
 import { formatAddress, fullTime, memberName, participantName, threadTime, untilLabel } from "@/lib/inbox/format"
 import type { DraftInfo, Participant, ThreadMessage } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { inboxKeys, useMessageBody } from "@/hooks/inbox/queries"
 import { inboxUI } from "@/hooks/inbox/store"
 import { AttachmentList } from "../attachments"
@@ -36,13 +37,35 @@ function AddressList({ label, list }: { label: string; list: Participant[] }) {
   )
 }
 
+function MessageDirectionBadge({ direction, compact = false }: { direction: ThreadMessage["direction"]; compact?: boolean }) {
+  const { t } = useI18n()
+  const outbound = direction === "outbound"
+  const label = t(outbound ? "messageSent" : "messageReceived")
+  const Icon = outbound ? Send : Inbox
+  return (
+    <span
+      title={label}
+      role={compact ? "img" : undefined}
+      aria-label={compact ? label : undefined}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none",
+        outbound ? "border-brand/30 bg-brand-soft text-brand-foreground" : "border-info/30 bg-info/10 text-info"
+      )}
+    >
+      <Icon className="size-3" aria-hidden="true" />
+      {!compact && label}
+    </span>
+  )
+}
+
 function MessageBodyView({ message }: { message: ThreadMessage }) {
+  const { t } = useI18n()
   const { slug, bootstrap } = useInbox()
   const pref = (bootstrap.me.preferences as { loadRemoteImages?: "always" | "ask" | "never" }).loadRemoteImages
   const policy = bootstrap.settings.remoteImages
   const [images, setImages] = useState(pref === "always" && policy !== "never")
   const { data, isLoading, isError, refetch } = useMessageBody(slug, message.id, images, message.hasBody)
-  if (!message.hasBody) return <p className="text-sm text-muted-foreground italic">This message has no content.</p>
+  if (!message.hasBody) return <p className="text-sm text-muted-foreground italic">{t("messageNoContent")}</p>
   if (isLoading) {
     return (
       <div className="space-y-2 py-1">
@@ -55,9 +78,9 @@ function MessageBodyView({ message }: { message: ThreadMessage }) {
   if (isError || !data) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        Could not load this message.
+        {t("messageLoadError")}
         <Button variant="link" size="sm" className="h-auto p-0" onClick={() => refetch()}>
-          Retry
+          {t("messageRetry")}
         </Button>
       </div>
     )
@@ -67,18 +90,19 @@ function MessageBodyView({ message }: { message: ThreadMessage }) {
       {data.hasRemoteImages && !data.imagesLoaded && policy !== "never" && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-dashed bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
           <ImageOff className="size-3.5" />
-          <span className="flex-1">Remote images are hidden to protect your privacy.</span>
+          <span className="flex-1">{t("messageRemoteImagesHidden")}</span>
           <button type="button" className="font-medium text-foreground underline-offset-2 hover:underline" onClick={() => setImages(true)}>
-            Load images
+            {t("messageLoadImages")}
           </button>
         </div>
       )}
-      <MessageFrame html={data.html} simple={data.simple} title={`Message from ${participantName({ name: message.fromName, email: message.fromEmail })}`} />
+      <MessageFrame html={data.html} simple={data.simple} title={t("messageFrom").replace("{name}", participantName({ name: message.fromName, email: message.fromEmail }))} />
     </div>
   )
 }
 
 function OutboundStatus({ message, conversationId }: { message: ThreadMessage; conversationId: string }) {
+  const { t, locale } = useI18n()
   const { slug, meId } = useInbox()
   const qc = useQueryClient()
   const mine = message.authorId === meId
@@ -91,7 +115,7 @@ function OutboundStatus({ message, conversationId }: { message: ThreadMessage; c
     mutationFn: () => api.post<DraftInfo>(`/api/w/${slug}/messages/${message.id}/cancel`),
     onSuccess: (draft) => {
       refresh()
-      toast.success(message.status === "scheduled" ? "Scheduled message canceled — it's a draft again" : "Sending undone")
+      toast.success(message.status === "scheduled" ? t("scheduledCanceledDraft") : t("sendUndone"))
       inboxUI.openComposer(conversationId, draft.mode === "new" ? "reply" : draft.mode, { draft })
     },
     onError: (err) => toast.error(err.message),
@@ -100,7 +124,7 @@ function OutboundStatus({ message, conversationId }: { message: ThreadMessage; c
     mutationFn: () => api.post(`/api/w/${slug}/messages/${message.id}/send`),
     onSuccess: () => {
       refresh()
-      toast.success("Sending now")
+      toast.success(t("sendingNow"))
     },
     onError: (err) => toast.error(err.message),
   })
@@ -116,19 +140,19 @@ function OutboundStatus({ message, conversationId }: { message: ThreadMessage; c
     <div className={cn("mt-2 flex flex-wrap items-center gap-2 rounded-md border px-3 py-1.5 text-xs", tone)}>
       {message.status === "failed" ? <AlertCircle className="size-3.5" /> : message.status === "scheduled" ? <CalendarClock className="size-3.5" /> : <Send className="size-3.5" />}
       <span className="flex-1">
-        {message.status === "scheduled" && `Scheduled for ${untilLabel(message.sendAt)}`}
-        {message.status === "queued" && "Queued for sending…"}
-        {message.status === "sending" && "Sending…"}
-        {message.status === "failed" && `Failed to send${message.sendError ? `: ${message.sendError}` : ""}`}
+        {message.status === "scheduled" && t("messageScheduledFor").replace("{time}", untilLabel(message.sendAt, locale))}
+        {message.status === "queued" && t("messageQueued")}
+        {message.status === "sending" && t("messageSending")}
+        {message.status === "failed" && `${t("messageFailedToSend")}${message.sendError ? `: ${message.sendError}` : ""}`}
       </span>
       {mine && (message.status === "scheduled" || message.status === "failed") && (
         <Button variant="outline" size="xs" onClick={() => sendNow.mutate()} disabled={sendNow.isPending}>
-          <Send /> {message.status === "failed" ? "Retry" : "Send now"}
+          <Send /> {message.status === "failed" ? t("messageRetry") : t("messageSendNow")}
         </Button>
       )}
       {mine && (message.status === "scheduled" || message.status === "queued") && (
         <Button variant="outline" size="xs" onClick={() => cancel.mutate()} disabled={cancel.isPending}>
-          <Undo2 /> {message.status === "queued" ? "Undo" : "Cancel"}
+          <Undo2 /> {message.status === "queued" ? t("messageUndo") : t("messageCancel")}
         </Button>
       )}
     </div>
@@ -148,6 +172,7 @@ export function MessageItem({
   onToggle: () => void
   canReply: boolean
 }) {
+  const { t, locale } = useI18n()
   const { account, member, ownAddresses } = useInbox()
   const from: Participant = { name: message.fromName, email: message.fromEmail }
   const author = message.direction === "outbound" && message.authorId ? member(message.authorId) : undefined
@@ -164,31 +189,44 @@ export function MessageItem({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-3 rounded-xl border bg-card px-4 py-2.5 text-left outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn(
+          "flex w-full items-center gap-3 rounded-xl border border-l-4 px-4 py-2.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+          message.direction === "outbound"
+            ? "border-l-brand bg-brand-soft/25 hover:bg-brand-soft/50"
+            : "border-l-info bg-info/5 hover:bg-info/10"
+        )}
         aria-expanded={false}
       >
         <UserAvatar name={author?.name ?? from.name} email={author?.email ?? from.email} src={author?.avatarUrl} size="sm" />
         <span className="w-36 shrink-0 truncate text-[13px] font-medium max-sm:w-24">{participantName(from)}</span>
+        <MessageDirectionBadge direction={message.direction} compact />
         <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">{message.snippet}</span>
         {hasFiles && <Paperclip className="size-3.5 shrink-0 text-muted-foreground" />}
         <time className="shrink-0 font-mono text-[11px] text-muted-foreground" dateTime={message.date}>
-          {threadTime(message.date)}
+          {threadTime(message.date, locale)}
         </time>
       </button>
     )
   }
 
   return (
-    <article className="rounded-xl border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03)]" aria-label={`Message from ${participantName(from)}`}>
+    <article
+      className={cn(
+        "rounded-xl border border-l-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]",
+        message.direction === "outbound" ? "border-l-brand bg-brand-soft/20" : "border-l-info bg-info/5"
+      )}
+      aria-label={t("messageFrom").replace("{name}", participantName(from))}
+    >
       <header className="flex items-start gap-3 px-4 pt-3 pb-2">
-        <button type="button" onClick={onToggle} aria-label="Collapse message" className="mt-0.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <button type="button" onClick={onToggle} aria-label={t("messageCollapse")} className="mt-0.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <UserAvatar name={author?.name ?? from.name} email={author?.email ?? from.email} src={author?.avatarUrl} size="md" />
         </button>
         <div className="min-w-0 flex-1 cursor-pointer" onClick={onToggle}>
           <div className="flex flex-wrap items-baseline gap-x-2">
             <span className="text-[13.5px] font-semibold">{participantName(from)}</span>
+            <MessageDirectionBadge direction={message.direction} />
             {from.name && <span className="truncate text-xs text-muted-foreground">{from.email}</span>}
-            {author && <span className="text-xs text-muted-foreground">· sent by {memberName(author)}</span>}
+            {author && <span className="text-xs text-muted-foreground">· {t("messageSentBy")} {memberName(author)}</span>}
           </div>
           <Popover>
             <PopoverTrigger asChild>
@@ -198,7 +236,7 @@ export function MessageItem({
                 className="flex max-w-full items-center gap-0.5 rounded text-left text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="truncate">
-                  to {toLabel || "—"}
+                  {t("messageTo")} {toLabel || "—"}
                   {recipients.length > 3 && ` +${recipients.length - 3}`}
                 </span>
                 <ChevronDown className="size-3 shrink-0" />
@@ -206,18 +244,18 @@ export function MessageItem({
             </PopoverTrigger>
             <PopoverContent align="start" className="w-[min(28rem,calc(100vw-2rem))] text-xs">
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
-                <AddressList label="From" list={[from]} />
-                <AddressList label="Reply-To" list={message.replyTo} />
-                <AddressList label="To" list={message.to} />
-                <AddressList label="Cc" list={message.cc} />
-                <AddressList label="Bcc" list={message.bcc} />
-                <dt className="text-muted-foreground">Date</dt>
-                <dd>{fullTime(message.date)}</dd>
-                <dt className="text-muted-foreground">Subject</dt>
-                <dd className="break-words">{message.subject || "(no subject)"}</dd>
+                <AddressList label={t("messageFromLabel")} list={[from]} />
+                <AddressList label={t("messageReplyTo")} list={message.replyTo} />
+                <AddressList label={t("messageToLabel")} list={message.to} />
+                <AddressList label={t("messageCc")} list={message.cc} />
+                <AddressList label={t("messageBcc")} list={message.bcc} />
+                <dt className="text-muted-foreground">{t("messageDate")}</dt>
+                <dd>{fullTime(message.date, locale)}</dd>
+                <dt className="text-muted-foreground">{t("messageSubject")}</dt>
+                <dd className="break-words">{message.subject || t("convNoSubject")}</dd>
                 {acc && (
                   <>
-                    <dt className="text-muted-foreground">Inbox</dt>
+                    <dt className="text-muted-foreground">{t("messageInbox")}</dt>
                     <dd className="flex items-center gap-1.5">
                       <span className="size-2 rounded-full" style={{ backgroundColor: acc.color }} />
                       {acc.name}
@@ -232,36 +270,36 @@ export function MessageItem({
           <Tooltip>
             <TooltipTrigger asChild>
               <time className="font-mono text-[11px] text-muted-foreground" dateTime={message.date}>
-                {threadTime(message.date)}
+                {threadTime(message.date, locale)}
               </time>
             </TooltipTrigger>
-            <TooltipContent>{fullTime(message.date)}</TooltipContent>
+            <TooltipContent>{fullTime(message.date, locale)}</TooltipContent>
           </Tooltip>
           {canReply && (
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon-xs" aria-label="Reply" onClick={() => inboxUI.openComposer(conversationId, "reply", { messageId: message.id })}>
+                  <Button variant="ghost" size="icon-xs" aria-label={t("reply")} onClick={() => inboxUI.openComposer(conversationId, "reply", { messageId: message.id })}>
                     <Reply />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Reply</TooltipContent>
+                <TooltipContent>{t("reply")}</TooltipContent>
               </Tooltip>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-xs" aria-label="Message actions">
+                  <Button variant="ghost" size="icon-xs" aria-label={t("messageActions")}>
                     <Ellipsis />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "reply", { messageId: message.id })}>
-                    <Reply /> Reply
+                    <Reply /> {t("reply")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "reply_all", { messageId: message.id })}>
-                    <ReplyAll /> Reply all
+                    <ReplyAll /> {t("replyAll")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "forward", { messageId: message.id })}>
-                    <Forward /> Forward
+                    <Forward /> {t("forward")}
                   </DropdownMenuItem>
                   {message.messageId && (
                     <>
@@ -269,10 +307,10 @@ export function MessageItem({
                       <DropdownMenuItem
                         onSelect={() => {
                           void navigator.clipboard.writeText(`<${message.messageId}>`)
-                          toast.success("Message-ID copied")
+                          toast.success(t("messageIdCopied"))
                         }}
                       >
-                        Copy Message-ID
+                        {t("messageCopyId")}
                       </DropdownMenuItem>
                     </>
                   )}

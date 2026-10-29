@@ -15,10 +15,10 @@ export default async function SecurityPage({ params }: PageProps<"/w/[slug]/sett
   ])
   return (
     <SettingsPage
-      eyebrow="Personal"
-      title="Security"
-      quiet="& devices"
-      description="Review where you're signed in and recent sign-in activity on your account."
+      eyebrow={ctx.user.locale === "it" ? "Personale" : "Personal"}
+      title={ctx.user.locale === "it" ? "Sicurezza" : "Security"}
+      quiet={ctx.user.locale === "it" ? "e dispositivi" : "& devices"}
+      description={ctx.user.locale === "it" ? "Controlla dove hai effettuato l’accesso e le attività recenti del tuo account." : "Review where you're signed in and recent sign-in activity on your account."}
     >
       <SecurityPanel
         slug={ctx.org.slug}

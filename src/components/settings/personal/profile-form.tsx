@@ -20,6 +20,7 @@ import { useServerAction } from "@/components/settings/use-server-action"
 import { LocalTime, useBrowserTimeZone, useHydrated } from "@/components/app/local-time"
 import { ACCEPTED_IMAGE_TYPES, prepareImage } from "@/components/settings/personal/image-upload"
 import { removeAvatar, updateAway, updateProfile, uploadAvatar } from "@/server/workspace/actions/personal"
+import { useI18n } from "@/lib/i18n"
 
 type Profile = {
   name: string
@@ -48,6 +49,7 @@ function defaultAwayUntil() {
 }
 
 export function ProfileForm({ slug, profile, workspaceTimezone }: { slug: string; profile: Profile; workspaceTimezone: string }) {
+  const { t } = useI18n()
   const [saved, setSaved] = useState({ name: profile.name, title: profile.title, timezone: profile.timezone })
   const [form, setForm] = useState(saved)
   const dirty = form.name !== saved.name || form.title !== saved.title || form.timezone !== saved.timezone
@@ -56,17 +58,17 @@ export function ProfileForm({ slug, profile, workspaceTimezone }: { slug: string
 
   const save = () =>
     run(() => updateProfile({ slug, ...form }), {
-      success: "Profile saved",
+      success: t("profileSaveSuccess"),
       onSuccess: () => setSaved(form),
     })
 
   return (
     <>
-      <SettingsSection title="Your profile" description="Your name, photo and title are shown to teammates in this workspace.">
+      <SettingsSection title={t("profileYourProfile")} description={t("profileSummary")}>
         <div className="flex flex-col gap-6">
           <AvatarField slug={slug} name={form.name} email={profile.email} avatarUrl={profile.avatarUrl} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Full name" htmlFor="name" error={fieldErrors.name}>
+            <FormField label={t("profileFullName")} htmlFor="name" error={fieldErrors.name}>
               <Input
                 id="name"
                 autoComplete="name"
@@ -75,30 +77,29 @@ export function ProfileForm({ slug, profile, workspaceTimezone }: { slug: string
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </FormField>
-            <FormField label="Email" htmlFor="email" description="Used to sign in. Contact an admin to change it.">
+            <FormField label={t("emailSettings")} htmlFor="email" description={t("profileEmailDescription")}>
               <Input id="email" value={profile.email} readOnly disabled />
             </FormField>
             <FormField
-              label="Job title"
+              label={t("profileJobTitle")}
               htmlFor="title"
               optional
               error={fieldErrors.title}
-              description="Only for this workspace — used in signatures as {{user.title}}."
+              description={t("profileTitleDescription")}
             >
               <Input
                 id="title"
-                placeholder="e.g. Customer Success"
+                placeholder={t("profileTitlePlaceholder")}
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
             </FormField>
-            <FormField label="Timezone" htmlFor="timezone" description={`Workspace default: ${workspaceTimezone.replace(/_/g, " ")}`}>
+            <FormField label={t("profileTimezone")} htmlFor="timezone" description={`${t("profileWorkspaceDefault")}: ${workspaceTimezone.replace(/_/g, " ")}`}>
               <TimezoneSelect
                 id="timezone"
                 className="w-full"
                 value={form.timezone}
                 allowEmpty
-                emptyLabel="Use workspace default"
                 onChange={(tz) => setForm({ ...form, timezone: tz })}
               />
             </FormField>
@@ -109,7 +110,7 @@ export function ProfileForm({ slug, profile, workspaceTimezone }: { slug: string
               className="-mt-3 w-fit text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
               onClick={() => setForm({ ...form, timezone: deviceTimezone })}
             >
-              Use my device&apos;s timezone ({deviceTimezone.replace(/_/g, " ")})
+              {t("profileDeviceTimezone")} ({deviceTimezone.replace(/_/g, " ")})
             </button>
           )}
         </div>
@@ -117,12 +118,13 @@ export function ProfileForm({ slug, profile, workspaceTimezone }: { slug: string
 
       <OutOfOffice slug={slug} active={profile.away} awayUntil={profile.awayUntil} awayMessage={profile.awayMessage} />
 
-      <SaveBar dirty={dirty} pending={pending} onSave={save} onReset={() => setForm(saved)} />
+      <SaveBar dirty={dirty} pending={pending} onSave={save} onReset={() => setForm(saved)} label={t("unsavedChanges")} saveLabel={t("saveChanges")} />
     </>
   )
 }
 
 function AvatarField({ slug, name, email, avatarUrl }: { slug: string; name: string; email: string; avatarUrl: string | null }) {
+  const { t } = useI18n()
   const input = useRef<HTMLInputElement>(null)
   const [preparing, setPreparing] = useState(false)
   const { pending, run } = useServerAction()
@@ -135,13 +137,13 @@ function AvatarField({ slug, name, email, avatarUrl }: { slug: string; name: str
     try {
       prepared = await prepareImage(file, { size: 256, fit: "cover" })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't read that image.")
+      toast.error(err instanceof Error ? err.message : t("profileImageReadError"))
       return
     } finally {
       setPreparing(false)
       if (input.current) input.current.value = ""
     }
-    await run(() => uploadAvatar({ slug, file: prepared }), { success: "Photo updated" })
+    await run(() => uploadAvatar({ slug, file: prepared }), { success: t("profilePhotoUpdated") })
   }
 
   return (
@@ -157,7 +159,7 @@ function AvatarField({ slug, name, email, avatarUrl }: { slug: string; name: str
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => input.current?.click()}>
-            <Camera /> {avatarUrl ? "Change photo" : "Upload photo"}
+            <Camera /> {avatarUrl ? t("profilePhotoChange") : t("profilePhotoUpload")}
           </Button>
           {avatarUrl && (
             <Button
@@ -165,20 +167,20 @@ function AvatarField({ slug, name, email, avatarUrl }: { slug: string; name: str
               variant="ghost"
               size="sm"
               disabled={busy}
-              onClick={() => run(() => removeAvatar({ slug }), { success: "Photo removed" })}
+              onClick={() => run(() => removeAvatar({ slug }), { success: t("profilePhotoRemoved") })}
             >
-              <Trash2 /> Remove
+              <Trash2 /> {t("profilePhotoRemove")}
             </Button>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">Square images work best. PNG, JPEG, WebP or GIF.</p>
+        <p className="text-xs text-muted-foreground">{t("profileSquareImages")}</p>
         <input
           ref={input}
           type="file"
           accept={ACCEPTED_IMAGE_TYPES}
           className="sr-only"
           tabIndex={-1}
-          aria-label="Upload profile photo"
+          aria-label={t("profilePhotoUploadAria")}
           onChange={(e) => void onFile(e.target.files?.[0])}
         />
       </div>
@@ -197,6 +199,7 @@ function OutOfOffice({
   awayUntil: string | null
   awayMessage: string
 }) {
+  const { t } = useI18n()
   const [enabled, setEnabled] = useState(active)
   const [until, setUntil] = useState(() => (active ? toLocalInput(awayUntil) : defaultAwayUntil()))
   const [message, setMessage] = useState(active ? awayMessage : "")
@@ -204,7 +207,7 @@ function OutOfOffice({
   const hydrated = useHydrated()
 
   const save = () => {
-    if (enabled && !until) return toast.error("Pick until when you're away.")
+    if (enabled && !until) return toast.error(t("profilePickUntil"))
     run(
       () =>
         updateAway({
@@ -212,7 +215,7 @@ function OutOfOffice({
           awayUntil: enabled ? new Date(until).toISOString() : null,
           awayMessage: enabled ? message : "",
         }),
-      { success: enabled ? "Out of office is on" : "Out of office turned off" }
+      { success: enabled ? t("profileOutOfOfficeOn") : t("profileOutOfOfficeOff") }
     )
   }
 
@@ -220,29 +223,29 @@ function OutOfOffice({
     <SettingsSection
       title={
         <span className="flex items-center gap-2">
-          Out of office
+          {t("profileOutOfOffice")}
           {active && (
             <StatusBadge tone="warning">
-              Away until <LocalTime date={awayUntil} />
+              {t("profileAwayUntil")} <LocalTime date={awayUntil} />
             </StatusBadge>
           )}
         </span>
       }
-      description="Teammates see that you're away, and automatic team assignment skips you."
-      action={<Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Out of office" />}
+      description={t("profileAwayDescription")}
+      action={<Switch checked={enabled} onCheckedChange={setEnabled} aria-label={t("profileAwaySwitchAria")} />}
       footer={
         <SectionFooter
           hint={
             <span className="flex items-center gap-1.5">
               <Palmtree className="size-3.5" />
-              Turns off automatically when the date passes.
+              {t("profileAutoDisable")}
             </span>
           }
         >
           {(enabled || active) && (
             <Button size="sm" onClick={save} disabled={pending}>
               {pending && <Loader2 className="animate-spin" />}
-              {enabled ? "Save" : "Turn off"}
+              {enabled ? t("saveChanges") : t("profileTurnOff")}
             </Button>
           )}
         </SectionFooter>
@@ -250,7 +253,7 @@ function OutOfOffice({
     >
       {enabled ? (
         <div className="grid gap-4 sm:grid-cols-[240px_1fr]">
-          <FormField label="Away until" htmlFor="away-until" error={fieldErrors.awayUntil}>
+          <FormField label={t("profileAwayUntil")} htmlFor="away-until" error={fieldErrors.awayUntil}>
             <Input
               id="away-until"
               type="datetime-local"
@@ -259,19 +262,19 @@ function OutOfOffice({
               onChange={(e) => setUntil(e.target.value)}
             />
           </FormField>
-          <FormField label="Message for teammates" htmlFor="away-message" optional error={fieldErrors.awayMessage}>
+          <FormField label={t("profileMessageForTeammates")} htmlFor="away-message" optional error={fieldErrors.awayMessage}>
             <Textarea
               id="away-message"
               rows={3}
               maxLength={500}
-              placeholder="e.g. On vacation — Maya covers billing questions."
+              placeholder={t("profileAwayMessagePlaceholder")}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
           </FormField>
         </div>
       ) : (
-        <p className="text-[13px] text-muted-foreground">You&apos;re available.</p>
+        <p className="text-[13px] text-muted-foreground">{t("profileAvailable")}</p>
       )}
     </SettingsSection>
   )

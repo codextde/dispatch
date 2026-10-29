@@ -22,8 +22,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { UserAvatar } from "@/components/app/user-avatar"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { dueOn } from "./quick-add"
 import type { TaskMember, TaskStatus, TaskTeam } from "./use-tasks"
+import { it as dateFnsIt } from "date-fns/locale"
 
 /* --------------------------------- Status --------------------------------- */
 
@@ -33,6 +35,11 @@ export const STATUS_META: Record<TaskStatus, { label: string; short: string }> =
   done: { label: "Done", short: "Done" },
 }
 export const STATUS_ORDER: TaskStatus[] = ["todo", "in_progress", "done"]
+
+export function statusLabel(status: TaskStatus, locale: "en" | "it" = "en", short = false) {
+  if (locale !== "it") return short ? STATUS_META[status].short : STATUS_META[status].label
+  return status === "todo" ? "Da fare" : status === "in_progress" ? (short ? "In corso" : "In corso") : "Completata"
+}
 
 /** Linear-style status glyph: empty ring, half ring, filled check. */
 export function StatusIcon({ status, className }: { status: TaskStatus; className?: string }) {
@@ -72,6 +79,8 @@ export function StatusMenu({
   children: React.ReactNode
   align?: "start" | "end"
 }) {
+  const { t, locale } = useI18n()
+  const labels = { todo: t("toDo"), in_progress: t("inProgress"), done: t("done") } as const
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild disabled={disabled}>
@@ -81,7 +90,7 @@ export function StatusMenu({
         {STATUS_ORDER.map((s) => (
           <DropdownMenuItem key={s} onSelect={() => onChange(s)}>
             <StatusIcon status={s} />
-            {STATUS_META[s].label}
+            {labels[s]}
             {value === s && <Check className="ml-auto" />}
           </DropdownMenuItem>
         ))}
@@ -102,18 +111,20 @@ export function dueState(dueAt: string | null, status?: TaskStatus): "none" | "o
   return "later"
 }
 
-export function formatDue(dueAt: string | Date | null, opts: { long?: boolean } = {}) {
-  if (!dueAt) return "No due date"
+export function formatDue(dueAt: string | Date | null, opts: { long?: boolean; locale?: "en" | "it" } = {}) {
+  const it = opts.locale === "it"
+  if (!dueAt) return it ? "Nessuna scadenza" : "No due date"
   const d = typeof dueAt === "string" ? new Date(dueAt) : dueAt
-  if (isToday(d)) return "Today"
-  if (isTomorrow(d)) return "Tomorrow"
-  if (isYesterday(d)) return "Yesterday"
+  if (isToday(d)) return it ? "Oggi" : "Today"
+  if (isTomorrow(d)) return it ? "Domani" : "Tomorrow"
+  if (isYesterday(d)) return it ? "Ieri" : "Yesterday"
   const diff = differenceInCalendarDays(d, new Date())
   if (diff > 0 && diff < 7) return format(d, opts.long ? "EEEE" : "EEE")
   return format(d, d.getFullYear() === new Date().getFullYear() ? (opts.long ? "EEE, MMM d" : "MMM d") : "MMM d, yyyy")
 }
 
 export function DueBadge({ dueAt, status, className }: { dueAt: string | null; status?: TaskStatus; className?: string }) {
+  const { locale } = useI18n()
   if (!dueAt) return null
   const state = dueState(dueAt, status)
   return (
@@ -129,7 +140,7 @@ export function DueBadge({ dueAt, status, className }: { dueAt: string | null; s
       title={format(new Date(dueAt), "PPPP")}
     >
       <CalendarDays className="size-3" aria-hidden />
-      {formatDue(dueAt)}
+      {formatDue(dueAt, { locale })}
     </span>
   )
 }
@@ -147,6 +158,7 @@ export function DuePicker({
   align?: "start" | "end" | "center"
   disabled?: boolean
 }) {
+  const { t, locale } = useI18n()
   const [open, setOpen] = useState(false)
   const selected = value ? new Date(value) : undefined
   const pick = (d: Date | null) => {
@@ -155,9 +167,9 @@ export function DuePicker({
   }
   const today = new Date()
   const quick = [
-    { label: "Today", date: today, hint: format(today, "EEE") },
-    { label: "Tomorrow", date: addDays(today, 1), hint: format(addDays(today, 1), "EEE") },
-    { label: "Next week", date: nextMonday(today), hint: format(nextMonday(today), "MMM d") },
+    { label: t("today"), date: today, hint: format(today, "EEE", locale === "it" ? { locale: dateFnsIt } : undefined) },
+    { label: t("tomorrow"), date: addDays(today, 1), hint: format(addDays(today, 1), "EEE", locale === "it" ? { locale: dateFnsIt } : undefined) },
+    { label: t("nextWeek"), date: nextMonday(today), hint: format(nextMonday(today), "d MMM", locale === "it" ? { locale: dateFnsIt } : undefined) },
   ]
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -183,7 +195,7 @@ export function DuePicker({
               onClick={() => pick(null)}
               className="flex h-8 items-center gap-1.5 rounded-md px-2 text-left text-[13px] text-muted-foreground outline-none hover:bg-accent focus-visible:bg-accent"
             >
-              <X className="size-3.5" /> Remove due date
+              <X className="size-3.5" /> {t("removeDueDate")}
             </button>
           )}
         </div>
@@ -222,6 +234,7 @@ export function AssigneePicker({
   /** Members without tasks.manage may only assign themselves */
   restrictToMe?: boolean
 }) {
+  const { t, locale } = useI18n()
   const [open, setOpen] = useState(false)
   const me = members.find((m) => m.id === meId)
   const others = members.filter((m) => m.id !== meId)
@@ -236,22 +249,22 @@ export function AssigneePicker({
       </PopoverTrigger>
       <PopoverContent align={align} className="w-64 p-0">
         <Command>
-          <CommandInput placeholder="Assign to…" />
+          <CommandInput placeholder={t("assignTo")} />
           <CommandList>
-            <CommandEmpty>No teammate found.</CommandEmpty>
+            <CommandEmpty>{t("noTeammateFound")}</CommandEmpty>
             <CommandGroup>
               <CommandItem value="unassigned no one" onSelect={() => pick(null)}>
                 <span className="flex size-5 items-center justify-center rounded-full border border-dashed">
                   <UserRound className="size-3 text-muted-foreground" />
                 </span>
-                Unassigned
+                {t("unassigned")}
                 {value === null && <Check className="ml-auto" />}
               </CommandItem>
               {me && (
                 <CommandItem value={`me ${me.name ?? ""} ${me.email}`} onSelect={() => pick(me.id)}>
                   <UserAvatar name={me.name} email={me.email} src={me.avatarUrl} size="xs" />
                   <span className="truncate">{me.name || me.email}</span>
-                  <span className="text-xs text-muted-foreground">(you)</span>
+                  <span className="text-xs text-muted-foreground">({t("you")})</span>
                   {value === me.id && <Check className="ml-auto" />}
                 </CommandItem>
               )}
@@ -259,7 +272,7 @@ export function AssigneePicker({
             {!restrictToMe && others.length > 0 && (
               <>
                 <CommandSeparator />
-                <CommandGroup heading="Teammates">
+                <CommandGroup heading={locale === "it" ? "Colleghi" : "Teammates"}>
                   {others.map((m) => (
                     <CommandItem key={m.id} value={`${m.name ?? ""} ${m.email}`} onSelect={() => pick(m.id)}>
                       <UserAvatar name={m.name} email={m.email} src={m.avatarUrl} size="xs" />
@@ -278,6 +291,7 @@ export function AssigneePicker({
 }
 
 export function AssigneeAvatar({ assignee, size = "xs" }: { assignee: TaskMember | { id: string; name: string | null; email: string; avatarUrl: string | null } | null; size?: "xs" | "sm" }) {
+  const { locale } = useI18n()
   if (!assignee) {
     return (
       <span
@@ -285,7 +299,7 @@ export function AssigneeAvatar({ assignee, size = "xs" }: { assignee: TaskMember
           "flex shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground",
           size === "xs" ? "size-5" : "size-6"
         )}
-        aria-label="Unassigned"
+        aria-label={locale === "it" ? "Non assegnata" : "Unassigned"}
       >
         <UserRound className="size-3" />
       </span>

@@ -30,9 +30,9 @@ export default async function RulesPage({ params, searchParams }: PageProps<"/w/
 
   return (
     <SettingsPage
-      title="Rules"
-      quiet="that work while you don’t."
-      description="Label, assign, reply to and route emails automatically as they arrive or go out. Rules run from top to bottom."
+      title={ctx.user.locale === "it" ? "Regole" : "Rules"}
+      quiet={ctx.user.locale === "it" ? "che lavorano al posto tuo." : "that work while you don’t."}
+      description={ctx.user.locale === "it" ? "Applica etichette, assegna, rispondi e instrada automaticamente le email in entrata e in uscita. Le regole vengono eseguite dall’alto verso il basso." : "Label, assign, reply to and route emails automatically as they arrive or go out. Rules run from top to bottom."}
     >
       <RulesManager
         slug={slug}

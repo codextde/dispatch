@@ -26,6 +26,7 @@ import { ConversationHeader } from "./conversation-header"
 import { DetailsPanel } from "./details-panel"
 import { Thread } from "./thread"
 import { useConversationCommands } from "./use-conversation-commands"
+import { useI18n } from "@/lib/i18n"
 
 function ThreadSkeleton() {
   return (
@@ -51,14 +52,15 @@ function ThreadSkeleton() {
 }
 
 function TypingIndicator({ conversationId }: { conversationId: string }) {
+  const { t } = useI18n()
   const { member, meId } = useInbox()
   const writers = useViewers(conversationId).filter((v) => v.composing && v.userId !== meId)
   if (!writers.length) return null
   const replying = writers.filter((w) => w.composing === "reply").map((w) => firstName(member(w.userId)))
   const commenting = writers.filter((w) => w.composing === "comment").map((w) => firstName(member(w.userId)))
   const parts = [
-    replying.length ? `${replying.join(", ")} ${replying.length > 1 ? "are" : "is"} writing a reply` : "",
-    commenting.length ? `${commenting.join(", ")} ${commenting.length > 1 ? "are" : "is"} commenting` : "",
+    replying.length ? `${replying.join(", ")} ${t(replying.length > 1 ? "chatWritingReplyMany" : "chatWritingReplyOne")}` : "",
+    commenting.length ? `${commenting.join(", ")} ${t(commenting.length > 1 ? "chatCommentingMany" : "chatCommentingOne")}` : "",
   ].filter(Boolean)
   return (
     <div className="flex items-center gap-2 px-6 pb-1 text-[11.5px] text-muted-foreground" aria-live="polite">
@@ -73,6 +75,7 @@ function TypingIndicator({ conversationId }: { conversationId: string }) {
 }
 
 export function ConversationView({ id, box }: { id: string; box: string }) {
+  const { t } = useI18n()
   const { slug, shortcutsEnabled, shortcutScheme } = useInbox()
   const router = useRouter()
   const { find, run } = useConversationActions()
@@ -99,9 +102,9 @@ export function ConversationView({ id, box }: { id: string; box: string }) {
     inboxUI.set({ cursorId: id })
   }, [id])
 
-  const title = conv ? (conv.kind === "chat" ? conv.subject || "Chat" : conv.subject || "(no subject)") : null
+  const title = conv ? (conv.kind === "chat" ? conv.subject || t("chatGroupChat") : conv.subject || t("convNoSubject")) : t("inboxConversation")
   useEffect(() => {
-    if (title) document.title = `${title} · Dispatch`
+    document.title = `${title} · Dispatch`
   }, [title])
 
   const writable = !!conv && conv.level !== "read" && conv.kind === "email"
@@ -135,7 +138,7 @@ export function ConversationView({ id, box }: { id: string; box: string }) {
     return (
       <div className="flex h-full flex-col">
         <div className="flex h-12 items-center border-b px-2 md:hidden">
-          <Button variant="ghost" size="icon" className="size-10" aria-label="Back" onClick={() => router.push(`/w/${slug}/${box}`)}>
+          <Button variant="ghost" size="icon" className="size-10" aria-label={t("backToInbox")} onClick={() => router.push(`/w/${slug}/${box}`)}>
             <ArrowLeft />
           </Button>
         </div>
@@ -143,12 +146,12 @@ export function ConversationView({ id, box }: { id: string; box: string }) {
           <span className="flex size-12 items-center justify-center rounded-xl bg-muted">
             <Lock className="size-5 text-muted-foreground" />
           </span>
-          <p className="text-[15px] font-semibold tracking-tight">{notFound ? "Conversation not found" : "Could not load this conversation"}</p>
+          <p className="text-[15px] font-semibold tracking-tight">{notFound ? t("convNotFound") : t("convLoadFailed")}</p>
           <p className="max-w-sm text-[13px] text-muted-foreground">
-            {notFound ? "It may have been deleted or merged, or you don't have access to its inbox." : error.message}
+            {notFound ? t("convDeletedOrMerged") : error.message}
           </p>
           <Button variant="outline" size="sm" onClick={() => router.push(`/w/${slug}/${box}`)}>
-            Back to list
+            {t("convBackToList")}
           </Button>
         </div>
       </div>
@@ -159,10 +162,10 @@ export function ConversationView({ id, box }: { id: string; box: string }) {
     return (
       <div className="flex h-full min-h-0 flex-col">
         <div className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-2 md:px-4">
-          <Button variant="ghost" size="icon" className="-ml-1 size-10 md:hidden" aria-label="Back" onClick={() => router.push(`/w/${slug}/${box}`)}>
+          <Button variant="ghost" size="icon" className="-ml-1 size-10 md:hidden" aria-label={t("backToInbox")} onClick={() => router.push(`/w/${slug}/${box}`)}>
             <ArrowLeft />
           </Button>
-          {placeholder ? <h1 className="truncate text-base font-semibold tracking-tight">{placeholder.subject || "(no subject)"}</h1> : <Skeleton className="h-4 w-64" />}
+          {placeholder ? <h1 className="truncate text-base font-semibold tracking-tight">{placeholder.subject || t("convNoSubject")}</h1> : <Skeleton className="h-4 w-64" />}
         </div>
         <ThreadSkeleton />
       </div>
@@ -176,15 +179,15 @@ export function ConversationView({ id, box }: { id: string; box: string }) {
     <>
       <Button variant="ghost" className="h-11 flex-1 flex-col gap-0.5 px-1 text-[11px]" onClick={cmd.toggleStatus}>
         {conv.status === "closed" ? <RotateCcw className="size-5" /> : <CircleCheck className="size-5" />}
-        {conv.status === "closed" ? "Reopen" : "Close"}
+        {conv.status === "closed" ? t("convReopen") : t("convClose")}
       </Button>
       <Button variant="ghost" className="h-11 flex-1 flex-col gap-0.5 px-1 text-[11px]" onClick={() => inboxUI.set({ picker: "assign" })}>
         <UserPlus className="size-5" />
-        Assign
+        {t("convAssign")}
       </Button>
       <Button variant="ghost" className="h-11 flex-1 flex-col gap-0.5 px-1 text-[11px]" onClick={() => setDetailsOpen(true)}>
         <Ellipsis className="size-5" />
-        Details
+        {t("convDetails")}
       </Button>
     </>
   ) : null
@@ -212,14 +215,14 @@ export function ConversationView({ id, box }: { id: string; box: string }) {
       </div>
 
       {detailsOpen && wide && (
-        <aside className="w-80 shrink-0 border-l print:hidden" aria-label="Conversation details">
+        <aside className="w-80 shrink-0 border-l print:hidden" aria-label={t("convDetails")}>
           <DetailsPanel thread={thread} onClose={() => setDetailsOpen(false)} />
         </aside>
       )}
       <Sheet open={detailsOpen && !wide} onOpenChange={setDetailsOpen}>
         <SheetContent side="right" className="w-[90vw] max-w-sm gap-0 p-0 xl:hidden" showCloseButton={false}>
-          <SheetTitle className="sr-only">Conversation details</SheetTitle>
-          <SheetDescription className="sr-only">Contact, conversation details and activity</SheetDescription>
+          <SheetTitle className="sr-only">{t("convDetails")}</SheetTitle>
+          <SheetDescription className="sr-only">{t("convDetailsDescription")}</SheetDescription>
           <DetailsPanel thread={thread} onClose={() => setDetailsOpen(false)} />
         </SheetContent>
       </Sheet>

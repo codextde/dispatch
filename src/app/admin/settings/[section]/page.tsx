@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { cookies } from "next/headers"
 import path from "node:path"
 import { notFound } from "next/navigation"
 import { requireSuperAdminPage } from "@/server/authz"
@@ -28,7 +29,13 @@ function isSection(value: string): value is SettingsSectionSlug {
 export async function generateMetadata({ params }: PageProps<"/admin/settings/[section]">): Promise<Metadata> {
   const { section } = await params
   const meta = SETTINGS_SECTIONS.find((s) => s.slug === section)
-  return { title: meta ? `${meta.label} · Settings` : "Settings" }
+  const it = (await cookies()).get("dispatch-locale")?.value === "it"
+  const labels: Partial<Record<SettingsSectionSlug, string>> = {
+    general: "Generale", authentication: "Accesso", email: "Email", oauth: "App OAuth", billing: "Fatturazione",
+    storage: "Archiviazione", ai: "IA", branding: "Marchio", security: "Sicurezza", legal: "Note legali",
+  }
+  const label = meta ? (it ? labels[meta.slug] ?? meta.label : meta.label) : it ? "Impostazioni" : "Settings"
+  return { title: `${label} · ${it ? "Impostazioni" : "Settings"}` }
 }
 
 export default async function AdminSettingsSectionPage({ params }: PageProps<"/admin/settings/[section]">) {
@@ -36,10 +43,23 @@ export default async function AdminSettingsSectionPage({ params }: PageProps<"/a
   const { section } = await params
   if (!isSection(section)) notFound()
 
+  const it = (await cookies()).get("dispatch-locale")?.value === "it"
   const header = SECTION_HEADERS[section]
+  const italianHeaders: Record<SettingsSectionSlug, { title: string; quiet: string; description: string }> = {
+    general: { title: "Generale", quiet: "impostazioni", description: "Dai un nome all’istanza, scegli a chi è rivolta e comunica con tutti." },
+    authentication: { title: "Accesso", quiet: "e sessioni", description: "Chi può creare un account, per quanto restano connessi i dispositivi e quali accessi social sono disponibili." },
+    email: { title: "Invio", quiet: "email", description: "Link di accesso, inviti e notifiche vengono inviati tramite il provider configurato qui." },
+    oauth: { title: "App", quiet: "OAuth", description: "Registra Dispatch con Google e Microsoft per collegare le caselle e accedere con un clic." },
+    billing: { title: "Fatturazione", quiet: "e abbonamenti", description: "Addebita i workspace ospitati tramite Stripe. Le istanze private self-hosted non ne hanno bisogno." },
+    storage: { title: "Archiviazione", quiet: "allegati", description: "Conserva i file sul server o in un bucket compatibile con S3." },
+    ai: { title: "Funzioni", quiet: "IA", description: "Collega un provider di modelli per offrire assistenza IA nei workspace." },
+    branding: { title: "Marchio", quiet: "e identità", description: "Personalizza il prodotto con nome, logo e colore principale." },
+    security: { title: "Sicurezza", quiet: "e privacy", description: "Restrizioni di rete, limiti antiabuso e impostazioni predefinite per la privacy." },
+    legal: { title: "Pagine", quiet: "legali", description: "Note legali, informativa sulla privacy e termini pubblicati sul sito." },
+  }
   return (
     <>
-      <AdminPageHeader eyebrow="Settings" title={header.title} quiet={header.quiet} description={header.description} />
+      <AdminPageHeader eyebrow={it ? "Impostazioni" : "Settings"} title={it ? italianHeaders[section].title : header.title} quiet={it ? italianHeaders[section].quiet : header.quiet} description={it ? italianHeaders[section].description : header.description} />
       <SectionForm section={section} adminEmail={user.email} />
     </>
   )

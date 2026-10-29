@@ -104,6 +104,8 @@ export const users = pgTable(
   {
     id: id(),
     email: text("email").notNull(),
+    /** Optional local password. Magic-link login remains available when null. */
+    passwordHash: text("password_hash"),
     name: text("name"),
     avatarUrl: text("avatar_url"),
     isSuperAdmin: boolean("is_super_admin").notNull().default(false),
@@ -129,6 +131,10 @@ export type UserPreferences = {
   sendAndArchive?: boolean
   undoSendSeconds?: number
   loadRemoteImages?: "always" | "ask" | "never"
+  sidebar?: {
+    hiddenItems?: string[]
+    hiddenSections?: string[]
+  }
   notifications?: {
     email?: boolean
     desktop?: boolean
@@ -256,6 +262,9 @@ export type OrgSettings = {
   ipAllowlist?: string[]
   sessionMaxDays?: number
   /** AI (optional BYO key overrides instance defaults) */
+  features?: { chat?: boolean }
+  /** Workspace-wide navigation visibility. Hiding items never removes access or data. */
+  navigation?: { hiddenItems?: string[]; hiddenSections?: string[] }
   ai?: {
     enabled?: boolean
     provider?: "anthropic" | "openai"

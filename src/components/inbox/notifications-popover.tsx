@@ -15,6 +15,7 @@ import type { NotificationItem } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import { inboxKeys, useNotifications } from "@/hooks/inbox/queries"
 import { useInbox } from "./inbox-provider"
+import { useI18n } from "@/lib/i18n"
 
 const TYPE_ICON: Record<string, typeof Bell> = {
   mention: AtSign,
@@ -26,6 +27,7 @@ const TYPE_ICON: Record<string, typeof Bell> = {
 
 export function NotificationsButton({ onNavigate }: { onNavigate?: () => void }) {
   const { slug, member } = useInbox()
+  const { t, locale } = useI18n()
   const [open, setOpen] = useState(false)
   const router = useRouter()
   const params = useParams<{ box?: string }>()
@@ -63,7 +65,7 @@ export function NotificationsButton({ onNavigate }: { onNavigate?: () => void })
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="relative max-lg:size-10" aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}>
+            <Button variant="ghost" size="icon-sm" className="relative max-lg:size-10" aria-label={`${t("notifications")}${unread ? ` (${unread} ${locale === "it" ? "da leggere" : "unread"})` : ""}`}>
               <Bell />
               {unread > 0 && (
                 <span className="absolute top-0.5 right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-brand px-0.5 font-mono text-[9px] font-semibold text-brand-foreground">
@@ -73,13 +75,13 @@ export function NotificationsButton({ onNavigate }: { onNavigate?: () => void })
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent>Notifications</TooltipContent>
+        <TooltipContent>{t("notifications")}</TooltipContent>
       </Tooltip>
       <PopoverContent align="start" side="top" className="w-[min(24rem,calc(100vw-1rem))] gap-0 p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
-          <p className="text-sm font-semibold tracking-tight">Notifications</p>
+          <p className="text-sm font-semibold tracking-tight">{t("notifications")}</p>
           <Button variant="ghost" size="xs" disabled={!unread || mark.isPending} onClick={() => mark.mutate({ all: true })}>
-            <CheckCheck /> Mark all read
+            <CheckCheck /> {t("markAllRead")}
           </Button>
         </div>
         {permission === "default" && (
@@ -89,18 +91,18 @@ export function NotificationsButton({ onNavigate }: { onNavigate?: () => void })
             onClick={async () => setPermission(await Notification.requestPermission())}
           >
             <BellRing className="size-4 shrink-0 text-brand" />
-            <span>Enable desktop notifications for mentions and assignments.</span>
+            <span>{t("enableDesktopNotifications")}</span>
           </button>
         )}
         <div className="max-h-[min(28rem,60dvh)] overflow-y-auto">
-          {isLoading && <p className="px-3 py-6 text-center text-sm text-muted-foreground">Loading…</p>}
+          {isLoading && <p className="px-3 py-6 text-center text-sm text-muted-foreground">{t("loading")}</p>}
           {!isLoading && items.length === 0 && (
             <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
               <span className="flex size-10 items-center justify-center rounded-full bg-muted">
                 <Bell className="size-5 text-muted-foreground" />
               </span>
-              <p className="text-sm font-medium">You&apos;re all caught up</p>
-              <p className="text-xs text-muted-foreground">Mentions, assignments and replies show up here.</p>
+              <p className="text-sm font-medium">{t("allCaughtUp")}</p>
+              <p className="text-xs text-muted-foreground">{t("notificationHelp")}</p>
             </div>
           )}
           <ul>
@@ -126,9 +128,9 @@ export function NotificationsButton({ onNavigate }: { onNavigate?: () => void })
                     <span className="min-w-0 flex-1">
                       <span className={cn("line-clamp-2 text-[13px] leading-snug", !n.readAt && "font-medium")}>{n.title}</span>
                       {n.body && <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.body}</span>}
-                      <span className="mt-1 block font-mono text-[10.5px] text-muted-foreground">{relative(n.createdAt)}</span>
+                      <span className="mt-1 block font-mono text-[10.5px] text-muted-foreground">{relative(n.createdAt, locale)}</span>
                     </span>
-                    {!n.readAt && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand" aria-label="Unread" />}
+                    {!n.readAt && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand" aria-label={locale === "it" ? "Da leggere" : "Unread"} />}
                   </button>
                 </li>
               )
@@ -137,7 +139,7 @@ export function NotificationsButton({ onNavigate }: { onNavigate?: () => void })
           {hasNextPage && (
             <div className="p-2">
               <Button variant="ghost" size="sm" className="w-full" disabled={isFetchingNextPage} onClick={() => fetchNextPage()}>
-                {isFetchingNextPage ? "Loading…" : "Load more"}
+                {isFetchingNextPage ? t("loading") : t("loadMore")}
               </Button>
             </div>
           )}

@@ -11,7 +11,7 @@ import type { Permission } from "@/lib/permissions"
  *   if (can("labels.manage")) ...
  */
 export type OrgClientContext = {
-  org: { id: string; name: string; slug: string; logoUrl: string | null; plan: string; subscriptionStatus: string; trialEndsAt: string | null }
+  org: { id: string; name: string; slug: string; logoUrl: string | null; plan: string; subscriptionStatus: string; trialEndsAt: string | null; features: { chat: boolean }; navigation: { hiddenItems: string[]; hiddenSections: string[] } }
   user: {
     id: string
     email: string

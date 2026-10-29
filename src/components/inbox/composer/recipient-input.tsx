@@ -9,6 +9,7 @@ import { formatAddress, isEmail, parseAddresses } from "@/lib/inbox/format"
 import type { Participant } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import { useInbox } from "../inbox-provider"
+import { useI18n } from "@/lib/i18n"
 
 /**
  * Address token input with autocomplete (contacts, past participants and
@@ -29,6 +30,7 @@ export function RecipientInput({
   trailing?: React.ReactNode
 }) {
   const { slug, members } = useInbox()
+  const { locale } = useI18n()
   const id = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [text, setText] = useState("")
@@ -74,10 +76,10 @@ export function RecipientInput({
     <Popover open={open}>
       <PopoverAnchor asChild>
         <div
-          className="flex min-h-9 cursor-text items-start gap-2 border-b px-3 py-1.5"
+          className="flex min-h-9 cursor-text items-start gap-1 border-b px-3 py-1.5"
           onClick={() => inputRef.current?.focus()}
         >
-          <label htmlFor={id} className="mt-1 w-8 shrink-0 text-[13px] text-muted-foreground">
+          <label htmlFor={id} className="mt-1 w-6 shrink-0 text-[13px] text-muted-foreground">
             {label}
           </label>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
@@ -94,7 +96,7 @@ export function RecipientInput({
                 <button
                   type="button"
                   className="flex size-4 items-center justify-center rounded text-muted-foreground hover:bg-background hover:text-foreground"
-                  aria-label={`Remove ${p.email}`}
+                  aria-label={`${locale === "it" ? "Rimuovi" : "Remove"} ${p.email}`}
                   onClick={(e) => {
                     e.stopPropagation()
                     onChange(value.filter((v) => v.email !== p.email))
@@ -111,7 +113,7 @@ export function RecipientInput({
               autoFocus={autoFocus}
               autoComplete="off"
               inputMode="email"
-              aria-label={`${label} recipients`}
+              aria-label={`${label} ${locale === "it" ? "destinatari" : "recipients"}`}
               role="combobox"
               aria-autocomplete="list"
               aria-expanded={open}
@@ -179,7 +181,7 @@ export function RecipientInput({
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        <div role="listbox" id={`${id}-suggestions`} aria-label="Suggestions">
+        <div role="listbox" id={`${id}-suggestions`} aria-label={locale === "it" ? "Suggerimenti" : "Suggestions"}>
           {suggestions.map((s, i) => (
             <button
               key={s.email}
@@ -199,7 +201,7 @@ export function RecipientInput({
                 <span className="block truncate text-[13px]">{s.name || s.email}</span>
                 {s.name && <span className="block truncate text-xs text-muted-foreground">{s.email}</span>}
               </span>
-              {"internal" in s && s.internal ? <span className="font-mono text-[10px] text-muted-foreground uppercase">Team</span> : null}
+              {"internal" in s && s.internal ? <span className="font-mono text-[10px] text-muted-foreground uppercase">{locale === "it" ? "Team" : "Team"}</span> : null}
             </button>
           ))}
         </div>

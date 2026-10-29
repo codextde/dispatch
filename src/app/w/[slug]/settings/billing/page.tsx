@@ -16,19 +16,20 @@ export default async function BillingPage({ params, searchParams }: PageProps<"/
 
   // Only known error codes are rendered — never free text from the URL
   const code = typeof sp.error === "string" ? sp.error : null
-  const error = code && Object.hasOwn(BILLING_ERRORS, code) ? BILLING_ERRORS[code as BillingErrorCode] : code ? "Something went wrong with billing. Please try again." : null
+  const it = ctx.user.locale === "it"
+  const error = code && Object.hasOwn(BILLING_ERRORS, code) ? BILLING_ERRORS[code as BillingErrorCode] : code ? (it ? "Si è verificato un errore con la fatturazione. Riprova." : "Something went wrong with billing. Please try again.") : null
   const checkout = sp.checkout === "success" || sp.checkout === "canceled" ? sp.checkout : null
   const now = new Date().getTime()
 
   return (
     <SettingsPage
-      eyebrow="Administration"
-      title="Billing"
-      quiet="& plan."
+      eyebrow={it ? "Amministrazione" : "Administration"}
+      title={it ? "Fatturazione" : "Billing"}
+      quiet={it ? "e piano." : "& plan."}
       description={
         overview.mode === "self_hosted"
-          ? "Plan information for this workspace."
-          : "Manage your subscription, payment method and invoices."
+          ? (it ? "Informazioni sul piano di questo workspace." : "Plan information for this workspace.")
+          : (it ? "Gestisci l’abbonamento, il metodo di pagamento e le fatture." : "Manage your subscription, payment method and invoices.")
       }
     >
       <BillingView slug={ctx.org.slug} overview={overview} error={error} checkout={checkout} now={now} />

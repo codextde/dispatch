@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { parseBox, STATIC_BOX_META, type StaticBox } from "@/lib/inbox/boxes"
 import { useInbox } from "./inbox-provider"
+import { localizeDictionaryText, useI18n } from "@/lib/i18n"
 
 export const STATIC_BOX_ICONS: Record<StaticBox, LucideIcon> = {
   inbox: Inbox,
@@ -64,20 +65,23 @@ export type BoxInfo = { title: string; description: string; icon: LucideIcon; co
 
 export function useBoxInfo(box: string): BoxInfo {
   const { team, account, label } = useInbox()
+  const { t: translate, locale } = useI18n()
+  const localize = (value: string) => localizeDictionaryText(value, locale) as string
+  const localizeEmpty = (empty: { title: string; description: string }) => ({ title: localize(empty.title), description: localize(empty.description) })
   const parsed = parseBox(box)
-  if (!parsed) return { title: "Inbox", description: "", icon: Inbox, empty: EMPTY.inbox }
+  if (!parsed) return { title: translate("inbox"), description: "", icon: Inbox, empty: localizeEmpty(EMPTY.inbox) }
   switch (parsed.kind) {
     case "static":
-      return { ...STATIC_BOX_META[parsed.id], icon: STATIC_BOX_ICONS[parsed.id], empty: EMPTY[parsed.id] }
+      return { ...STATIC_BOX_META[parsed.id], title: localize(STATIC_BOX_META[parsed.id].title), description: localize(STATIC_BOX_META[parsed.id].description), icon: STATIC_BOX_ICONS[parsed.id], empty: localizeEmpty(EMPTY[parsed.id]) }
     case "team": {
       const t = team(parsed.id)
       const name = t?.name ?? "Team"
       return {
         title: name,
-        description: "Open conversations routed to this team",
+        description: translate("boxTeamOpenDescription"),
         icon: Users,
         color: t?.color,
-        empty: { title: `Nothing open for ${name}`, description: "New conversations for this team will show up here." },
+        empty: { title: translate("boxNothingOpenFor").replace("{name}", name), description: translate("boxNewTeamConversations") },
       }
     }
     case "account": {
@@ -88,7 +92,7 @@ export function useBoxInfo(box: string): BoxInfo {
         description: a?.email ?? "",
         icon: Mail,
         color: a?.color,
-        empty: { title: `${name} is clear`, description: "There are no open conversations in this inbox." },
+        empty: { title: translate("boxAccountClear").replace("{name}", name), description: translate("boxNoOpenInbox") },
       }
     }
     case "label": {
@@ -96,10 +100,10 @@ export function useBoxInfo(box: string): BoxInfo {
       const name = l?.name ?? "Label"
       return {
         title: name,
-        description: "Conversations with this label",
+        description: translate("boxLabelDescription"),
         icon: Tag,
         color: l?.color,
-        empty: { title: `Nothing labeled ${name}`, description: "Add labels with L to organize conversations." },
+        empty: { title: translate("boxNothingLabeled").replace("{name}", name), description: translate("boxAddLabelsHint") },
       }
     }
   }

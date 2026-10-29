@@ -5,6 +5,7 @@ import { EmojiPicker, type EmojiPickerListCategoryHeaderProps, type EmojiPickerL
 import { LoaderCircle, Search } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useInbox } from "./inbox-provider"
+import { useI18n } from "@/lib/i18n"
 
 export const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "👀", "🙏", "✅", "🔥"]
 
@@ -51,6 +52,7 @@ export function EmojiPickerPopover({
   side?: "top" | "bottom" | "left" | "right"
 }) {
   const { slug } = useInbox()
+  const { t, locale } = useI18n()
   const [open, setOpen] = useState(false)
   const pick = (emoji: string) => {
     onPick(emoji)
@@ -61,13 +63,13 @@ export function EmojiPickerPopover({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align={align} side={side} className="w-[17.5rem] gap-0 overflow-hidden p-0">
-        <div className="flex items-center justify-between gap-0.5 border-b px-1.5 py-1.5" role="group" aria-label="Quick reactions">
+        <div className="flex items-center justify-between gap-0.5 border-b px-1.5 py-1.5" role="group" aria-label={t("inboxUiQuickReactionsAria")}>
           {QUICK_REACTIONS.map((emoji) => (
             <button
               key={emoji}
               type="button"
               onClick={() => pick(emoji)}
-              aria-label={`React with ${emoji}`}
+              aria-label={`${locale === "it" ? "Reagisci con" : "React with"} ${emoji}`}
               className="flex size-8 items-center justify-center rounded-md text-lg outline-none transition-transform hover:scale-110 hover:bg-muted focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
             >
               {emoji}
@@ -85,17 +87,17 @@ export function EmojiPickerPopover({
               <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
               <EmojiPicker.Search
                 autoFocus
-                aria-label="Search emoji"
-                placeholder="Search emoji…"
+                aria-label={t("inboxUiSearchEmoji")}
+                placeholder={t("searchEmojiPlaceholder")}
                 className="h-8 w-full appearance-none rounded-md border border-input bg-transparent pr-2.5 pl-8 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
               />
             </div>
             <EmojiPicker.Viewport className="scrollbar-thin relative mt-1 flex-1 outline-hidden">
               <EmojiPicker.Loading className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <LoaderCircle className="size-4 animate-spin" /> Loading emoji…
+                <LoaderCircle className="size-4 animate-spin" /> {locale === "it" ? "Caricamento emoji…" : "Loading emoji…"}
               </EmojiPicker.Loading>
               <EmojiPicker.Empty className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                {({ search }) => <>No emoji found for “{search}”.</>}
+                {({ search }) => <>{locale === "it" ? `Nessuna emoji trovata per “${search}”.` : `No emoji found for “${search}”.`}</>}
               </EmojiPicker.Empty>
               <EmojiPicker.List
                 className="pb-1.5 select-none"

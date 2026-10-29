@@ -7,6 +7,7 @@ import { ApiError } from "@/server/api"
 import { normalizeEmail, requestMagicLink, verifyLoginCode, verifyMagicToken } from "@/server/auth/magic-link"
 import { getRequestMeta } from "@/server/request"
 import { establishSession } from "./complete-login"
+import { authenticatePassword } from "@/server/auth/password"
 
 const nextSchema = z.string().max(2000).optional()
 
@@ -18,6 +19,21 @@ export const requestLoginCodeAction = action(
     const res = await requestMagicLink({ email, redirectTo: next, ip: meta.ip, userAgent: meta.userAgent })
     if (!res.ok) throw new ApiError(res.error === "rate_limited" ? 429 : 400, res.message, res.error)
     return { delivered: res.delivered, email: normalizeEmail(email) }
+  }
+)
+
+export const loginWithPasswordAction = action(
+  z.object({
+    email: z.string().trim().min(3).max(320),
+    password: z.string().min(1).max(4000),
+    next: nextSchema,
+  }),
+  async ({ email, password, next }) => {
+    const meta = await getRequestMeta()
+    const res = await authenticatePassword({ email, password, ip: meta.ip, userAgent: meta.userAgent })
+    if (!res.ok) throw new ApiError(401, res.error)
+    const redirectTo = await establishSession({ userId: res.userId, email: res.email, method: "password", redirectTo: next })
+    redirect(redirectTo, RedirectType.replace)
   }
 )
 

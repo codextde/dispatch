@@ -62,6 +62,8 @@ import { ACTION_ICONS } from "@/components/settings/rules/rule-icons"
 import { createRule, deleteRule, duplicateRule, updateRule } from "@/server/workspace/actions/rules"
 import type { RuleOptions } from "@/server/workspace/queries/rules"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
+import { ruleText } from "@/components/settings/rules/rule-labels"
 
 export type RuleBuilderProps = {
   slug: string
@@ -75,6 +77,7 @@ export type RuleBuilderProps = {
 const serialize = (input: RuleInput) => JSON.stringify(input)
 
 export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: RuleBuilderProps) {
+  const { locale } = useI18n()
   const router = useRouter()
   const isNew = rule === null
   const listHref = `/w/${slug}/settings/rules${scope === "personal" ? "?scope=personal" : ""}`
@@ -108,7 +111,7 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
         value: l.id,
         label: l.name,
         icon: <ColorDot color={l.color} />,
-        group: scope === "personal" ? (l.visibility === "private" ? "My labels" : "Shared labels") : undefined,
+        group: scope === "personal" ? (l.visibility === "private" ? ruleText("My labels", locale) : ruleText("Shared labels", locale)) : undefined,
       })),
       members: options.members.map((m) => ({
         value: m.id,
@@ -120,10 +123,10 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
       responses: options.responses.map((r) => ({
         value: r.id,
         label: r.name,
-        group: r.kind === "personal" ? "Personal" : r.kind === "team" ? "Team" : "Workspace",
+        group: ruleText(r.kind === "personal" ? "Personal" : r.kind === "team" ? "Team" : "Workspace", locale),
       })),
     }),
-    [options, scope]
+    [options, scope, locale]
   )
 
   /* ------------------------------ Validation ------------------------------ */
@@ -191,13 +194,13 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
     if (pending) return
     setSubmitted(true)
     if (Object.keys(clientErrors).length) {
-      toast.error("Please fix the highlighted fields")
+      toast.error(ruleText("Please fix the highlighted fields", locale))
       focusFirstError()
       return
     }
     const payload = input
     void run(() => (isNew ? createRule({ slug, scope, ...payload }) : updateRule({ slug, id: rule.id, ...payload })), {
-      success: isNew ? "Rule created" : "Rule saved",
+      success: ruleText(isNew ? "Rule created" : "Rule saved", locale),
       onSuccess: (res) => {
         setServerErrors({})
         setSubmitted(false)
@@ -241,63 +244,63 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
 
   /* -------------------------------- Render -------------------------------- */
 
-  const allInboxesLabel = scope === "workspace" ? "All shared inboxes" : "All my inboxes"
+  const allInboxesLabel = ruleText(scope === "workspace" ? "All shared inboxes" : "All my inboxes", locale)
   const presentParameterless = new Set(draft.actions.filter((a) => PARAMETERLESS_ACTIONS.includes(a.type)).map((a) => a.type))
 
   return (
     <SettingsPage
       eyebrow={
         <Link href={listHref} className="inline-flex items-center gap-1 hover:text-foreground">
-          <ArrowLeft className="size-3" /> Rules
+          <ArrowLeft className="size-3" /> {ruleText("Rules", locale)}
         </Link>
       }
-      title={isNew ? "New rule" : draft.name.trim() || "Untitled rule"}
-      quiet={scope === "workspace" ? "· workspace" : "· personal"}
+      title={isNew ? ruleText("New rule", locale) : draft.name.trim() || ruleText("Untitled rule", locale)}
+      quiet={ruleText(scope === "workspace" ? "· workspace" : "· personal", locale)}
       description={
         isNew
           ? scope === "workspace"
-            ? "Workspace rules run on shared inboxes for the whole team."
-            : "Personal rules only run on your own inboxes."
+            ? ruleText("Workspace rules run on shared inboxes for the whole team.", locale)
+            : ruleText("Personal rules only run on your own inboxes.", locale)
           : rule.runCount > 0
             ? (
                 <>
-                  Ran {pluralize(rule.runCount, "time")}
+                  {locale === "it" ? "Eseguita" : "Ran"} {pluralize(rule.runCount, locale === "it" ? "volta" : "time")}
                   {rule.lastRunAt && (
                     <>
                       {" "}
-                      · last run <LocalTime date={rule.lastRunAt} format="relative" titleFormat="datetime" />
+                      · {ruleText("Last run", locale).toLowerCase()} <LocalTime date={rule.lastRunAt} format="relative" titleFormat="datetime" />
                     </>
                   )}
                 </>
               )
-            : "This rule hasn't run yet."
+            : ruleText("This rule hasn't run yet.", locale)
       }
       actions={
         isNew ? (
           <Button variant="outline" size="sm" asChild>
-            <Link href={listHref}>Cancel</Link>
+            <Link href={listHref}>{ruleText("Cancel", locale)}</Link>
           </Button>
         ) : (
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" aria-label="More actions">
-                <Ellipsis /> More
+              <Button variant="outline" size="sm" aria-label={ruleText("More actions", locale)}>
+                <Ellipsis /> {ruleText("More", locale)}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem
                 onSelect={() =>
                   void run(() => duplicateRule({ slug, id: rule.id }), {
-                    success: "Rule duplicated — the copy is paused",
+                    success: ruleText("Rule duplicated — the copy is paused", locale),
                     onSuccess: (res) => router.push(`/w/${slug}/settings/rules/${res.id}`),
                   })
                 }
               >
-                <Copy /> Duplicate
+                <Copy /> {ruleText("Duplicate", locale)}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
-                <Trash2 /> Delete rule
+                <Trash2 /> {ruleText("Delete rule", locale)}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -306,32 +309,32 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
     >
       <div ref={formRef} className="flex flex-col gap-6">
         {/* Basics */}
-        <SettingsSection title="Basics">
+        <SettingsSection title={ruleText("Basics", locale)}>
           <div className="flex flex-col gap-4">
-            <FormField label="Name" htmlFor="rule-name" error={errors.name}>
+            <FormField label={ruleText("Name", locale)} htmlFor="rule-name" error={errors.name ? ruleText(errors.name, locale) : undefined}>
               <Input
                 id="rule-name"
                 value={draft.name}
                 maxLength={RULE_LIMITS.name}
-                placeholder="e.g. Route billing emails to Finance"
+                placeholder={ruleText("e.g. Route billing emails to Finance", locale)}
                 aria-invalid={Boolean(errors.name)}
                 onChange={(e) => update({ name: e.target.value })}
                 autoFocus={isNew}
               />
             </FormField>
-            <FormField label="Description" htmlFor="rule-description" optional error={errors.description}>
+            <FormField label={ruleText("Description", locale)} htmlFor="rule-description" optional error={errors.description ? ruleText(errors.description, locale) : undefined}>
               <Textarea
                 id="rule-description"
                 value={draft.description}
                 maxLength={RULE_LIMITS.description}
-                placeholder="What does this rule do and why?"
+                placeholder={ruleText("What does this rule do and why?", locale)}
                 onChange={(e) => update({ description: e.target.value })}
                 className="min-h-14"
               />
             </FormField>
             <div className="flex flex-col gap-1.5">
               <span id="rule-trigger" className="text-[13px] font-medium">
-                Trigger
+                {ruleText("Trigger", locale)}
               </span>
               <div role="radiogroup" aria-labelledby="rule-trigger" className="grid gap-2 sm:grid-cols-2">
                 {TRIGGERS.map((t) => {
@@ -358,8 +361,8 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
                         <Icon className="size-3.5" />
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-[13px] font-medium">{t.label}</span>
-                        <span className="block text-xs text-muted-foreground">{t.description}</span>
+                        <span className="block text-[13px] font-medium">{ruleText(t.label, locale)}</span>
+                        <span className="block text-xs text-muted-foreground">{ruleText(t.description, locale)}</span>
                       </span>
                     </button>
                   )
@@ -371,44 +374,44 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
 
         {/* Inboxes */}
         <SettingsSection
-          title="Inboxes"
+          title={ruleText("Inboxes", locale)}
           description={
             scope === "workspace"
-              ? "Choose the shared inboxes this rule runs on. Leave empty to run on all of them, including inboxes connected later."
-              : "Choose which of your inboxes this rule runs on. Leave empty to run on all of them."
+              ? ruleText("Choose the shared inboxes this rule runs on. Leave empty to run on all of them, including inboxes connected later.", locale)
+              : ruleText("Choose which of your inboxes this rule runs on. Leave empty to run on all of them.", locale)
           }
         >
-          <FormField label="Apply to" htmlFor="rule-inboxes" error={errors.accountIds}>
+          <FormField label={ruleText("Apply to", locale)} htmlFor="rule-inboxes" error={errors.accountIds ? ruleText(errors.accountIds, locale) : undefined}>
             <MultiCombobox
               id="rule-inboxes"
               options={accountOptions}
               value={draft.accountIds}
               onChange={(v) => update({ accountIds: v })}
               placeholder={allInboxesLabel}
-              searchPlaceholder="Search inboxes…"
-              emptyText={scope === "workspace" ? "No shared inboxes yet." : "You haven't connected an inbox yet."}
+              searchPlaceholder={ruleText("Search inboxes…", locale)}
+              emptyText={ruleText(scope === "workspace" ? "No shared inboxes yet." : "You haven't connected an inbox yet.", locale)}
             />
           </FormField>
         </SettingsSection>
 
         {/* Conditions */}
         <SettingsSection
-          title="Conditions"
-          description="Narrow down which emails the rule applies to."
+          title={ruleText("Conditions", locale)}
+          description={ruleText("Narrow down which emails the rule applies to.", locale)}
           action={
             draft.conditions.length > 1 ? (
               <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                <span>Match</span>
+                <span>{ruleText("Match", locale)}</span>
                 <Select value={draft.match} onValueChange={(v) => update({ match: v as RuleDraft["match"] })}>
-                  <SelectTrigger size="sm" className="w-20" aria-label="Condition matching">
+                  <SelectTrigger size="sm" className="w-20" aria-label={ruleText("Condition matching", locale)}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">all</SelectItem>
-                    <SelectItem value="any">any</SelectItem>
+                    <SelectItem value="all">{ruleText("all", locale)}</SelectItem>
+                    <SelectItem value="any">{ruleText("any", locale)}</SelectItem>
                   </SelectContent>
                 </Select>
-                <span>conditions</span>
+                <span>{ruleText("conditions", locale)}</span>
               </div>
             ) : undefined
           }
@@ -416,14 +419,14 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
           <div className="flex flex-col gap-2">
             {draft.conditions.length === 0 ? (
               <p className="rounded-lg border border-dashed bg-surface/40 px-4 py-5 text-center text-[13px] text-muted-foreground">
-                No conditions — this rule runs on every {draft.trigger === "outgoing" ? "outgoing" : "incoming"} email.
+                {ruleText("No conditions — this rule runs on every ", locale)}{ruleText(draft.trigger === "outgoing" ? "outgoing" : "incoming", locale)} {ruleText("email.", locale)}
               </p>
             ) : (
               draft.conditions.map((c, i) => (
                 <div key={c.key} className="flex flex-col gap-2">
                   {i > 0 && (
                     <span className="self-start rounded-md bg-muted px-1.5 py-0.5 font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">
-                      {draft.match === "any" ? "or" : "and"}
+                      {ruleText(draft.match === "any" ? "or" : "and", locale)}
                     </span>
                   )}
                   <ConditionRow
@@ -440,7 +443,7 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
             )}
             {errors.conditions && (
               <p role="alert" className="text-xs text-destructive">
-                {errors.conditions}
+                {ruleText(errors.conditions, locale)}
               </p>
             )}
             <div>
@@ -451,14 +454,14 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
                 onClick={() => update({ conditions: [...draft.conditions, newCondition("subject")] })}
                 disabled={draft.conditions.length >= RULE_LIMITS.conditions}
               >
-                <Plus /> Add condition
+                <Plus /> {ruleText("Add condition", locale)}
               </Button>
             </div>
           </div>
         </SettingsSection>
 
         {/* Actions */}
-        <SettingsSection title="Actions" description="What happens when an email matches. Actions run in this order.">
+        <SettingsSection title={ruleText("Actions", locale)} description={ruleText("What happens when an email matches. Actions run in this order.", locale)}>
           <div className="flex flex-col gap-2">
             {draft.actions.length === 0 && (
               <p
@@ -468,7 +471,7 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
                 )}
                 data-invalid={errors.actions ? true : undefined}
               >
-                {errors.actions ?? "No actions yet — add at least one."}
+                {errors.actions ? ruleText(errors.actions, locale) : ruleText("No actions yet — add at least one.", locale)}
               </p>
             )}
             {draft.actions.map((a, i) => (
@@ -486,14 +489,14 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
             ))}
             {draft.actions.length > 0 && errors.actions && (
               <p role="alert" className="text-xs text-destructive">
-                {errors.actions}
+                {ruleText(errors.actions, locale)}
               </p>
             )}
             <div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="outline" size="sm" disabled={draft.actions.length >= RULE_LIMITS.actions}>
-                    <Plus /> Add action
+                    <Plus /> {ruleText("Add action", locale)}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="max-h-[60dvh] w-60 overflow-y-auto">
@@ -501,7 +504,7 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
                     <DropdownMenuGroup key={group}>
                       {gi > 0 && <DropdownMenuSeparator />}
                       <DropdownMenuLabel className="font-mono text-[10.5px] tracking-wider text-muted-foreground uppercase">
-                        {group}
+                        {ruleText(group, locale)}
                       </DropdownMenuLabel>
                       {ACTION_ORDER.filter((t) => ACTION_DEFS[t].group === group).map((t) => {
                         const Icon = ACTION_ICONS[t]
@@ -509,8 +512,8 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
                         return (
                           <DropdownMenuItem key={t} disabled={used} onSelect={() => addAction(t)}>
                             <Icon className="text-muted-foreground" />
-                            {ACTION_DEFS[t].label}
-                            {used && <span className="ml-auto text-xs text-muted-foreground">Added</span>}
+                            {ruleText(ACTION_DEFS[t].label, locale)}
+                            {used && <span className="ml-auto text-xs text-muted-foreground">{ruleText("Added", locale)}</span>}
                           </DropdownMenuItem>
                         )
                       })}
@@ -523,19 +526,19 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
         </SettingsSection>
 
         {/* Options */}
-        <SettingsSection title="Options">
+        <SettingsSection title={ruleText("Options", locale)}>
           <SettingsRows>
             <SettingsRow
-              label="Rule is active"
+              label={ruleText("Rule is active", locale)}
               htmlFor="rule-enabled"
-              description="Paused rules are kept but don't run."
+              description={ruleText("Paused rules are kept but don't run.", locale)}
             >
               <Switch id="rule-enabled" checked={draft.enabled} onCheckedChange={(v) => update({ enabled: v })} />
             </SettingsRow>
             <SettingsRow
-              label="Stop processing further rules"
+              label={ruleText("Stop processing further rules", locale)}
               htmlFor="rule-stop"
-              description="When this rule matches, rules below it are skipped for this email."
+              description={ruleText("When this rule matches, rules below it are skipped for this email.", locale)}
             >
               <Switch id="rule-stop" checked={draft.stopProcessing} onCheckedChange={(v) => update({ stopProcessing: v })} />
             </SettingsRow>
@@ -548,24 +551,24 @@ export function RuleBuilder({ slug, scope, rule, options, allowHttpLocalhost }: 
         pending={pending}
         onSave={save}
         onReset={isNew ? undefined : reset}
-        label={isNew ? "This rule hasn't been saved yet" : "You have unsaved changes"}
-        saveLabel={isNew ? "Create rule" : "Save changes"}
+        label={ruleText(isNew ? "This rule hasn't been saved yet" : "You have unsaved changes", locale)}
+        saveLabel={ruleText(isNew ? "Create rule" : "Save changes", locale)}
       />
 
       {!isNew && (
         <ConfirmDialog
           open={confirmDelete}
           onOpenChange={setConfirmDelete}
-          title="Delete rule?"
+          title={ruleText("Delete rule?", locale)}
           description={
             <>
-              <span className="font-medium text-foreground">{rule.name}</span> will stop running immediately. This can’t be undone.
+              <span className="font-medium text-foreground">{rule.name}</span> {ruleText("will stop running immediately. This can’t be undone.", locale)}
             </>
           }
-          confirmLabel="Delete rule"
+          confirmLabel={ruleText("Delete rule", locale)}
           destructive
           onConfirm={async () => {
-            const res = await run(() => deleteRule({ slug, id: rule.id }), { success: "Rule deleted" })
+            const res = await run(() => deleteRule({ slug, id: rule.id }), { success: ruleText("Rule deleted", locale) })
             if (res.ok) {
               setBaseline(serialize(input))
               router.push(listHref)

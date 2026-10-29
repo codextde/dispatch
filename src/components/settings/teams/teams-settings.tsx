@@ -10,7 +10,6 @@ import { UserAvatar } from "@/components/app/user-avatar"
 import { MultiCombobox } from "@/components/settings/combobox"
 import { ConfirmDialog } from "@/components/settings/confirm-dialog"
 import { randomPresetColor } from "@/components/settings/color-picker"
-import { pluralize } from "@/components/settings/format"
 import { EmptyState, FormField, MicroLabel, SettingsPage, StatusBadge } from "@/components/settings/settings-ui"
 import { useServerAction } from "@/components/settings/use-server-action"
 import { STRATEGY_INFO, TeamFields, type TeamDraft } from "@/components/settings/teams/team-fields"
@@ -24,6 +23,7 @@ import {
 } from "@/server/workspace/actions/teams"
 import type { TeamRow, TeamsPageData } from "@/server/workspace/queries/teams"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 type MemberOptions = TeamsPageData["memberOptions"]
 
@@ -38,8 +38,8 @@ function memberComboOptions(options: MemberOptions, exclude: Set<string>) {
     }))
 }
 
-function AvatarStack({ members, max = 5 }: { members: TeamRow["members"]; max?: number }) {
-  if (!members.length) return <span className="text-xs text-muted-foreground">No members yet</span>
+function AvatarStack({ members, max = 5, emptyLabel }: { members: TeamRow["members"]; max?: number; emptyLabel: string }) {
+  if (!members.length) return <span className="text-xs text-muted-foreground">{emptyLabel}</span>
   return (
     <div className="flex items-center">
       <div className="flex -space-x-1.5">
@@ -53,6 +53,7 @@ function AvatarStack({ members, max = 5 }: { members: TeamRow["members"]; max?: 
 }
 
 export function TeamsSettings({ slug, data }: { slug: string; data: TeamsPageData }) {
+  const { t, locale } = useI18n()
   const { teams, memberOptions } = data
   const [createOpen, setCreateOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -61,65 +62,65 @@ export function TeamsSettings({ slug, data }: { slug: string; data: TeamsPageDat
   return (
     <SettingsPage
       eyebrow="Workspace"
-      title="Teams"
-      quiet="route work to the right people"
-      description="Group teammates by function. Teams can own inboxes, receive conversations from rules and balance the workload automatically."
+      title={locale === "it" ? "Team" : "Teams"}
+      quiet={t("teamTagline")}
+      description={t("teamDescription")}
       actions={
         <Button onClick={() => setCreateOpen(true)}>
-          <Plus /> New team
+          <Plus /> {t("teamNew")}
         </Button>
       }
     >
       {teams.length === 0 ? (
         <EmptyState
           icon={<Users />}
-          title="No teams yet"
-          description="Create teams like Support or Billing to route conversations and share inboxes with groups of people."
+          title={t("teamEmptyTitle")}
+          description={t("teamEmptyDescription")}
         >
           <Button onClick={() => setCreateOpen(true)}>
-            <Plus /> Create your first team
+            <Plus /> {t("teamCreateFirst")}
           </Button>
         </EmptyState>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {teams.map((t) => {
-            const info = STRATEGY_INFO[t.assignmentStrategy]
+          {teams.map((team) => {
+            const info = STRATEGY_INFO[team.assignmentStrategy]
             return (
               <button
-                key={t.id}
+                key={team.id}
                 type="button"
-                onClick={() => setActiveId(t.id)}
+                onClick={() => setActiveId(team.id)}
                 className="group flex flex-col gap-4 rounded-xl border bg-card p-4 text-left shadow-[0_1px_2px_0_rgb(0_0_0/0.03)] transition-colors hover:border-foreground/20 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
                 <div className="flex items-start gap-3">
                   <span
                     className="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white ring-1 ring-black/10 ring-inset"
-                    style={{ backgroundColor: t.color }}
+                    style={{ backgroundColor: team.color }}
                     aria-hidden
                   >
-                    {t.name.slice(0, 1).toUpperCase()}
+                    {team.name.slice(0, 1).toUpperCase()}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[15px] font-semibold tracking-tight">{t.name}</div>
+                    <div className="truncate text-[15px] font-semibold tracking-tight">{team.name}</div>
                     <p className="line-clamp-2 text-[13px] text-muted-foreground">
-                      {t.description || `${pluralize(t.members.length, "member")}`}
+                      {team.description || `${team.members.length} ${team.members.length === 1 ? t("memMemberCount") : t("memMembersCount")}`}
                     </p>
                   </div>
                 </div>
                 <div className="mt-auto flex items-center justify-between gap-2">
-                  <AvatarStack members={t.members} />
+                  <AvatarStack members={team.members} emptyLabel={t("teamNoMembers")} />
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {t.inboxCount > 0 && (
-                      <span className="inline-flex items-center gap-1" title={pluralize(t.inboxCount, "inbox", "inboxes")}>
-                        <Inbox className="size-3.5" /> {t.inboxCount}
+                    {team.inboxCount > 0 && (
+                      <span className="inline-flex items-center gap-1" title={`${team.inboxCount} ${t("inboxes").toLowerCase()}`}>
+                        <Inbox className="size-3.5" /> {team.inboxCount}
                       </span>
                     )}
-                    {t.openConversations > 0 && (
-                      <span className="inline-flex items-center gap-1" title={`${t.openConversations} open conversations`}>
-                        <MessageSquare className="size-3.5" /> {t.openConversations}
+                    {team.openConversations > 0 && (
+                      <span className="inline-flex items-center gap-1" title={t("teamOpenConversations").replace("{count}", String(team.openConversations))}>
+                        <MessageSquare className="size-3.5" /> {team.openConversations}
                       </span>
                     )}
-                    <StatusBadge tone={t.assignmentStrategy === "none" ? "neutral" : "info"}>{info.label}</StatusBadge>
+                    <StatusBadge tone={team.assignmentStrategy === "none" ? "neutral" : "info"}>{t(info.label as Parameters<typeof t>[0])}</StatusBadge>
                   </div>
                 </div>
               </button>
@@ -149,6 +150,7 @@ function CreateTeamDialog({
   memberOptions: MemberOptions
   onCreated: (id: string) => void
 }) {
+  const { t } = useI18n()
   const [draft, setDraft] = useState<TeamDraft>(emptyDraft)
   const [memberIds, setMemberIds] = useState<string[]>([])
   const { pending, run, fieldErrors, setFieldErrors } = useServerAction()
@@ -159,7 +161,7 @@ function CreateTeamDialog({
       return
     }
     void run(() => createTeamAction({ slug, ...draft, memberIds, leadIds: [] }), {
-      success: `Team “${draft.name.trim()}” created`,
+      success: t("teamCreated").replace("{name}", draft.name.trim()),
       onSuccess: (d) => {
         onOpenChange(false)
         setDraft(emptyDraft())
@@ -180,8 +182,8 @@ function CreateTeamDialog({
     >
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New team</DialogTitle>
-          <DialogDescription>Teams can own inboxes and receive conversations from rules.</DialogDescription>
+          <DialogTitle>{t("teamNew")}</DialogTitle>
+          <DialogDescription>{t("teamDialogDescription")}</DialogDescription>
         </DialogHeader>
         <form
           className="flex flex-col gap-4"
@@ -191,23 +193,23 @@ function CreateTeamDialog({
           }}
         >
           <TeamFields idPrefix="new-team" value={draft} onChange={setDraft} errors={fieldErrors} />
-          <FormField label="Members" optional htmlFor="new-team-members">
+          <FormField label={t("teamMembers")} optional htmlFor="new-team-members">
             <MultiCombobox
               id="new-team-members"
               options={memberComboOptions(memberOptions, new Set())}
               value={memberIds}
               onChange={setMemberIds}
-              placeholder="Add people…"
-              searchPlaceholder="Search people…"
+              placeholder={t("teamAddPeople")}
+              searchPlaceholder={t("teamSearchPeople")}
             />
           </FormField>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending && <Loader2 className="animate-spin" />}
-              Create team
+              {t("teamCreate")}
             </Button>
           </DialogFooter>
         </form>
@@ -254,6 +256,7 @@ function TeamSheetBody({
   memberOptions: MemberOptions
   onClose: () => void
 }) {
+  const { t } = useI18n()
   const [draft, setDraft] = useState<TeamDraft>(() => draftOf(team))
   const [toAdd, setToAdd] = useState<string[]>([])
   const save = useServerAction()
@@ -274,19 +277,19 @@ function TeamSheetBody({
           {team.name}
         </SheetTitle>
         <SheetDescription>
-          {pluralize(team.members.length, "member")}
-          {team.inboxCount > 0 && ` · ${pluralize(team.inboxCount, "inbox", "inboxes")}`}
+          {team.members.length} {team.members.length === 1 ? t("memMemberCount") : t("memMembersCount")}
+          {team.inboxCount > 0 && ` · ${team.inboxCount} ${t("inboxes").toLowerCase()}`}
         </SheetDescription>
       </SheetHeader>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <section className="border-b px-5 py-5">
-          <MicroLabel className="mb-3 block">Details</MicroLabel>
+          <MicroLabel className="mb-3 block">{t("teamDetails")}</MicroLabel>
           <form
             className="flex flex-col gap-4"
             onSubmit={(e) => {
               e.preventDefault()
-              void save.run(() => updateTeamAction({ slug, id: team.id, ...draft }), { success: "Team saved" })
+              void save.run(() => updateTeamAction({ slug, id: team.id, ...draft }), { success: t("teamSaved") })
             }}
           >
             <TeamFields idPrefix={`team-${team.id}`} value={draft} onChange={setDraft} errors={save.fieldErrors} />
@@ -297,27 +300,27 @@ function TeamSheetBody({
                   variant="ghost"
                   onClick={() => setDraft(draftOf(team))}
                 >
-                  Reset
+                  {t("reset")}
                 </Button>
               )}
               <Button type="submit" disabled={!dirty || save.pending}>
                 {save.pending && <Loader2 className="animate-spin" />}
-                Save changes
+                {t("teamSaveChanges")}
               </Button>
             </div>
           </form>
         </section>
 
         <section className="border-b px-5 py-5">
-          <MicroLabel className="mb-3 block">Members</MicroLabel>
+          <MicroLabel className="mb-3 block">{t("teamMembers")}</MicroLabel>
           <div className="flex flex-col gap-2 sm:flex-row">
             <MultiCombobox
               options={memberComboOptions(memberOptions, memberSet)}
               value={toAdd}
               onChange={setToAdd}
-              placeholder="Add people to this team…"
-              searchPlaceholder="Search people…"
-              emptyText="Everyone is already in this team."
+              placeholder={t("teamAddPeople")}
+              searchPlaceholder={t("teamSearchPeople")}
+              emptyText={t("teamAlreadyMembers")}
               className="flex-1"
             />
             <Button
@@ -325,18 +328,18 @@ function TeamSheetBody({
               disabled={!toAdd.length || members.pending}
               onClick={() =>
                 void members.run(() => addTeamMembersAction({ slug, teamId: team.id, userIds: toAdd }), {
-                  success: (d) => `Added ${pluralize(d.added, "member")}`,
+                  success: (d) => t("teamAddedCount").replace("{count}", String(d.added)).replace("{members}", d.added === 1 ? t("memMemberCount") : t("memMembersCount")),
                   onSuccess: () => setToAdd([]),
                 })
               }
             >
-              <UserPlus /> Add
+              <UserPlus /> {t("teamAdd")}
             </Button>
           </div>
 
           {team.members.length === 0 ? (
             <p className="mt-4 rounded-lg border border-dashed px-3 py-6 text-center text-[13px] text-muted-foreground">
-              No one is in this team yet.
+              {t("teamEmptyMembers")}
             </p>
           ) : (
             <ul className="mt-3 divide-y rounded-lg border">
@@ -348,10 +351,10 @@ function TeamSheetBody({
                       {m.name || m.email}
                       {m.isLead && (
                         <span className="inline-flex items-center gap-0.5 rounded bg-warning/15 px-1 text-[10px] font-medium text-[color-mix(in_oklch,var(--warning),var(--foreground)_50%)]">
-                          <Crown className="size-2.5" /> Lead
+                          <Crown className="size-2.5" /> {t("teamLead")}
                         </span>
                       )}
-                      {m.status === "suspended" && <StatusBadge tone="warning">Suspended</StatusBadge>}
+                      {m.status === "suspended" && <StatusBadge tone="warning">{t("teamSuspended")}</StatusBadge>}
                     </div>
                     {m.name && <div className="truncate text-xs text-muted-foreground">{m.email}</div>}
                   </div>
@@ -361,7 +364,7 @@ function TeamSheetBody({
                         variant="ghost"
                         size="icon-sm"
                         aria-pressed={m.isLead}
-                        aria-label={m.isLead ? `Remove ${m.name || m.email} as lead` : `Make ${m.name || m.email} a lead`}
+                        aria-label={m.isLead ? `${t("teamRemoveLead")} ${m.name || m.email}` : `${t("teamMakeLead")} ${m.name || m.email}`}
                         disabled={members.pending}
                         className={cn(m.isLead ? "text-warning" : "text-muted-foreground")}
                         onClick={() =>
@@ -371,26 +374,26 @@ function TeamSheetBody({
                         <Crown />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>{m.isLead ? "Remove as lead" : "Make team lead"}</TooltipContent>
+                    <TooltipContent>{m.isLead ? t("teamRemoveLead") : t("teamMakeLead")}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`Remove ${m.name || m.email} from team`}
+                        aria-label={`${t("teamRemoveFromTeam")} ${m.name || m.email}`}
                         disabled={members.pending}
                         className="text-muted-foreground hover:text-destructive"
                         onClick={() =>
                           void members.run(() => removeTeamMemberAction({ slug, teamId: team.id, userId: m.userId }), {
-                            success: `${m.name || m.email} removed from ${team.name}`,
+                            success: t("teamMemberRemoved").replace("{name}", m.name || m.email).replace("{team}", team.name),
                           })
                         }
                       >
                         <X />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Remove from team</TooltipContent>
+                    <TooltipContent>{t("teamRemoveFromTeam")}</TooltipContent>
                   </Tooltip>
                 </li>
               ))}
@@ -399,23 +402,23 @@ function TeamSheetBody({
         </section>
 
         <section className="px-5 py-5">
-          <MicroLabel className="mb-3 block text-destructive/80">Danger zone</MicroLabel>
+          <MicroLabel className="mb-3 block text-destructive/80">{t("teamDanger")}</MicroLabel>
           <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 p-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[13px] text-muted-foreground">
-              Deleting the team removes it from inboxes, conversations and rules. Members keep their accounts.
+              {t("teamDeleteDescription")}
             </p>
             <ConfirmDialog
               trigger={
                 <Button variant="destructive" className="shrink-0">
-                  <Trash2 /> Delete team
+                  <Trash2 /> {t("teamDelete")}
                 </Button>
               }
               title={`Delete “${team.name}”?`}
-              description="Inboxes and conversations assigned to this team become unassigned. Rules that route to this team stop assigning. This can't be undone."
-              confirmLabel="Delete team"
+              description={t("teamDeleteConfirmation")}
+              confirmLabel={t("teamDelete")}
               destructive
               onConfirm={async () => {
-                const res = await members.run(() => deleteTeamAction({ slug, id: team.id }), { success: "Team deleted" })
+                const res = await members.run(() => deleteTeamAction({ slug, id: team.id }), { success: t("teamDeleted") })
                 if (res.ok) onClose()
                 return res.ok
               }}

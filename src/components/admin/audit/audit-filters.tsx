@@ -6,6 +6,7 @@ import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { FilterSelect, SearchParamInput } from "@/components/admin/client"
+import { useI18n } from "@/lib/i18n"
 
 const FILTER_PARAMS = ["org", "actor", "action", "from", "to", "actorId", "targetType", "targetId", "page"]
 
@@ -27,6 +28,7 @@ function useUpdateParams() {
 
 /** Free-text action prefix with suggestions (prefixes + actions seen so far). */
 function ActionPrefixInput({ suggestions }: { suggestions: string[] }) {
+  const { t, locale } = useI18n()
   const params = useSearchParams()
   const update = useUpdateParams()
   const [value, setValue] = useState(params.get("action") ?? "")
@@ -42,8 +44,8 @@ function ActionPrefixInput({ suggestions }: { suggestions: string[] }) {
       <Input
         list="audit-action-suggestions"
         value={value}
-        placeholder="Action prefix, e.g. admin."
-        aria-label="Filter by action prefix"
+        placeholder={t("actionPrefixPlaceholder")}
+        aria-label={locale === "it" ? "Filtra per prefisso dell’azione" : "Filter by action prefix"}
         spellCheck={false}
         autoComplete="off"
         className="bg-card pr-8 font-mono text-[13px] placeholder:font-sans"
@@ -57,7 +59,7 @@ function ActionPrefixInput({ suggestions }: { suggestions: string[] }) {
       {value && (
         <button
           type="button"
-          aria-label="Clear action filter"
+          aria-label={locale === "it" ? "Rimuovi filtro azione" : "Clear action filter"}
           className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
           onClick={() => {
             setValue("")
@@ -97,6 +99,8 @@ function DateInput({ param, label }: { param: "from" | "to"; label: string }) {
 }
 
 export function AuditFilters({ workspaces, suggestions }: { workspaces: { id: string; name: string }[]; suggestions: string[] }) {
+  const { t, locale } = useI18n()
+  const it = locale === "it"
   const params = useSearchParams()
   const update = useUpdateParams()
   // Remount the debounced text inputs after "Clear filters" so their local state resets
@@ -105,17 +109,17 @@ export function AuditFilters({ workspaces, suggestions }: { workspaces: { id: st
   const scoped = [
     params.get("actorId") && {
       key: "actorId",
-      label: "Actor",
+      label: it ? "Autore" : "Actor",
       value: params.get("actorId")!,
     },
     params.get("targetType") && {
       key: "targetType",
-      label: "Target type",
+      label: it ? "Tipo elemento" : "Target type",
       value: params.get("targetType")!,
     },
     params.get("targetId") && {
       key: "targetId",
-      label: "Target",
+      label: it ? "Elemento" : "Target",
       value: params.get("targetId")!,
     },
   ].filter(Boolean) as { key: string; label: string; value: string }[]
@@ -123,20 +127,20 @@ export function AuditFilters({ workspaces, suggestions }: { workspaces: { id: st
   return (
     <div className="mb-4 space-y-2">
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <SearchParamInput key={`actor-${resetKey}`} param="actor" placeholder="Actor email…" className="sm:w-56" />
+        <SearchParamInput key={`actor-${resetKey}`} param="actor" placeholder={t("actorEmailPlaceholder")} className="sm:w-56" />
         <ActionPrefixInput key={`action-${resetKey}`} suggestions={suggestions} />
         <FilterSelect
           param="org"
           label="Workspace"
           className="sm:w-48"
           options={[
-            { value: "instance", label: "Instance-level only" },
+            { value: "instance", label: it ? "Solo livello istanza" : "Instance-level only" },
             ...workspaces.map((w) => ({ value: w.id, label: w.name })),
           ]}
         />
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <DateInput param="from" label="From" />
-          <DateInput param="to" label="To" />
+          <DateInput param="from" label={it ? "Da" : "From"} />
+          <DateInput param="to" label={it ? "A" : "To"} />
         </div>
         {active && (
           <Button
@@ -148,7 +152,7 @@ export function AuditFilters({ workspaces, suggestions }: { workspaces: { id: st
               setResetKey((k) => k + 1)
             }}
           >
-            <X /> Clear filters
+            <X /> {it ? "Azzera filtri" : "Clear filters"}
           </Button>
         )}
       </div>
@@ -163,7 +167,7 @@ export function AuditFilters({ workspaces, suggestions }: { workspaces: { id: st
               <code className="max-w-48 truncate font-mono text-[11.5px]">{s.value}</code>
               <button
                 type="button"
-                aria-label={`Remove ${s.label} filter`}
+                aria-label={it ? `Rimuovi filtro ${s.label}` : `Remove ${s.label} filter`}
                 className="rounded-sm p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                 onClick={() => update({ [s.key]: null })}
               >

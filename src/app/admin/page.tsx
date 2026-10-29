@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   title: { absolute: "Overview · Instance admin" },
 }
 
-function greeting(timeZone: string) {
+function greeting(timeZone: string, locale: string) {
   let hour = new Date().getUTCHours()
   try {
     hour = Number(
@@ -35,6 +35,7 @@ function greeting(timeZone: string) {
   } catch {
     /* invalid time zone → UTC */
   }
+  if (locale === "it") return hour >= 5 && hour < 12 ? "Buongiorno" : hour < 18 && hour >= 12 ? "Buon pomeriggio" : "Buonasera"
   if (hour < 5) return "Good evening"
   if (hour < 12) return "Good morning"
   if (hour < 18) return "Good afternoon"
@@ -43,6 +44,7 @@ function greeting(timeZone: string) {
 
 export default async function AdminOverviewPage() {
   const { user } = await requireSuperAdminPage()
+  const it = user.locale === "it"
   const [general, stats, growth, checklist, recentWorkspaces, recentAudit] = await Promise.all([
     getSettings("general"),
     getOverviewStats(),
@@ -59,79 +61,79 @@ export default async function AdminOverviewPage() {
     <>
       <AdminPageHeader
         eyebrow={general.instanceName}
-        title={`${greeting(user.timezone || general.defaultTimezone)}, ${firstName}.`}
-        quiet="Here's how your instance is doing."
+        title={`${greeting(user.timezone || general.defaultTimezone, user.locale ?? "en")}, ${firstName}.`}
+        quiet={it ? "Ecco come sta andando la tua istanza." : "Here's how your instance is doing."}
         actions={
           <>
             <Button asChild variant="outline" size="sm">
               <Link href="/admin/system">
-                <Activity /> System health
+                <Activity /> {it ? "Stato del sistema" : "System health"}
               </Link>
             </Button>
             <Button asChild size="sm">
               <Link href="/admin/workspaces">
-                Workspaces <ArrowRight />
+                {it ? "Workspace" : "Workspaces"} <ArrowRight />
               </Link>
             </Button>
           </>
         }
       />
 
-      <section aria-label="Key metrics" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={it ? "Metriche principali" : "Key metrics"} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile
-          label="Workspaces"
+          label={it ? "Workspace" : "Workspaces"}
           value={formatNumber(stats.workspaces)}
-          hint={`+${formatNumber(stats.newWorkspaces7d)} this week${stats.suspendedWorkspaces ? ` · ${stats.suspendedWorkspaces} suspended` : ""}`}
+          hint={`+${formatNumber(stats.newWorkspaces7d)} ${it ? "questa settimana" : "this week"}${stats.suspendedWorkspaces ? ` · ${stats.suspendedWorkspaces} ${it ? "sospesi" : "suspended"}` : ""}`}
           icon={Building2}
           href="/admin/workspaces"
         />
         <StatTile
-          label="Users"
+          label={it ? "Utenti" : "Users"}
           value={formatNumber(stats.users)}
-          hint={`+${formatNumber(stats.newUsers7d)} this week`}
+          hint={`+${formatNumber(stats.newUsers7d)} ${it ? "questa settimana" : "this week"}`}
           icon={Users}
           href="/admin/users"
         />
         <StatTile
-          label="Active · 7d"
+          label={it ? "Attivi · 7 gg" : "Active · 7d"}
           value={formatNumber(stats.activeUsers7d)}
-          hint={stats.users ? `${activeShare}% of users` : "No users yet"}
+          hint={stats.users ? `${activeShare}% ${it ? "degli utenti" : "of users"}` : (it ? "Nessun utente" : "No users yet")}
           icon={UserCheck}
         />
         <StatTile
-          label="Conversations"
+          label={it ? "Conversazioni" : "Conversations"}
           value={formatNumber(stats.conversations)}
-          hint={`${formatNumber(stats.openConversations)} open`}
+          hint={`${formatNumber(stats.openConversations)} ${it ? "aperte" : "open"}`}
           icon={MessagesSquare}
         />
-        <StatTile label="Messages · 24h" value={formatNumber(stats.messages24h)} hint="Received and sent" icon={Send} />
+        <StatTile label={it ? "Messaggi · 24 h" : "Messages · 24h"} value={formatNumber(stats.messages24h)} hint={it ? "Ricevuti e inviati" : "Received and sent"} icon={Send} />
         <StatTile
-          label="Inboxes"
+          label={it ? "Caselle" : "Inboxes"}
           value={formatNumber(stats.inboxes)}
           hint={
             stats.inboxes
-              ? `${formatNumber(stats.inboxesActive)} active${stats.inboxesError ? ` · ${formatNumber(stats.inboxesError)} with errors` : ""}`
-              : "Demo inboxes excluded"
+              ? `${formatNumber(stats.inboxesActive)} ${it ? "attive" : "active"}${stats.inboxesError ? ` · ${formatNumber(stats.inboxesError)} ${it ? "con errori" : "with errors"}` : ""}`
+              : (it ? "Caselle demo escluse" : "Demo inboxes excluded")
           }
           tone={stats.inboxesError ? "error" : "default"}
           icon={Inbox}
           href={stats.inboxesError ? "/admin/system#inbox-errors" : undefined}
         />
         <StatTile
-          label="Paying"
+          label={it ? "A pagamento" : "Paying"}
           value={formatNumber(stats.payingWorkspaces)}
-          hint={revenue.enabled ? `${formatNumber(stats.trialingWorkspaces)} in trial` : "Billing disabled"}
+          hint={revenue.enabled ? `${formatNumber(stats.trialingWorkspaces)} ${it ? "in prova" : "in trial"}` : (it ? "Fatturazione disattivata" : "Billing disabled")}
           icon={CircleDollarSign}
         />
         <StatTile
-          label="MRR (est.)"
+          label="MRR (stima)"
           value={revenue.enabled ? formatMoney(revenue.mrrCents, revenue.currency) : "—"}
           hint={
             revenue.enabled
               ? `${formatMoney(revenue.priceCents, revenue.currency)}/${revenue.interval} × ${formatNumber(stats.payingWorkspaces)}`
               : general.mode === "saas"
-                ? "Billing not enabled"
-                : "Private mode"
+                ? (it ? "Fatturazione non attiva" : "Billing not enabled")
+                : (it ? "Modalità privata" : "Private mode")
           }
           tone={revenue.enabled && revenue.mrrCents > 0 ? "brand" : "default"}
           icon={CircleDollarSign}
@@ -140,21 +142,21 @@ export default async function AdminOverviewPage() {
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Panel title="Growth" description="New users and workspaces per day" className="lg:col-span-2">
+        <Panel title={it ? "Crescita" : "Growth"} description={it ? "Nuovi utenti e workspace al giorno" : "New users and workspaces per day"} className="lg:col-span-2">
           <GrowthChart points={growth.points} totals={growth.totals} previous={growth.previous} />
         </Panel>
-        <Panel title="Setup checklist" description="What this instance still needs">
+        <Panel title={it ? "Configurazione" : "Setup checklist"} description={it ? "Elementi ancora da configurare nell’istanza" : "What this instance still needs"}>
           <SetupChecklist items={checklist} />
         </Panel>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Panel
-          title="Recent workspaces"
+          title={it ? "Workspace recenti" : "Recent workspaces"}
           actions={
             <Button asChild variant="ghost" size="xs">
               <Link href="/admin/workspaces">
-                View all <ArrowRight />
+                {it ? "Vedi tutti" : "View all"} <ArrowRight />
               </Link>
             </Button>
           }
@@ -162,11 +164,11 @@ export default async function AdminOverviewPage() {
           <RecentWorkspacesList workspaces={recentWorkspaces} />
         </Panel>
         <Panel
-          title="Recent activity"
+          title={it ? "Attività recente" : "Recent activity"}
           actions={
             <Button asChild variant="ghost" size="xs">
               <Link href="/admin/audit">
-                Audit log <ArrowRight />
+                {it ? "Registro attività" : "Audit log"} <ArrowRight />
               </Link>
             </Button>
           }

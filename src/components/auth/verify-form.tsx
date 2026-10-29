@@ -6,9 +6,12 @@ import { ArrowRight, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { verifyMagicLinkAction, type VerifyLinkState } from "@/app/login/actions"
+import { useI18n } from "@/lib/i18n"
 
 /** "Continue as …" confirmation for a magic link; the POST consumes the token. */
 export function VerifyForm({ token, email }: { token: string; email: string }) {
+  const { locale } = useI18n()
+  const tx = (en: string, it: string) => locale === "it" ? it : en
   const [state, formAction, pending] = useActionState<VerifyLinkState, FormData>(verifyMagicLinkAction, { error: null })
 
   if (state.error) {
@@ -19,7 +22,7 @@ export function VerifyForm({ token, email }: { token: string; email: string }) {
           {state.error}
         </div>
         <Button asChild size="lg" className="mt-5 h-10 w-full rounded-md">
-          <Link href={`/login?email=${encodeURIComponent(email)}`}>Request a new link</Link>
+          <Link href={`/login?email=${encodeURIComponent(email)}`}>{tx("Request a new link", "Richiedi un nuovo link")}</Link>
         </Button>
       </div>
     )
@@ -30,7 +33,7 @@ export function VerifyForm({ token, email }: { token: string; email: string }) {
       <input type="hidden" name="token" value={token} />
       <Button type="submit" size="lg" className="h-10 w-full rounded-md" disabled={pending} autoFocus>
         {pending ? <Spinner /> : null}
-        {pending ? "Signing you in…" : "Continue"}
+        {pending ? tx("Signing you in…", "Accesso in corso…") : tx("Continue", "Continua")}
         {!pending && <ArrowRight />}
       </Button>
     </form>

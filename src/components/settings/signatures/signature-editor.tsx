@@ -12,6 +12,7 @@ import { FormField, MicroLabel } from "@/components/settings/settings-ui"
 import { useServerAction } from "@/components/settings/use-server-action"
 import { createSignature, deleteSignature, updateSignature } from "@/server/workspace/actions/signatures"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { isBlankHtml } from "../responses/text"
 import { SignaturePreview, type PreviewUser } from "./signature-preview"
 
@@ -52,6 +53,8 @@ export function SignatureEditor({
   previewUser: PreviewUser
   onClose: () => void
 }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [draft, setDraft] = useState<SignatureDraft>(initialDraft)
   const [showErrors, setShowErrors] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
@@ -140,8 +143,8 @@ export function SignatureEditor({
           }}
         >
           <SheetHeader className="border-b px-5 py-4 pr-12">
-            <SheetTitle>{isNew ? "New signature" : "Edit signature"}</SheetTitle>
-            <SheetDescription>Variables are replaced with the sender&apos;s details when a message is sent.</SheetDescription>
+            <SheetTitle>{isNew ? (it ? "Nuova firma" : "New signature") : (it ? "Modifica firma" : "Edit signature")}</SheetTitle>
+            <SheetDescription>{it ? "Le variabili vengono sostituite con i dati del mittente quando il messaggio viene inviato." : "Variables are replaced with the sender&apos;s details when a message is sent."}</SheetDescription>
           </SheetHeader>
 
           <form
@@ -152,29 +155,29 @@ export function SignatureEditor({
               save()
             }}
           >
-            <FormField label="Name" htmlFor="signature-name" error={errors.name} description="Only visible to your team, e.g. “Support team” or “Short”.">
+            <FormField label={it ? "Nome" : "Name"} htmlFor="signature-name" error={errors.name} description={it ? "Visibile solo al tuo team, ad esempio “Team assistenza” o “Breve”." : "Only visible to your team, e.g. “Support team” or “Short”."}>
               <Input
                 id="signature-name"
                 autoFocus={isNew}
                 value={draft.name}
                 maxLength={80}
-                placeholder="e.g. Support team"
+                placeholder={it ? "es. Team assistenza" : "e.g. Support team"}
                 aria-invalid={Boolean(errors.name)}
                 onChange={(e) => set("name", e.target.value)}
               />
             </FormField>
 
             <FormField
-              label="Type"
-              description={!canManageWorkspace ? "Only members with “Manage signatures” can create workspace signatures." : undefined}
+              label={it ? "Tipo" : "Type"}
+              description={!canManageWorkspace ? (it ? "Solo i membri con il permesso “Gestisci firme” possono creare firme del workspace." : "Only members with “Manage signatures” can create workspace signatures.") : undefined}
             >
-              <div role="radiogroup" aria-label="Signature type" className="flex flex-col gap-2 sm:flex-row">
-                {scopeOption("personal", "Personal", "Only you can use it", User)}
-                {scopeOption("workspace", "Workspace", "Shared inboxes and the whole team", Globe)}
+              <div role="radiogroup" aria-label={it ? "Tipo di firma" : "Signature type"} className="flex flex-col gap-2 sm:flex-row">
+                {scopeOption("personal", it ? "Personale" : "Personal", it ? "Solo tu puoi usarla" : "Only you can use it", User)}
+                {scopeOption("workspace", "Workspace", it ? "Caselle condivise e tutto il team" : "Shared inboxes and the whole team", Globe)}
               </div>
             </FormField>
 
-            <FormField label="Signature" error={errors.body}>
+            <FormField label={it ? "Firma" : "Signature"} error={errors.body}>
               <RichTextEditor
                 value={draft.body}
                 onChange={(html) => set("body", html)}
@@ -187,14 +190,14 @@ export function SignatureEditor({
             </FormField>
 
             <FormField
-              label="Default for inboxes"
+              label={it ? "Predefinita per le caselle" : "Default for inboxes"}
               optional
               description={
                 assignable.length === 0
                   ? draft.scope === "workspace"
-                    ? "No shared inboxes yet — connect one in Settings → Inboxes."
-                    : "Connect a personal inbox to use this as its default."
-                  : "Added automatically when replying from these inboxes. An inbox has one default signature."
+                    ? (it ? "Non ci sono ancora caselle condivise: collegane una in Impostazioni → Caselle." : "No shared inboxes yet — connect one in Settings → Inboxes.")
+                    : (it ? "Collega una casella personale per impostarla come predefinita." : "Connect a personal inbox to use this as its default.")
+                  : (it ? "Aggiunta automaticamente quando rispondi da queste caselle. Ogni casella ha una sola firma predefinita." : "Added automatically when replying from these inboxes. An inbox has one default signature.")
               }
               error={fieldErrors.accountIds}
             >
@@ -202,14 +205,14 @@ export function SignatureEditor({
                 options={accountOptions}
                 value={draft.accountIds}
                 onChange={(v) => set("accountIds", v)}
-                placeholder={assignable.length ? "Choose inboxes…" : "No inboxes available"}
+                placeholder={assignable.length ? (it ? "Scegli le caselle…" : "Choose inboxes…") : (it ? "Nessuna casella disponibile" : "No inboxes available")}
                 disabled={assignable.length === 0}
-                searchPlaceholder="Search inboxes…"
+                searchPlaceholder={it ? "Cerca caselle…" : "Search inboxes…"}
               />
             </FormField>
 
             <div className="flex flex-col gap-2">
-              <MicroLabel>Preview · as {previewUser.name}</MicroLabel>
+              <MicroLabel>{it ? "Anteprima · come {name}".replace("{name}", previewUser.name) : `Preview · as ${previewUser.name}`}</MicroLabel>
               <SignaturePreview body={draft.body} user={previewUser} />
             </div>
           </form>
@@ -220,7 +223,7 @@ export function SignatureEditor({
                 <ConfirmDialog
                   trigger={
                     <Button type="button" variant="ghost" className="text-destructive hover:text-destructive" disabled={pending}>
-                      <Trash2 /> <span className="hidden sm:inline">Delete</span>
+                      <Trash2 /> <span className="hidden sm:inline">{it ? "Elimina" : "Delete"}</span>
                     </Button>
                   }
                   title={`Delete “${initialDraft.name}”?`}
@@ -229,10 +232,10 @@ export function SignatureEditor({
                       ? `It is the default signature of ${initialDraft.accountIds.length} inbox${initialDraft.accountIds.length === 1 ? "" : "es"}; they will have no default signature. This can't be undone.`
                       : "This can't be undone."
                   }
-                  confirmLabel="Delete signature"
+                  confirmLabel={it ? "Elimina firma" : "Delete signature"}
                   destructive
                   onConfirm={async () => {
-                    const res = await run(() => deleteSignature({ slug, id: draft.id! }), { success: "Signature deleted" })
+                    const res = await run(() => deleteSignature({ slug, id: draft.id! }), { success: it ? "Firma eliminata" : "Signature deleted" })
                     if (res.ok) onClose()
                     return res.ok
                   }}
@@ -241,11 +244,11 @@ export function SignatureEditor({
             </div>
             <div className="flex items-center gap-2">
               <Button type="button" variant="outline" onClick={requestClose} disabled={pending}>
-                Cancel
+                {it ? "Annulla" : "Cancel"}
               </Button>
               <Button type="submit" form="signature-form" disabled={pending}>
                 {pending && <Loader2 className="animate-spin" />}
-                {isNew ? "Create signature" : "Save changes"}
+                {isNew ? (it ? "Crea firma" : "Create signature") : (it ? "Salva modifiche" : "Save changes")}
               </Button>
             </div>
           </div>
@@ -255,10 +258,10 @@ export function SignatureEditor({
       <ConfirmDialog
         open={confirmDiscard}
         onOpenChange={setConfirmDiscard}
-        title="Discard unsaved changes?"
-        description="Your edits to this signature will be lost."
-        confirmLabel="Discard"
-        cancelLabel="Keep editing"
+        title={it ? "Scartare le modifiche non salvate?" : "Discard unsaved changes?"}
+        description={it ? "Le modifiche apportate a questa firma andranno perse." : "Your edits to this signature will be lost."}
+        confirmLabel={it ? "Scarta" : "Discard"}
+        cancelLabel={it ? "Continua a modificare" : "Keep editing"}
         destructive
         onConfirm={() => {
           onClose()

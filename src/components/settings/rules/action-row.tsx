@@ -14,6 +14,8 @@ import { ACTION_DEFS, RULE_LIMITS, SNOOZE_PRESETS } from "@/components/settings/
 import type { ActionDraft } from "@/components/settings/rules/drafts"
 import { ACTION_ICONS } from "@/components/settings/rules/rule-icons"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
+import { ruleText } from "@/components/settings/rules/rule-labels"
 
 export type ActionOptions = {
   labels: ComboOption[]
@@ -23,10 +25,11 @@ export type ActionOptions = {
 }
 
 function ErrorText({ children }: { children?: string }) {
+  const { locale } = useI18n()
   if (!children) return null
   return (
     <p role="alert" className="text-xs text-destructive">
-      {children}
+      {ruleText(children, locale)}
     </p>
   )
 }
@@ -47,6 +50,7 @@ function splitMinutes(minutes: number): { amount: string; unit: Unit } {
 }
 
 function SnoozeInput({ minutes, onChange, invalid }: { minutes: number; onChange: (m: number) => void; invalid: boolean }) {
+  const { locale } = useI18n()
   const initial = splitMinutes(minutes)
   const [amount, setAmount] = useState(initial.amount)
   const [unit, setUnit] = useState<Unit>(initial.unit)
@@ -62,7 +66,7 @@ function SnoozeInput({ minutes, onChange, invalid }: { minutes: number; onChange
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <label htmlFor={`${uid}-amount`} className="shrink-0 text-[13px] text-muted-foreground">
-          Snooze for
+          {ruleText("Snooze for", locale)}
         </label>
         <Input
           id={`${uid}-amount`}
@@ -84,13 +88,13 @@ function SnoozeInput({ minutes, onChange, invalid }: { minutes: number; onChange
             emit(amount, v as Unit)
           }}
         >
-          <SelectTrigger className="w-28" aria-label="Unit">
+          <SelectTrigger className="w-28" aria-label={ruleText("Unit", locale)}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {UNITS.map((u) => (
               <SelectItem key={u.value} value={u.value}>
-                {u.label}
+                {ruleText(u.label, locale)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -112,7 +116,7 @@ function SnoozeInput({ minutes, onChange, invalid }: { minutes: number; onChange
               minutes === p.minutes && "border-brand/50 bg-brand-soft text-foreground"
             )}
           >
-            {p.label}
+            {ruleText(p.label, locale)}
           </button>
         ))}
       </div>
@@ -139,6 +143,7 @@ export function ActionRow({
   onRemove: () => void
   onMove: (dir: -1 | 1) => void
 }) {
+  const { locale } = useI18n()
   const uid = useId()
   const def = ACTION_DEFS[draft.type]
   const Icon = ACTION_ICONS[draft.type]
@@ -156,8 +161,8 @@ export function ActionRow({
             options={options.labels}
             value={draft.labelId || null}
             onChange={(v) => onChange({ labelId: v ?? "" })}
-            placeholder={options.labels.length ? "Select label" : "No labels available"}
-            searchPlaceholder="Search labels…"
+            placeholder={ruleText(options.labels.length ? "Select label" : "No labels available", locale)}
+            searchPlaceholder={ruleText("Search labels…", locale)}
             aria-invalid={Boolean(err("labelId"))}
             className="sm:max-w-sm"
           />
@@ -172,8 +177,8 @@ export function ActionRow({
             options={options.members}
             value={draft.userId || null}
             onChange={(v) => onChange({ userId: v ?? "" })}
-            placeholder="Select teammate"
-            searchPlaceholder="Search people…"
+            placeholder={ruleText("Select teammate", locale)}
+            searchPlaceholder={ruleText("Search people…", locale)}
             aria-invalid={Boolean(err("userId"))}
             className="sm:max-w-sm"
           />
@@ -189,8 +194,8 @@ export function ActionRow({
               options={options.teams}
               value={draft.teamId || null}
               onChange={(v) => onChange({ teamId: v ?? "" })}
-              placeholder={options.teams.length ? "Select team" : "No teams yet — create one in Settings → Teams"}
-              searchPlaceholder="Search teams…"
+              placeholder={ruleText(options.teams.length ? "Select team" : "No teams yet — create one in Settings → Teams", locale)}
+              searchPlaceholder={ruleText("Search teams…", locale)}
               aria-invalid={Boolean(err("teamId"))}
               className="sm:max-w-sm"
             />
@@ -199,9 +204,9 @@ export function ActionRow({
           <label htmlFor={`${uid}-balance`} className="flex items-start gap-3">
             <Switch id={`${uid}-balance`} checked={draft.balance} onCheckedChange={(v) => onChange({ balance: v })} className="mt-0.5" />
             <span className="min-w-0">
-              <span className="block text-[13px] font-medium">Balance workload</span>
+              <span className="block text-[13px] font-medium">{ruleText("Balance workload", locale)}</span>
               <span className="block text-xs text-muted-foreground">
-                Also assign a teammate using the team’s assignment strategy (round robin, least busy or random).
+                {ruleText("Also assign a teammate using the team’s assignment strategy (round robin, least busy or random).", locale)}
               </span>
             </span>
           </label>
@@ -226,13 +231,13 @@ export function ActionRow({
             spacing={0}
             value={draft.replyMode}
             onValueChange={(v) => v && onChange({ replyMode: v as ActionDraft["replyMode"] })}
-            aria-label="Reply content"
+            aria-label={ruleText("Reply content", locale)}
           >
             <ToggleGroupItem value="custom" className="px-3 text-xs">
-              Custom message
+              {ruleText("Custom message", locale)}
             </ToggleGroupItem>
             <ToggleGroupItem value="canned" className="px-3 text-xs">
-              Canned response
+              {ruleText("Canned response", locale)}
             </ToggleGroupItem>
           </ToggleGroup>
           {draft.replyMode === "canned" ? (
@@ -241,8 +246,8 @@ export function ActionRow({
                 options={options.responses}
                 value={draft.cannedResponseId || null}
                 onChange={(v) => onChange({ cannedResponseId: v ?? "" })}
-                placeholder={options.responses.length ? "Select canned response" : "No canned responses yet"}
-                searchPlaceholder="Search responses…"
+                placeholder={ruleText(options.responses.length ? "Select canned response" : "No canned responses yet", locale)}
+                searchPlaceholder={ruleText("Search responses…", locale)}
                 aria-invalid={Boolean(err("cannedResponseId"))}
                 className="sm:max-w-sm"
               />
@@ -252,7 +257,7 @@ export function ActionRow({
             <>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor={`${uid}-subject`} className="text-[13px] font-medium">
-                  Subject <span className="text-xs font-normal text-muted-foreground">Optional — defaults to “Re: original subject”</span>
+                  {ruleText("Subject", locale)} <span className="text-xs font-normal text-muted-foreground">{ruleText("Optional — defaults to “Re: original subject”", locale)}</span>
                 </label>
                 <Input
                   id={`${uid}-subject`}
@@ -264,7 +269,7 @@ export function ActionRow({
                 <ErrorText>{err("subject")}</ErrorText>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[13px] font-medium">Message</span>
+                <span className="text-[13px] font-medium">{ruleText("Message", locale)}</span>
                 <RichTextEditor
                   value={draft.body}
                   onChange={(html) => onChange({ body: html })}
@@ -285,7 +290,7 @@ export function ActionRow({
         <div className="flex flex-col gap-1.5">
           <Input
             type="email"
-            aria-label="Forward to"
+            aria-label={ruleText("Forward to", locale)}
             placeholder="accounting@acme.com"
             value={draft.to}
             onChange={(e) => onChange({ to: e.target.value })}
@@ -300,15 +305,15 @@ export function ActionRow({
       body = (
         <div className="flex flex-col gap-1.5">
           <Textarea
-            aria-label="Comment"
-            placeholder="Heads up: this customer is on the Enterprise plan."
+            aria-label={ruleText("Comment", locale)}
+            placeholder={ruleText("Heads up: this customer is on the Enterprise plan.", locale)}
             value={draft.body}
             maxLength={RULE_LIMITS.comment}
             onChange={(e) => onChange({ body: e.target.value })}
             aria-invalid={Boolean(err("body"))}
             className="min-h-20"
           />
-          <p className="text-xs text-muted-foreground">Posted as an internal note — customers never see it.</p>
+          <p className="text-xs text-muted-foreground">{ruleText("Posted as an internal note — customers never see it.", locale)}</p>
           <ErrorText>{err("body")}</ErrorText>
         </div>
       )
@@ -318,7 +323,7 @@ export function ActionRow({
         <div className="flex flex-col gap-1.5">
           <Input
             type="url"
-            aria-label="Webhook URL"
+            aria-label={ruleText("Webhook URL", locale)}
             placeholder="https://example.com/hooks/dispatch"
             value={draft.url}
             spellCheck={false}
@@ -326,7 +331,7 @@ export function ActionRow({
             aria-invalid={Boolean(err("url"))}
             className="font-mono text-[13px]"
           />
-          <p className="text-xs text-muted-foreground">Dispatch sends a POST request with the conversation and message as JSON.</p>
+          <p className="text-xs text-muted-foreground">{ruleText("Dispatch sends a POST request with the conversation and message as JSON.", locale)}</p>
           <ErrorText>{err("url")}</ErrorText>
         </div>
       )
@@ -340,8 +345,8 @@ export function ActionRow({
           <Icon className="size-3.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-medium">{def.label}</div>
-          {!body && <div className="truncate text-xs text-muted-foreground">{def.description}</div>}
+          <div className="truncate text-[13px] font-medium">{ruleText(def.label, locale)}</div>
+          {!body && <div className="truncate text-xs text-muted-foreground">{ruleText(def.description, locale)}</div>}
         </div>
         <div className="flex shrink-0 items-center">
           <Button
@@ -350,7 +355,7 @@ export function ActionRow({
             size="icon-xs"
             disabled={index === 0}
             onClick={() => onMove(-1)}
-            aria-label={`Move ${def.label} up`}
+            aria-label={`${ruleText("Move action", locale)} ${ruleText(def.label, locale)} ${ruleText("up", locale)}`}
             className="text-muted-foreground"
           >
             <ArrowUp />
@@ -361,7 +366,7 @@ export function ActionRow({
             size="icon-xs"
             disabled={index === count - 1}
             onClick={() => onMove(1)}
-            aria-label={`Move ${def.label} down`}
+            aria-label={`${ruleText("Move action", locale)} ${ruleText(def.label, locale)} ${ruleText("down", locale)}`}
             className="text-muted-foreground"
           >
             <ArrowDown />
@@ -371,7 +376,7 @@ export function ActionRow({
             variant="ghost"
             size="icon-xs"
             onClick={onRemove}
-            aria-label={`Remove ${def.label}`}
+            aria-label={`${ruleText("Remove", locale)} ${ruleText(def.label, locale)}`}
             className="text-muted-foreground hover:text-destructive"
           >
             <X />

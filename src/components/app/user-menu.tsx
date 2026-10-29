@@ -20,6 +20,7 @@ import {
 import { useOrg } from "@/components/app/org-provider"
 import { UserAvatar } from "@/components/app/user-avatar"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 /** Sign out via POST (CSRF-safe). */
 export function signOut() {
@@ -33,6 +34,7 @@ export function signOut() {
 /** Avatar dropdown: profile, settings, theme, super admin, sign out. */
 export function UserMenu({ align = "start", compact = false, className }: { align?: "start" | "end"; compact?: boolean; className?: string }) {
   const { user, org, can } = useOrg()
+  const { t } = useI18n()
   const { theme, setTheme } = useTheme()
   const base = `/w/${org.slug}`
   return (
@@ -59,20 +61,20 @@ export function UserMenu({ align = "start", compact = false, className }: { alig
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href={`${base}/settings/profile`}>
-              <User /> Profile & preferences
+              <User /> {t("profile")} & {t("preferences")}
             </Link>
           </DropdownMenuItem>
           {(can("settings.manage") || can("members.manage") || can("inboxes.manage")) && (
             <DropdownMenuItem asChild>
               <Link href={`${base}/settings`}>
-                <Settings /> Workspace settings
+                <Settings /> {t("workspaceSettings")}
               </Link>
             </DropdownMenuItem>
           )}
           {user.isSuperAdmin && (
             <DropdownMenuItem asChild>
               <Link href="/admin">
-                <Shield /> Instance admin
+                <Shield /> {t("instanceAdmin")}
               </Link>
             </DropdownMenuItem>
           )}
@@ -80,13 +82,13 @@ export function UserMenu({ align = "start", compact = false, className }: { alig
         <DropdownMenuSeparator />
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            {theme === "dark" ? <Moon /> : theme === "light" ? <Sun /> : <Monitor />} Theme
+            {theme === "dark" ? <Moon /> : theme === "light" ? <Sun /> : <Monitor />} {t("theme")}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             {[
-              { v: "light", label: "Light", icon: Sun },
-              { v: "dark", label: "Dark", icon: Moon },
-              { v: "system", label: "System", icon: Monitor },
+              { v: "light", label: t("light"), icon: Sun },
+              { v: "dark", label: t("dark"), icon: Moon },
+              { v: "system", label: t("system"), icon: Monitor },
             ].map((t) => (
               <DropdownMenuItem key={t.v} onClick={() => setTheme(t.v)}>
                 <t.icon /> {t.label}
@@ -97,7 +99,7 @@ export function UserMenu({ align = "start", compact = false, className }: { alig
         </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut} variant="destructive">
-          <LogOut /> Sign out
+          <LogOut /> {t("signOut")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -107,6 +109,7 @@ export function UserMenu({ align = "start", compact = false, className }: { alig
 /** Workspace switcher (name + chevron) listing all workspaces of the user. */
 export function WorkspaceSwitcher({ className }: { className?: string }) {
   const { org, workspaces, productName } = useOrg()
+  const { t } = useI18n()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -125,7 +128,7 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
         <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Workspaces</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t("workspaces")}</DropdownMenuLabel>
         {workspaces.map((w) => (
           <DropdownMenuItem key={w.id} asChild>
             <a href={`/w/${w.slug}/inbox`}>
@@ -140,7 +143,7 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/onboarding?new=1">
-            <Plus /> Create workspace
+            <Plus /> {t("createWorkspace")}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">{productName}</DropdownMenuLabel>

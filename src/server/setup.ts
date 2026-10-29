@@ -8,6 +8,7 @@ import { getAppUrl, getDataDir, isSecureContext } from "@/server/env"
 import { getSettings, updateSettings } from "@/server/settings"
 import { getCurrentSession, type CurrentSession } from "@/server/auth/session"
 import { randomToken, safeEqual } from "@/server/crypto"
+import { passwordHash } from "@/server/auth/password"
 import { rateLimit } from "@/server/rate-limit"
 import { createOrganization, RESERVED_SLUGS, slugify, uniqueSlug } from "@/server/orgs"
 
@@ -73,7 +74,7 @@ export async function requireSetupActor(): Promise<CurrentSession> {
  * super admin already exists. If a (non admin) user with that email already
  * exists it is promoted instead.
  */
-export async function createFirstSuperAdmin(input: { name: string; email: string }) {
+export async function createFirstSuperAdmin(input: { name: string; email: string; password: string }) {
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${SETUP_LOCK}))`)
     const setupRow = await tx.query.instanceSettings.findFirst({ where: eq(schema.instanceSettings.key, "setup") })
@@ -89,14 +90,14 @@ export async function createFirstSuperAdmin(input: { name: string; email: string
     if (existing) {
       const [user] = await tx
         .update(schema.users)
-        .set({ isSuperAdmin: true, status: "active", name: existing.name || input.name })
+        .set({ isSuperAdmin: true, status: "active", name: existing.name || input.name, passwordHash: passwordHash(input.password) })
         .where(eq(schema.users.id, existing.id))
         .returning()
       return user!
     }
     const [user] = await tx
       .insert(schema.users)
-      .values({ email: input.email, name: input.name, isSuperAdmin: true })
+      .values({ email: input.email, name: input.name, isSuperAdmin: true, passwordHash: passwordHash(input.password) })
       .returning()
     return user!
   })

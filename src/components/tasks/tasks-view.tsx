@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react"
 import { useOrg } from "@/components/app/org-provider"
+import { useI18n } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -95,6 +96,8 @@ function isTypingTarget(el: EventTarget | null) {
 }
 
 export function TasksView() {
+  const { locale, t } = useI18n()
+  const tx = (en: string, it: string) => locale === "it" ? it : en
   const { org, user } = useOrg()
   const slug = org.slug
   const router = useRouter()
@@ -179,9 +182,9 @@ export function TasksView() {
       (scope === "mine" ? task.assignee?.id === user.id : scope === "unassigned" ? !task.assignee : scope === "all" || task.assignee?.id === scope.slice(5)) &&
       (!teamId || task.team?.id === teamId)
     if (!visible) {
-      toast.success("Task created", {
-        description: task.assignee ? `Assigned to ${task.assignee.id === user.id ? "you" : task.assignee.name || task.assignee.email}` : "Unassigned",
-        action: { label: "Open", onClick: () => setSelected(task.id) },
+      toast.success(tx("Task created", "Attività creata"), {
+        description: task.assignee ? `${tx("Assegnata a", "Assegnata a")} ${task.assignee.id === user.id ? tx("you", "te") : task.assignee.name || task.assignee.email}` : tx("Unassigned", "Non assegnata"),
+        action: { label: tx("Open", "Apri"), onClick: () => setSelected(task.id) },
       })
     }
   }
@@ -215,9 +218,9 @@ export function TasksView() {
   const openCount = tasks?.filter((t) => t.status !== "done").length ?? 0
 
   const scopeTabs: { value: Scope; label: string }[] = [
-    { value: "mine", label: "My tasks" },
-    { value: "all", label: "All" },
-    { value: "unassigned", label: "Unassigned" },
+    { value: "mine", label: tx("My tasks", "Le mie attività") },
+    { value: "all", label: tx("All", "Tutte") },
+    { value: "unassigned", label: tx("Unassigned", "Non assegnate") },
   ]
 
   return (
@@ -225,7 +228,7 @@ export function TasksView() {
       <AreaTopBar>
         <Button size="sm" onClick={() => startAdd()} className="gap-1.5">
           <Plus />
-          <span className="hidden sm:inline">New task</span>
+          <span className="hidden sm:inline">{tx("New task", "Nuova attività")}</span>
           <Kbd className="hidden bg-primary-foreground/15 text-primary-foreground sm:inline-flex">T</Kbd>
         </Button>
       </AreaTopBar>
@@ -233,8 +236,8 @@ export function TasksView() {
       {/* Toolbar */}
       <div className="flex shrink-0 flex-col gap-2 border-b px-3 py-2.5 sm:px-4 md:flex-row md:items-center">
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="sr-only mr-1 text-[15px] font-semibold tracking-tight md:not-sr-only">Tasks</h1>
-          <div className="scrollbar-none flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg bg-muted/70 p-0.5" role="tablist" aria-label="Assignee">
+          <h1 className="sr-only mr-1 text-[15px] font-semibold tracking-tight md:not-sr-only">{tx("Tasks", "Attività")}</h1>
+          <div className="scrollbar-none flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-lg bg-muted/70 p-0.5" role="tablist" aria-label={tx("Assignee", "Assegnatario")}>
             {scopeTabs.map((t) => (
               <button
                 key={t.value}
@@ -255,7 +258,7 @@ export function TasksView() {
                   "flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[13px] font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
                   personScope && "bg-background text-foreground shadow-xs dark:bg-accent"
                 )}
-                aria-label="Filter by teammate"
+                aria-label={tx("Filter by teammate", "Filtra per collega")}
               >
                 {personScope ? (
                   <>
@@ -265,12 +268,12 @@ export function TasksView() {
                 ) : (
                   <>
                     <Users className="size-3.5" />
-                    <span className="hidden sm:inline">Teammate</span>
+                    <span className="hidden sm:inline">{tx("Teammate", "Collega")}</span>
                   </>
                 )}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="max-h-80 w-56 overflow-y-auto">
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Tasks assigned to</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{tx("Tasks assigned to", "Attività assegnate a")}</DropdownMenuLabel>
                 {options?.members
                   .filter((m) => m.id !== user.id)
                   .map((m) => (
@@ -293,8 +296,8 @@ export function TasksView() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Escape" && (setSearch(""), e.currentTarget.blur())}
-              placeholder="Search tasks"
-              aria-label="Search tasks"
+              placeholder={tx("Search tasks", "Cerca attività")}
+              aria-label={tx("Search tasks", "Cerca attività")}
               className="h-8 w-full rounded-lg border bg-background pr-7 pl-8 text-[13px] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 dark:bg-input/30"
             />
             {search ? (
@@ -302,7 +305,7 @@ export function TasksView() {
                 type="button"
                 onClick={() => setSearch("")}
                 className="absolute top-1/2 right-1.5 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
+                aria-label={tx("Clear search", "Cancella ricerca")}
               >
                 <X className="size-3.5" />
               </button>
@@ -313,30 +316,30 @@ export function TasksView() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("shrink-0", (team || showDone) && "border-brand/50")} aria-label="Display options">
+              <Button variant="outline" size="sm" className={cn("shrink-0", (team || showDone) && "border-brand/50")} aria-label={tx("Display options", "Opzioni di visualizzazione")}>
                 <SlidersHorizontal />
-                <span className="hidden lg:inline">Display</span>
+                <span className="hidden lg:inline">{tx("Display", "Visualizzazione")}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               {view === "list" && (
                 <>
-                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Group by</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{tx("Group by", "Raggruppa per")}</DropdownMenuLabel>
                   <DropdownMenuRadioGroup value={groupBy} onValueChange={(v) => setGroupBy(v as GroupBy)}>
-                    <DropdownMenuRadioItem value="due">Due date</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="status">Status</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="assignee">Assignee</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="due">{tx("Due date", "Scadenza")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="status">{tx("Status", "Stato")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="assignee">{tx("Assignee", "Assegnatario")}</DropdownMenuRadioItem>
                   </DropdownMenuRadioGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuCheckboxItem checked={showDone} onCheckedChange={(v) => setShowDone(Boolean(v))}>
-                    Show completed
+                    {tx("Show completed", "Mostra completate")}
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuSeparator />
                 </>
               )}
-              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Team</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t("team")}</DropdownMenuLabel>
               <DropdownMenuRadioGroup value={teamId ?? "any"} onValueChange={(v) => setTeamId(v === "any" ? null : v)}>
-                <DropdownMenuRadioItem value="any">Any team</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="any">{tx("Any team", "Qualsiasi team")}</DropdownMenuRadioItem>
                 {options?.teams.map((t) => (
                   <DropdownMenuRadioItem key={t.id} value={t.id}>
                     <span className="size-2 rounded-full" style={{ backgroundColor: t.color }} aria-hidden />
@@ -347,19 +350,19 @@ export function TasksView() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex shrink-0 items-center gap-0.5 rounded-lg bg-muted/70 p-0.5" role="radiogroup" aria-label="View">
+          <div className="flex shrink-0 items-center gap-0.5 rounded-lg bg-muted/70 p-0.5" role="radiogroup" aria-label={tx("View", "Vista")}>
             {(
               [
-                { v: "list", icon: List, label: "List" },
-                { v: "board", icon: Columns3, label: "Board" },
+                { v: "list", icon: List, label: tx("List", "Elenco") },
+                { v: "board", icon: Columns3, label: tx("Board", "Bacheca") },
               ] as const
             ).map((o) => (
               <button
                 key={o.v}
                 role="radio"
                 aria-checked={view === o.v}
-                aria-label={`${o.label} view`}
-                title={`${o.label} view`}
+                aria-label={`${o.label} ${tx("view", "vista")}`}
+                title={`${o.label} ${tx("view", "vista")}`}
                 onClick={() => setView(o.v)}
                 className={cn(
                   "flex h-7 items-center gap-1.5 rounded-md px-2 text-[13px] font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
@@ -376,11 +379,11 @@ export function TasksView() {
 
       {team && (
         <div className="flex shrink-0 items-center gap-2 border-b bg-surface/60 px-3 py-1.5 text-xs text-muted-foreground sm:px-4">
-          Team:
+          {tx("Team:", "Team:")}
           <span className="inline-flex items-center gap-1.5 rounded-md border bg-background px-1.5 py-0.5 text-foreground">
             <span className="size-2 rounded-full" style={{ backgroundColor: team.color }} aria-hidden />
             {team.name}
-            <button type="button" onClick={() => setTeamId(null)} aria-label="Clear team filter" className="text-muted-foreground hover:text-foreground">
+            <button type="button" onClick={() => setTeamId(null)} aria-label={tx("Clear team filter", "Rimuovi filtro team")} className="text-muted-foreground hover:text-foreground">
               <X className="size-3" />
             </button>
           </span>
@@ -407,20 +410,20 @@ export function TasksView() {
               e.currentTarget.blur()
             }
           }}
-          placeholder="Add a task… try “Call Hannah back @maya tomorrow”"
-          aria-label="New task"
+          placeholder={tx("Add a task… try “Call Hannah back @maya tomorrow”", "Aggiungi un’attività… prova “Richiama Anna @maya domani”")}
+          aria-label={tx("New task", "Nuova attività")}
           className="h-8 min-w-0 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-muted-foreground/80"
           maxLength={300}
         />
         <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
-          {defaults.status && <Chip>{defaults.status === "in_progress" ? "In progress" : defaults.status === "done" ? "Done" : "To do"}</Chip>}
+          {defaults.status && <Chip>{defaults.status === "in_progress" ? tx("In progress", "In corso") : defaults.status === "done" ? tx("Done", "Completata") : tx("To do", "Da fare")}</Chip>}
           {parsed.assignee ? (
             <Chip>
               <AssigneeAvatar assignee={{ ...parsed.assignee, avatarUrl: null }} />
-              {parsed.assignee.id === user.id ? "Me" : parsed.assignee.name || parsed.assignee.email}
+              {parsed.assignee.id === user.id ? tx("Me", "Io") : parsed.assignee.name || parsed.assignee.email}
             </Chip>
           ) : defaults.assigneeId !== undefined ? (
-            <Chip>{defaults.assigneeId === null ? "Unassigned" : options?.members.find((m) => m.id === defaults.assigneeId)?.name}</Chip>
+            <Chip>{defaults.assigneeId === null ? tx("Unassigned", "Non assegnata") : options?.members.find((m) => m.id === defaults.assigneeId)?.name}</Chip>
           ) : null}
           {parsed.team && (
             <Chip>
@@ -431,7 +434,7 @@ export function TasksView() {
           {(parsed.dueAt || defaults.dueAt) && (
             <Chip>
               <CalendarDays className="size-3" />
-              {formatDue(parsed.dueAt ?? new Date(defaults.dueAt!))}
+              {formatDue(parsed.dueAt ?? new Date(defaults.dueAt!), { locale })}
               <span className="text-muted-foreground">{format(parsed.dueAt ?? new Date(defaults.dueAt!), "MMM d")}</span>
             </Chip>
           )}
@@ -439,7 +442,7 @@ export function TasksView() {
         {draft.trim() && (
           <Button type="submit" size="xs" variant="secondary" disabled={!parsed.title || create.isPending} className="shrink-0">
             {create.isPending ? <Spinner /> : <CornerDownLeft />}
-            Add
+            {tx("Add", "Aggiungi")}
           </Button>
         )}
       </form>
@@ -456,12 +459,12 @@ export function TasksView() {
         ) : isError ? (
           <Empty className="h-full">
             <EmptyHeader>
-              <EmptyTitle>Couldn’t load tasks</EmptyTitle>
-              <EmptyDescription>Check your connection and try again.</EmptyDescription>
+              <EmptyTitle>{tx("Couldn’t load tasks", "Impossibile caricare le attività")}</EmptyTitle>
+              <EmptyDescription>{tx("Check your connection and try again.", "Controlla la connessione e riprova.")}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <Button variant="outline" size="sm" onClick={() => refetch()}>
-                Retry
+                {tx("Retry", "Riprova")}
               </Button>
             </EmptyContent>
           </Empty>
@@ -470,12 +473,12 @@ export function TasksView() {
             <EmptyHeader>
               <EmptyMedia variant="icon">{filtered ? <Search /> : scope === "mine" ? <CheckCheck /> : <ListTodo />}</EmptyMedia>
               <EmptyTitle>
-                {filtered ? "No matching tasks" : scope === "mine" ? "You’re all caught up" : "No tasks here yet"}
+                {filtered ? tx("No matching tasks", "Nessuna attività corrispondente") : scope === "mine" ? tx("You’re all caught up", "Hai completato tutto") : tx("No tasks here yet", "Non ci sono ancora attività")}
               </EmptyTitle>
               <EmptyDescription>
                 {filtered
-                  ? "Try a different search or clear the filters."
-                  : "Tasks keep follow-ups from slipping through the cracks. Create one here or from any conversation."}
+                  ? tx("Try a different search or clear the filters.", "Prova un’altra ricerca o rimuovi i filtri.")
+                  : tx("Tasks keep follow-ups from slipping through the cracks. Create one here or from any conversation.", "Le attività ti aiutano a non dimenticare i follow-up. Creane una qui o da una conversazione.")}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
@@ -488,11 +491,11 @@ export function TasksView() {
                     setTeamId(null)
                   }}
                 >
-                  Clear filters
+                  {tx("Clear filters", "Rimuovi filtri")}
                 </Button>
               ) : (
                 <Button size="sm" onClick={() => startAdd()}>
-                  <Plus /> New task
+                  <Plus /> {tx("New task", "Nuova attività")}
                 </Button>
               )}
             </EmptyContent>
@@ -521,10 +524,10 @@ export function TasksView() {
       {tasks && tasks.length > 0 && (
         <div className="safe-bottom hidden shrink-0 items-center gap-3 border-t px-4 py-1.5 font-mono text-[11px] tracking-wider text-muted-foreground uppercase md:flex">
           <span>
-            {openCount} open{showDone || view === "board" ? ` · ${tasks.length - openCount} done` : ""}
+            {openCount} {tx("open", "aperte")}{showDone || view === "board" ? ` · ${tasks.length - openCount} ${tx("done", "completate")}` : ""}
           </span>
           <span className="ml-auto flex items-center gap-1.5 normal-case">
-            <Kbd>T</Kbd> new task <Kbd>/</Kbd> search
+            <Kbd>T</Kbd> {tx("new task", "nuova attività")} <Kbd>/</Kbd> {tx("search", "cerca")}
           </span>
         </div>
       )}
@@ -552,8 +555,9 @@ function Chip({ children }: { children: React.ReactNode }) {
 }
 
 function TasksSkeleton() {
+  const { locale } = useI18n()
   return (
-    <div className="flex flex-col" aria-busy aria-label="Loading tasks">
+    <div className="flex flex-col" aria-busy aria-label={locale === "it" ? "Caricamento attività" : "Loading tasks"}>
       <div className="h-9 border-b bg-surface/60" />
       {Array.from({ length: 7 }).map((_, i) => (
         <div key={i} className="flex h-11 items-center gap-3 border-b border-border/60 px-4">

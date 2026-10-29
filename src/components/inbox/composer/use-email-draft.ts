@@ -11,6 +11,7 @@ import { inboxKeys } from "@/hooks/inbox/queries"
 import { inboxUI } from "@/hooks/inbox/store"
 import { useOrg } from "@/components/app/org-provider"
 import { useInbox } from "../inbox-provider"
+import { useI18n } from "@/lib/i18n"
 
 export type EmailDraftState = {
   id: string | null
@@ -82,6 +83,7 @@ const SAVE_DELAY = 1200
  */
 export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onRemoteContent, onResetAttachments, onServerAttachments, onSent }: Options) {
   const { slug, member, signature, bootstrap } = useInbox()
+  const { locale } = useI18n()
   const { org } = useOrg()
   const qc = useQueryClient()
   const [draft, setDraft] = useState<EmailDraftState>(initial)
@@ -100,7 +102,7 @@ export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onR
       if (!sig) return ""
       const me = bootstrap.me
       const rendered = renderTemplate(sig.body, { user: { name: me.name, email: me.email, title: me.title }, org: { name: org.name } })
-      return `${SIGNATURE_MARKER} data-signature-id="${escapeHtml(sig.id)}"><br>${rendered}</div>`
+      return `${SIGNATURE_MARKER} data-signature-id="${escapeHtml(sig.id)}">${rendered}</div>`
     },
     [signature, bootstrap.me, org.name]
   )
@@ -135,7 +137,7 @@ export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onR
       cbs.current.onResetAttachments(info)
       if (reason) toast.info(reason)
     },
-    []
+    [locale]
   )
 
   const save = useCallback(async () => {
@@ -165,7 +167,7 @@ export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onR
       } catch (err) {
         if (err instanceof ApiClientError && err.code === "draft_conflict" && err.details) {
           const info = err.details as DraftInfo
-          applyServer(info, `${memberName(member(info.lastEditedBy), "A teammate")} updated this draft`)
+          applyServer(info, locale === "it" ? `${memberName(member(info.lastEditedBy), "Un collega")} ha aggiornato questa bozza` : `${memberName(member(info.lastEditedBy), "A teammate")} updated this draft`)
         } else if (err instanceof ApiClientError && err.status === 404) {
           // Draft was sent or discarded elsewhere: start over as a new draft
           // (a new message also needs a new conversation).
@@ -174,10 +176,10 @@ export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onR
           state.current.dirty = true
           // An edited draft is re-created with the next change; a new message whose
           // conversation disappeared can't be saved until it gets a new one.
-          if (!d.id) toast.error("Draft not saved: the conversation is no longer available")
+          if (!d.id) toast.error(locale === "it" ? "Bozza non salvata: la conversazione non è più disponibile" : "Draft not saved: the conversation is no longer available")
         } else {
           state.current.dirty = true
-          toast.error(err instanceof Error ? `Draft not saved: ${err.message}` : "Draft not saved")
+          toast.error(err instanceof Error ? `${locale === "it" ? "Bozza non salvata" : "Draft not saved"}: ${err.message}` : (locale === "it" ? "Bozza non salvata" : "Draft not saved"))
         }
       } finally {
         setSaving(false)
@@ -186,7 +188,7 @@ export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onR
     state.current.inflight = run
     await run
     state.current.inflight = null
-  }, [slug, payload, qc, applyServer, member])
+  }, [slug, payload, qc, applyServer, member, locale])
 
   const schedule = useCallback(() => {
     if (state.current.timer) clearTimeout(state.current.timer)
@@ -276,10 +278,10 @@ export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onR
       const d = state.current.draft
       const recipients = [...d.to, ...d.cc, ...d.bcc]
       const invalid = recipients.filter((p) => !isEmail(p.email))
-      if (!recipients.length) return void toast.error("Add at least one recipient")
-      if (invalid.length) return void toast.error(`Invalid address: ${invalid[0]!.email}`)
-      if (!d.accountId) return void toast.error("Choose an inbox to send from")
-      if (d.mode === "new" && !d.subject.trim()) return void toast.error("Add a subject")
+      if (!recipients.length) return void toast.error(locale === "it" ? "Aggiungi almeno un destinatario" : "Add at least one recipient")
+      if (invalid.length) return void toast.error(`${locale === "it" ? "Indirizzo non valido" : "Invalid address"}: ${invalid[0]!.email}`)
+      if (!d.accountId) return void toast.error(locale === "it" ? "Scegli una casella da cui inviare" : "Choose an inbox to send from")
+      if (d.mode === "new" && !d.subject.trim()) return void toast.error(locale === "it" ? "Aggiungi un oggetto" : "Add a subject")
       setSending(true)
       try {
         const body = { ...payload(d), draftId: d.id ?? undefined, sendAt: opts.sendAt?.toISOString(), closeAfter: !!opts.close }
@@ -293,15 +295,15 @@ export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onR
         void qc.invalidateQueries({ queryKey: inboxKeys.thread(slug, result.conversationId) })
         void qc.invalidateQueries({ queryKey: inboxKeys.lists(slug) })
         void qc.invalidateQueries({ queryKey: inboxKeys.counts(slug) })
-        showSendToast(slug, result, { onUndone: (info) => reopenDraft(info) })
+        showSendToast(slug, result, { onUndone: (info) => reopenDraft(info), locale })
         cbs.current.onSent(result, { close: !!opts.close })
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Could not send")
+        toast.error(err instanceof Error ? err.message : (locale === "it" ? "Invio non riuscito" : "Could not send"))
       } finally {
         setSending(false)
       }
     },
-    [slug, payload, qc]
+    [slug, payload, qc, locale]
   )
 
   return { draft, update, save, send, discard, syncRemote, saving, sending, lastSavedAt, signatureHtml }
@@ -317,41 +319,41 @@ export function reopenDraft(info: DraftInfo) {
  * "Sending…" toast with a live countdown and Undo while the message waits in
  * the undo window; scheduled messages get a confirmation with Cancel.
  */
-export function showSendToast(slug: string, result: SendResult, { onUndone }: { onUndone: (draft: DraftInfo) => void }) {
+export function showSendToast(slug: string, result: SendResult, { onUndone, locale = "en" }: { onUndone: (draft: DraftInfo) => void; locale?: "en" | "it" }) {
   const cancel = async (id: string | number) => {
     try {
       const info = await api.post<DraftInfo>(`/api/w/${slug}/messages/${result.message.id}/cancel`)
-      toast.success(result.undoUntil ? "Sending undone" : "Scheduled message canceled", { id })
+      toast.success(result.undoUntil ? (locale === "it" ? "Invio annullato" : "Sending undone") : (locale === "it" ? "Invio programmato annullato" : "Scheduled message canceled"), { id })
       onUndone(info)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Too late to undo", { id })
+      toast.error(err instanceof Error ? err.message : (locale === "it" ? "È troppo tardi per annullare" : "Too late to undo"), { id })
     }
   }
   if (result.message.status === "scheduled") {
-    const when = new Date(result.message.sendAt!).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
-    const id = toast.success(`Scheduled for ${when}`, { action: { label: "Cancel", onClick: () => void cancel(id) }, duration: 8000 })
+    const when = new Date(result.message.sendAt!).toLocaleString(locale === "it" ? "it-IT" : undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+    const id = toast.success(`${locale === "it" ? "Programmato per" : "Scheduled for"} ${when}`, { action: { label: locale === "it" ? "Annulla" : "Cancel", onClick: () => void cancel(id) }, duration: 8000 })
     return
   }
   if (!result.undoUntil) return
   const until = new Date(result.undoUntil).getTime()
   const seconds = () => Math.max(0, Math.ceil((until - Date.now()) / 1000))
   if (seconds() <= 0) {
-    toast.success("Message sent")
+    toast.success(locale === "it" ? "Messaggio inviato" : "Message sent")
     return
   }
   const undo = () => {
     clearInterval(timer)
     void cancel(id)
   }
-  const id = toast.loading(`Sending in ${seconds()}s…`, { action: { label: "Undo", onClick: undo }, duration: Infinity })
+  const id = toast.loading(locale === "it" ? `Invio tra ${seconds()}s…` : `Sending in ${seconds()}s…`, { action: { label: locale === "it" ? "Annulla" : "Undo", onClick: undo }, duration: Infinity })
   const timer = setInterval(() => {
     const s = seconds()
     if (s <= 0) {
       clearInterval(timer)
       toast.dismiss(id)
-      toast.success("Message sent")
+      toast.success(locale === "it" ? "Messaggio inviato" : "Message sent")
       return
     }
-    toast.loading(`Sending in ${s}s…`, { id, action: { label: "Undo", onClick: undo }, duration: Infinity })
+    toast.loading(locale === "it" ? `Invio tra ${s}s…` : `Sending in ${s}s…`, { id, action: { label: locale === "it" ? "Annulla" : "Undo", onClick: undo }, duration: Infinity })
   }, 500)
 }

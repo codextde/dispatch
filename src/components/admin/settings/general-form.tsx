@@ -8,6 +8,7 @@ import { ChoiceCards } from "@/components/admin/choice-cards"
 import { SettingField, SettingsFormShell, SwitchField, useSettingsForm } from "@/components/admin/settings/form"
 import { TimezoneSelect } from "@/components/admin/settings/timezone-select"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export type GeneralSettingsValue = {
   instanceName: string
@@ -22,12 +23,13 @@ const ANNOUNCEMENT_MAX = 500
 
 export function GeneralSettingsForm({ initial }: { initial: GeneralSettingsValue }) {
   const form = useSettingsForm("general", initial)
+  const { t } = useI18n()
   const v = form.values
   return (
     <SettingsFormShell form={form}>
-      <Panel title="Instance" description="How this Dispatch instance identifies itself to people and in emails.">
+      <Panel title={t("genInstance")} description={t("genInstanceDesc")}>
         <div className="divide-y divide-border">
-          <SettingField label="Instance name" htmlFor="instanceName" description="Shown in the admin panel, page titles and system emails." error={form.error("instanceName")}>
+          <SettingField label={t("genInstanceName")} htmlFor="instanceName" description={t("genInstanceNameDesc")} error={form.error("instanceName")}>
             <Input
               id="instanceName"
               value={v.instanceName}
@@ -38,9 +40,9 @@ export function GeneralSettingsForm({ initial }: { initial: GeneralSettingsValue
             />
           </SettingField>
           <SettingField
-            label="Support email"
+            label={t("genSupportEmail")}
             htmlFor="supportEmail"
-            description="Where users can reach you. Shown on error pages and in the footer of system emails."
+            description={t("genSupportEmailDesc")}
             error={form.error("supportEmail")}
           >
             <Input
@@ -54,9 +56,9 @@ export function GeneralSettingsForm({ initial }: { initial: GeneralSettingsValue
             />
           </SettingField>
           <SettingField
-            label="Default time zone"
+            label={t("genTimezone")}
             htmlFor="defaultTimezone"
-            description="Used for new workspaces and users until they pick their own."
+            description={t("genTimezoneDesc")}
             error={form.error("defaultTimezone")}
           >
             <TimezoneSelect id="defaultTimezone" value={v.defaultTimezone} onChange={(defaultTimezone) => form.set({ defaultTimezone })} />
@@ -64,22 +66,22 @@ export function GeneralSettingsForm({ initial }: { initial: GeneralSettingsValue
         </div>
       </Panel>
 
-      <Panel title="Mode" description="Decide who this instance is for. You can change this at any time.">
+      <Panel title={t("genMode")} description={t("genModeDesc")}>
         <ChoiceCards
-          aria-label="Instance mode"
+          aria-label={t("genModeAria")}
           value={v.mode}
           onChange={(mode) => form.set({ mode })}
           options={[
             {
               value: "private",
-              title: "Private — just my company",
-              description: "Self-hosted for your own team. Sign-up is by invitation; no billing.",
+              title: t("genPrivate"),
+              description: t("genPrivateDesc"),
               icon: Building2,
             },
             {
               value: "saas",
-              title: "Public SaaS — sign-ups & billing",
-              description: "Let other teams sign up and create workspaces, optionally with paid Stripe subscriptions.",
+              title: t("genSaas"),
+              description: t("genSaasDesc"),
               icon: Globe2,
             },
           ]}
@@ -87,8 +89,8 @@ export function GeneralSettingsForm({ initial }: { initial: GeneralSettingsValue
         <div className="mt-4 border-t border-border pt-4">
           <SwitchField
             id="marketingSite"
-            label="Public website"
-            description="Show the marketing website (home, features, pricing) at the root URL. When off, visitors go straight to sign-in."
+            label={t("genPublicWebsite")}
+            description={t("genPublicWebsiteDesc")}
             checked={v.marketingSite}
             onCheckedChange={(marketingSite) => form.set({ marketingSite })}
           />
@@ -96,16 +98,16 @@ export function GeneralSettingsForm({ initial }: { initial: GeneralSettingsValue
       </Panel>
 
       <Panel
-        title="Announcement banner"
-        description="A short message shown at the top of every workspace — for maintenance windows or news. Leave empty to hide it."
+        title={t("genAnnouncement")}
+        description={t("genAnnouncementDesc")}
       >
-        <SettingField label="Message" htmlFor="announcement" error={form.error("announcement")}>
+        <SettingField label={t("genMessage")} htmlFor="announcement" error={form.error("announcement")}>
           <Textarea
             id="announcement"
             value={v.announcement}
             maxLength={ANNOUNCEMENT_MAX}
             rows={3}
-            placeholder="Scheduled maintenance on Sunday 02:00–03:00 UTC."
+            placeholder={t("genAnnouncementPlaceholder")}
             onChange={(e) => form.set({ announcement: e.target.value })}
             aria-invalid={Boolean(form.error("announcement"))}
           />
@@ -122,7 +124,7 @@ export function GeneralSettingsForm({ initial }: { initial: GeneralSettingsValue
         </SettingField>
         {v.announcement.trim() && (
           <div className="mt-3">
-            <div className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Preview</div>
+            <div className="mb-1.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{t("genPreview")}</div>
             <div className="flex items-center justify-center gap-2 rounded-md border border-brand/30 bg-brand-soft px-4 py-2 text-center text-xs">
               <Megaphone className="size-3.5 shrink-0" />
               <span className="min-w-0 break-words">{v.announcement.trim()}</span>

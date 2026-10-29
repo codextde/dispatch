@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export type TemplateVariable = { token: string; label: string }
 
@@ -99,6 +100,8 @@ function ToolbarButton({
 }
 
 function LinkButton({ editor, active }: { editor: Editor; active: boolean }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [open, setOpen] = useState(false)
   const [url, setUrl] = useState("")
   const apply = () => {
@@ -130,7 +133,7 @@ function LinkButton({ editor, active }: { editor: Editor; active: boolean }) {
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label="Link"
+              aria-label={it ? "Inserisci link" : "Insert link"}
               aria-pressed={active}
               onMouseDown={(e) => e.preventDefault()}
               className={cn("text-muted-foreground", active && "bg-muted text-foreground")}
@@ -139,7 +142,7 @@ function LinkButton({ editor, active }: { editor: Editor; active: boolean }) {
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom">Link</TooltipContent>
+        <TooltipContent side="bottom">{it ? "Inserisci link" : "Insert link"}</TooltipContent>
       </Tooltip>
       <PopoverContent align="start" className="w-80 p-2">
         <form
@@ -149,9 +152,9 @@ function LinkButton({ editor, active }: { editor: Editor; active: boolean }) {
             apply()
           }}
         >
-          <Input autoFocus placeholder="https://example.com" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="Link URL" />
+          <Input autoFocus placeholder="https://example.com" value={url} onChange={(e) => setUrl(e.target.value)} aria-label={it ? "URL del link" : "Link URL"} />
           <Button type="submit" size="sm">
-            Apply
+            {it ? "Applica" : "Apply"}
           </Button>
         </form>
       </PopoverContent>
@@ -160,6 +163,8 @@ function LinkButton({ editor, active }: { editor: Editor; active: boolean }) {
 }
 
 function ImageButton({ editor }: { editor: Editor }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [open, setOpen] = useState(false)
   const [src, setSrc] = useState("")
   return (
@@ -167,12 +172,12 @@ function ImageButton({ editor }: { editor: Editor }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button type="button" variant="ghost" size="icon-sm" aria-label="Image" className="text-muted-foreground">
+            <Button type="button" variant="ghost" size="icon-sm" aria-label={it ? "Immagine" : "Image"} className="text-muted-foreground">
               <ImageIcon />
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom">Insert image</TooltipContent>
+        <TooltipContent side="bottom">{it ? "Inserisci immagine" : "Insert image"}</TooltipContent>
       </Tooltip>
       <PopoverContent align="start" className="w-80 p-2">
         <form
@@ -188,12 +193,12 @@ function ImageButton({ editor }: { editor: Editor }) {
           }}
         >
           <div className="flex items-center gap-1.5">
-            <Input autoFocus placeholder="https://…/logo.png" value={src} onChange={(e) => setSrc(e.target.value)} aria-label="Image URL" />
+            <Input autoFocus placeholder="https://…/logo.png" value={src} onChange={(e) => setSrc(e.target.value)} aria-label={it ? "URL immagine" : "Image URL"} />
             <Button type="submit" size="sm" disabled={!/^https:\/\//i.test(src.trim())}>
-              Insert
+              {it ? "Inserisci" : "Insert"}
             </Button>
           </div>
-          <p className="px-0.5 text-xs text-muted-foreground">Use a public https:// image URL (e.g. your logo).</p>
+          <p className="px-0.5 text-xs text-muted-foreground">{it ? "Usa un URL https:// pubblico per l’immagine (ad esempio il tuo logo)." : "Use a public https:// image URL (e.g. your logo)."}</p>
         </form>
       </PopoverContent>
     </Popover>
@@ -226,6 +231,7 @@ export function RichTextEditor({
   id?: string
   "aria-invalid"?: boolean
 }) {
+  const { locale } = useI18n()
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -291,7 +297,7 @@ export function RichTextEditor({
         className
       )}
     >
-      <div className="flex flex-wrap items-center gap-0.5 border-b bg-surface/60 px-1.5 py-1" role="toolbar" aria-label="Formatting">
+      <div className="flex flex-wrap items-center gap-0.5 border-b bg-surface/60 px-1.5 py-1" role="toolbar" aria-label={locale === "it" ? "Formattazione" : "Formatting"}>
         {editor && state ? (
           <>
             <ToolbarButton label="Bold" active={state.bold} onClick={() => editor.chain().focus().toggleBold().run()}>

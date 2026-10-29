@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import { Combobox } from "@/components/settings/combobox"
+import { useI18n } from "@/lib/i18n"
 
 function offsetLabel(tz: string) {
   try {
@@ -25,9 +26,9 @@ export function TimezoneSelect({
   value,
   onChange,
   id,
-  placeholder = "Select timezone",
+  placeholder,
   allowEmpty,
-  emptyLabel = "Use workspace default",
+  emptyLabel,
   className = "sm:w-72",
 }: {
   value: string | null | undefined
@@ -38,12 +39,14 @@ export function TimezoneSelect({
   emptyLabel?: string
   className?: string
 }) {
+  const { t } = useI18n()
+  const resolvedEmptyLabel = emptyLabel ?? t("profileWorkspaceDefault")
   const options = useMemo(() => {
     const zones = listTimezones()
     if (value && !zones.includes(value)) zones.unshift(value)
     const opts = zones.map((tz) => ({ value: tz, label: tz.replace(/_/g, " "), hint: offsetLabel(tz) }))
-    return allowEmpty ? [{ value: "__none__", label: emptyLabel }, ...opts] : opts
-  }, [value, allowEmpty, emptyLabel])
+    return allowEmpty ? [{ value: "__none__", label: resolvedEmptyLabel }, ...opts] : opts
+  }, [value, allowEmpty, resolvedEmptyLabel])
 
   return (
     <Combobox
@@ -51,8 +54,8 @@ export function TimezoneSelect({
       options={options}
       value={value ?? (allowEmpty ? "__none__" : null)}
       onChange={(v) => onChange(!v || v === "__none__" ? null : v)}
-      placeholder={placeholder}
-      searchPlaceholder="Search city or region…"
+      placeholder={placeholder ?? t("profileTimezonePlaceholder")}
+      searchPlaceholder={t("profileSearchTimezone")}
       className={className}
     />
   )

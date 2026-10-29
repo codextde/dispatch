@@ -1,11 +1,15 @@
+"use client"
+
 import { ArrowDownRight, ArrowUpRight, Minus, Sparkles } from "lucide-react"
 import { MicroLabel } from "@/components/settings/settings-ui"
 import { computeDelta, formatCount, formatDuration, type Delta } from "@/components/analytics/format"
 import type { AnalyticsKpis, SeriesPoint } from "@/server/workspace/queries/analytics"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 function DeltaChip({ delta, periodLabel }: { delta: Delta | null; periodLabel: string }) {
-  if (!delta) return <span className="text-xs text-muted-foreground">No data to compare</span>
+  const { t, locale } = useI18n()
+  if (!delta) return <span className="text-xs text-muted-foreground">{t("analyticsNoDataCompare")}</span>
   const tone =
     delta.good === null
       ? "bg-muted text-muted-foreground"
@@ -15,21 +19,21 @@ function DeltaChip({ delta, periodLabel }: { delta: Delta | null; periodLabel: s
   const Icon = delta.direction === "up" ? ArrowUpRight : delta.direction === "down" ? ArrowDownRight : delta.direction === "new" ? Sparkles : Minus
   const text =
     delta.direction === "new"
-      ? "New"
+      ? t("analyticsNew")
       : delta.direction === "flat"
         ? "0%"
-        : `${delta.pct! > 0 ? "+" : "−"}${Math.abs(delta.pct!) >= 100 ? Math.round(Math.abs(delta.pct!)) : Math.abs(delta.pct!).toFixed(1).replace(/\.0$/, "")}%`
-  const verdict = delta.good === null ? "" : delta.good ? ", better" : ", worse"
+        : `${delta.pct! > 0 ? "+" : "−"}${new Intl.NumberFormat(locale === "it" ? "it-IT" : "en-US", { maximumFractionDigits: 1 }).format(Math.abs(delta.pct!))}%`
+  const verdict = delta.good === null ? "" : delta.good ? `, ${t("analyticsBetter")}` : `, ${t("analyticsWorse")}`
   return (
     <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
       <span
         className={cn("inline-flex h-5 shrink-0 items-center gap-0.5 rounded-full px-1.5 font-medium tabular-nums", tone)}
-        aria-label={`${text} vs ${periodLabel}${verdict}`}
+        aria-label={`${text} ${t("analyticsVs")} ${periodLabel}${verdict}`}
       >
         <Icon className="size-3" aria-hidden />
         {text}
       </span>
-      <span>vs {periodLabel}</span>
+      <span>{t("analyticsVs")} {periodLabel}</span>
     </span>
   )
 }
@@ -82,26 +86,27 @@ function Tile({
 }
 
 export function KpiTiles({ kpis, series, days }: { kpis: AnalyticsKpis; series: SeriesPoint[]; days: number }) {
-  const period = `prev. ${days}d`
+  const { t, locale } = useI18n()
+  const period = t("analyticsPrevious").replace("{days}", String(days))
   const tail = series.slice(-14)
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
       <Tile
-        label="Received"
-        value={formatCount(kpis.received.current)}
+        label={t("analyticsReceived")}
+        value={formatCount(kpis.received.current, "—", locale)}
         sub={<DeltaChip delta={computeDelta(kpis.received.current, kpis.received.previous)} periodLabel={period} />}
         spark={<Sparkline values={tail.map((p) => p.received)} color="var(--viz-in)" />}
-        hint="New conversations with at least one incoming email"
+        hint={t("analyticsNoReceived")}
       />
       <Tile
-        label="Replies sent"
-        value={formatCount(kpis.replies.current)}
+        label={t("repliesSent")}
+        value={formatCount(kpis.replies.current, "—", locale)}
         sub={<DeltaChip delta={computeDelta(kpis.replies.current, kpis.replies.previous)} periodLabel={period} />}
         spark={<Sparkline values={tail.map((p) => p.replied)} color="var(--viz-out)" />}
-        hint="Emails sent by teammates"
+        hint={t("analyticsSentByTeammates")}
       />
       <Tile
-        label="First response"
+        label={t("analyticsFirstResponse")}
         value={formatDuration(kpis.medianFirstResponse.current)}
         sub={
           <DeltaChip
@@ -110,10 +115,10 @@ export function KpiTiles({ kpis, series, days }: { kpis: AnalyticsKpis; series: 
           />
         }
         spark={<Sparkline values={tail.map((p) => p.medianFirstResponse)} color="var(--viz-out)" />}
-        hint="Median time from a new conversation to the first reply"
+        hint={t("analyticsMedianFirstReply")}
       />
       <Tile
-        label="Resolution time"
+        label={t("analyticsResolutionTime")}
         value={formatDuration(kpis.medianResolution.current)}
         sub={
           <DeltaChip
@@ -121,19 +126,19 @@ export function KpiTiles({ kpis, series, days }: { kpis: AnalyticsKpis; series: 
             periodLabel={period}
           />
         }
-        hint="Median time from a new conversation to closing it"
+        hint={t("analyticsMedianToClose")}
       />
       <Tile
-        label="Open now"
-        value={formatCount(kpis.open)}
-        sub={<span className="text-xs text-muted-foreground">Right now · excl. snoozed</span>}
-        hint="Conversations currently open (not snoozed)"
+        label={t("analyticsOpenNow")}
+        value={formatCount(kpis.open, "—", locale)}
+        sub={<span className="text-xs text-muted-foreground">{t("analyticsRightNowExclSnoozed")}</span>}
+        hint={t("analyticsOpenNotSnoozed")}
       />
       <Tile
-        label="Closed"
-        value={formatCount(kpis.closed.current)}
+        label={t("analyticsClosed")}
+        value={formatCount(kpis.closed.current, "—", locale)}
         sub={<DeltaChip delta={computeDelta(kpis.closed.current, kpis.closed.previous)} periodLabel={period} />}
-        hint="Conversations closed in this period"
+        hint={t("analyticsClosedThisPeriod")}
       />
     </div>
   )

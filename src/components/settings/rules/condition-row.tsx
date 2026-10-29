@@ -15,6 +15,8 @@ import {
 } from "@/components/settings/rules/definitions"
 import type { ConditionDraft } from "@/components/settings/rules/drafts"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
+import { ruleText } from "@/components/settings/rules/rule-labels"
 
 export function ConditionRow({
   draft,
@@ -34,6 +36,7 @@ export function ConditionRow({
   onRemove: () => void
 }) {
   const uid = useId()
+  const { locale } = useI18n()
   const def = CONDITION_FIELDS[draft.field]
   const p = `conditions.${index}`
   const fieldError = errors[`${p}.header`] ?? errors[`${p}.operator`] ?? errors[`${p}.value`] ?? errors[`${p}.field`]
@@ -54,20 +57,20 @@ export function ConditionRow({
         data-invalid={fieldError ? true : undefined}
       >
         <Select value={draft.field} onValueChange={(v) => changeField(v as ConditionField)}>
-          <SelectTrigger className="order-1 w-[calc(50%-4px)] sm:w-36" aria-label={`Condition ${index + 1} field`}>
+        <SelectTrigger className="order-1 w-[calc(50%-4px)] sm:w-36" aria-label={`${ruleText("Condition", locale)} ${index + 1} ${ruleText("field", locale)}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {CONDITION_FIELD_ORDER.map((f) => (
               <SelectItem key={f} value={f}>
-                {CONDITION_FIELDS[f].label}
+                {ruleText(CONDITION_FIELDS[f].label, locale)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {draft.field === "header" && (
           <Input
-            aria-label={`Condition ${index + 1} header name`}
+            aria-label={`${ruleText("Condition", locale)} ${index + 1} ${ruleText("header name", locale)}`}
             placeholder="List-Id"
             value={draft.header}
             spellCheck={false}
@@ -77,13 +80,13 @@ export function ConditionRow({
           />
         )}
         <Select value={draft.operator} onValueChange={(v) => onChange({ operator: v as ConditionOperator })}>
-          <SelectTrigger className="order-2 w-[calc(50%-4px)] sm:order-3 sm:w-44" aria-label={`Condition ${index + 1} operator`}>
+        <SelectTrigger className="order-2 w-[calc(50%-4px)] sm:order-3 sm:w-44" aria-label={`${ruleText("Condition", locale)} ${index + 1} ${ruleText("operator", locale)}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {def.operators.map((op) => (
               <SelectItem key={op} value={op}>
-                {operatorLabel(draft.field, op)}
+                {ruleText(operatorLabel(draft.field, op), locale)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -93,7 +96,7 @@ export function ConditionRow({
             {def.kind === "text" && (
               <Input
                 id={`${uid}-value`}
-                aria-label={`Condition ${index + 1} value`}
+                aria-label={`${ruleText("Condition", locale)} ${index + 1} ${ruleText("value", locale)}`}
                 value={draft.value}
                 placeholder={draft.operator === "matches" ? "^invoice-\\d+$" : def.placeholder}
                 spellCheck={false}
@@ -107,8 +110,8 @@ export function ConditionRow({
                 options={accountOptions}
                 value={draft.value || null}
                 onChange={(v) => onChange({ value: v ?? "" })}
-                placeholder={accountOptions.length ? "Select inbox" : "No inboxes connected"}
-                searchPlaceholder="Search inboxes…"
+                placeholder={ruleText(accountOptions.length ? "Select inbox" : "No inboxes connected", locale)}
+                searchPlaceholder={ruleText("Search inboxes…", locale)}
                 aria-invalid={Boolean(errors[`${p}.value`])}
               />
             )}
@@ -117,18 +120,18 @@ export function ConditionRow({
                 options={labelOptions}
                 value={draft.value || null}
                 onChange={(v) => onChange({ value: v ?? "" })}
-                placeholder={labelOptions.length ? "Select label" : "No labels yet"}
-                searchPlaceholder="Search labels…"
+                placeholder={ruleText(labelOptions.length ? "Select label" : "No labels yet", locale)}
+                searchPlaceholder={ruleText("Search labels…", locale)}
                 aria-invalid={Boolean(errors[`${p}.value`])}
               />
             )}
             {def.kind === "boolean" && (
               <span className="block px-1 text-[13px] text-muted-foreground">
                 {draft.field === "business_hours"
-                  ? def.hint
+                  ? ruleText(def.hint ?? "", locale)
                   : draft.operator === "is_true"
-                    ? "The email has at least one attachment"
-                    : "The email has no attachments"}
+                    ? ruleText("The email has at least one attachment", locale)
+                    : ruleText("The email has no attachments", locale)}
               </span>
             )}
           </div>
@@ -137,7 +140,7 @@ export function ConditionRow({
             variant="ghost"
             size="icon-sm"
             onClick={onRemove}
-            aria-label={`Remove condition ${index + 1}`}
+            aria-label={`${ruleText("Remove condition", locale)} ${index + 1}`}
             className="shrink-0 text-muted-foreground hover:text-destructive"
           >
             <X />
@@ -146,7 +149,7 @@ export function ConditionRow({
       </div>
       {fieldError && (
         <p role="alert" className="px-1 text-xs text-destructive">
-          {fieldError}
+          {ruleText(fieldError, locale)}
         </p>
       )}
     </div>

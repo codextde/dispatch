@@ -6,16 +6,18 @@ import { Kbd } from "@/components/ui/kbd"
 import { inboxUI } from "@/hooks/inbox/store"
 import { useShortcutLabel } from "@/hooks/inbox/use-hotkeys"
 import { useShortcutHint } from "../shortcut-hint"
+import { useI18n } from "@/lib/i18n"
 
 /** Placeholder of the conversation pane when nothing is open (desktop). */
 export function NoConversation() {
   const shortcutLabel = useShortcutLabel()
   const hint = useShortcutHint()
+  const { t } = useI18n()
   const rows = [
-    { keys: [hint("next"), hint("prev")], label: "Move between conversations" },
-    { keys: [shortcutLabel("mod+k")[0]!], label: "Search and commands" },
-    { keys: [hint("compose")], label: "New message" },
-    { keys: [hint("help")], label: "All shortcuts" },
+    { keys: [hint("next"), hint("prev")], label: t("moveBetweenConversations") },
+    { keys: [shortcutLabel("mod+k")[0]!], label: t("searchAndCommands") },
+    { keys: [hint("compose")], label: t("newMessage") },
+    { keys: [hint("help")], label: t("allShortcuts") },
   ].filter((r) => r.keys.every(Boolean))
   return (
     <div className="dot-grid flex h-full flex-col items-center justify-center p-8 text-center">
@@ -24,9 +26,9 @@ export function NoConversation() {
           <Inbox className="size-5 text-foreground" />
         </span>
         <h2 className="text-lg font-semibold tracking-tight">
-          Select a conversation <span className="text-quiet">to get started</span>
+          {t("selectConversation")} <span className="text-quiet">{t("toGetStarted")}</span>
         </h2>
-        <p className="mt-1 max-w-xs text-[13px] text-muted-foreground">Use the keyboard to fly through your inbox.</p>
+        <p className="mt-1 max-w-xs text-[13px] text-muted-foreground">{t("keyboardInboxHint")}</p>
         <dl className="mt-5 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-left text-[13px]">
           {rows.map((r) => (
             <div key={r.label} className="contents">
@@ -41,12 +43,12 @@ export function NoConversation() {
         </dl>
         <div className="mt-6 flex gap-2">
           <Button size="sm" onClick={() => inboxUI.openCompose()}>
-            <SquarePen /> Compose
+            <SquarePen /> {t("compose")}
           </Button>
           <Button size="sm" variant="outline" onClick={() => inboxUI.set({ paletteOpen: true, paletteQuery: "" })}>
-            <Command /> Search
+            <Command /> {t("search")}
           </Button>
-          <Button size="sm" variant="ghost" aria-label="Keyboard shortcuts" onClick={() => inboxUI.set({ shortcutsOpen: true })}>
+          <Button size="sm" variant="ghost" aria-label={t("keyboardShortcuts")} onClick={() => inboxUI.set({ shortcutsOpen: true })}>
             <Keyboard />
           </Button>
         </div>

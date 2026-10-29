@@ -27,8 +27,9 @@ const like = (value: string) => `%${value.replace(/[\\%_]/g, (m) => `\\${m}`)}%`
 
 /**
  * SQL condition for a parsed search. Full-text matches the conversation
- * (subject + snippet, GIN index `conversations_search_idx`) or any message
- * (subject + text body, GIN index `messages_search_idx`) or a comment.
+ * (subject + snippet, GIN index `conversations_search_idx`), any message
+ * (subject + text body, GIN index `messages_search_idx`), its participants,
+ * or a comment.
  */
 export async function searchSql(ctx: Ctx, q: ParsedSearch): Promise<SQL> {
   const me = ctx.user.id
@@ -41,7 +42,7 @@ export async function searchSql(ctx: Ctx, q: ParsedSearch): Promise<SQL> {
         or(
           sql`to_tsvector('simple', coalesce(${c.subject}, '') || ' ' || coalesce(${c.snippet}, '')) @@ to_tsquery('simple', ${tsq})`,
           sql`${c.customSubject} ilike ${like(q.text)}`,
-          sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and to_tsvector('simple', coalesce(m.subject, '') || ' ' || coalesce(m.text_body, '')) @@ to_tsquery('simple', ${tsq}))`,
+          sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and (to_tsvector('simple', coalesce(m.subject, '') || ' ' || coalesce(m.text_body, '')) @@ to_tsquery('simple', ${tsq}) or concat_ws(' ', m.from_name, m.from_email, m.to::text, m.cc::text) ilike ${like(q.text)}))`,
           sql`exists (select 1 from comments cm where cm.conversation_id = ${CONV_ID} and cm.deleted_at is null and cm.body ilike ${like(q.text)})`,
           sql`${c.number}::text = ${q.text.replace(/^#/, "")}`
         )!
@@ -61,7 +62,15 @@ export async function searchSql(ctx: Ctx, q: ParsedSearch): Promise<SQL> {
       sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and (m.to::text ilike ${v} or m.cc::text ilike ${v}))`
     )
   }
-  for (const s of q.subject) parts.push(sql`coalesce(${c.customSubject}, ${c.subject}) ilike ${like(s)}`)
+  for (const s of q.subject) {
+    const v = like(s)
+    parts.push(
+      or(
+        sql`coalesce(${c.customSubject}, ${c.subject}) ilike ${v}`,
+        sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and m.subject ilike ${v})`
+      )!
+    )
+  }
 
   if (q.hasAttachment) parts.push(eq(c.hasAttachments, true))
 

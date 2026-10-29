@@ -126,13 +126,15 @@ export const updatePreferences = action(
     theme: z.enum(["light", "dark", "system"]),
     density: z.enum(["comfortable", "compact"]),
     shortcuts: z.enum(["dispatch", "gmail", "off"]),
+    locale: z.enum(["en", "it"]),
     sendAndArchive: z.boolean(),
     /** null = use the workspace default */
     undoSendSeconds: z.number().int().min(0).max(30).nullable(),
     loadRemoteImages: z.enum(["always", "ask", "never"]),
   }),
-  async ({ slug: s, ...prefs }) => {
+  async ({ slug: s, locale, ...prefs }) => {
     const ctx = await personalAction(s)
+    await db.update(schema.users).set({ locale }).where(eq(schema.users.id, ctx.user.id))
     const next = await mergePreferences(ctx.user.id, (p) => {
       const out: UserPreferences = { ...p, ...prefs, undoSendSeconds: prefs.undoSendSeconds ?? undefined }
       if (prefs.undoSendSeconds === null) delete out.undoSendSeconds
@@ -140,6 +142,26 @@ export const updatePreferences = action(
     })
     revalidateWorkspace()
     return next
+  }
+)
+
+const sidebarItem = z.enum(["assigned", "mentions", "starred", "snoozed", "drafts", "scheduled", "sent"])
+const sidebarSection = z.enum(["teams", "inboxes", "labels", "chats"])
+
+export const updateSidebarPreferences = action(
+  z.object({
+    slug,
+    hiddenItems: z.array(sidebarItem).max(7),
+    hiddenSections: z.array(sidebarSection).max(4),
+  }),
+  async ({ slug: s, hiddenItems, hiddenSections }) => {
+    const ctx = await personalAction(s)
+    const next = await mergePreferences(ctx.user.id, (p) => ({
+      ...p,
+      sidebar: { hiddenItems, hiddenSections },
+    }))
+    revalidateWorkspace()
+    return next.sidebar
   }
 )
 

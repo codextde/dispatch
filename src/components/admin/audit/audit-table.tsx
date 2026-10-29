@@ -7,6 +7,7 @@ import { LocalTime } from "@/components/app/local-time"
 import { UserAvatar } from "@/components/app/user-avatar"
 import { ActionBadge } from "@/components/admin/audit/action-badge"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 /** Audit event prepared on the server; `iso` is rendered in the viewer's timezone via <LocalTime>. */
 export type AuditRowView = {
@@ -29,13 +30,14 @@ export type AuditRowView = {
 }
 
 function Actor({ row }: { row: AuditRowView }) {
+  const { locale } = useI18n()
   if (!row.actorEmail) {
     return (
       <span className="flex items-center gap-2">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-[9px] text-muted-foreground">
           SYS
         </span>
-        <span className="text-muted-foreground">System</span>
+        <span className="text-muted-foreground">{locale === "it" ? "Sistema" : "System"}</span>
       </span>
     )
   }
@@ -81,42 +83,44 @@ function Target({ row }: { row: AuditRowView }) {
 }
 
 function Details({ row }: { row: AuditRowView }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   return (
     <div className="grid gap-3 text-[13px] md:grid-cols-[1fr_minmax(0,2fr)]">
       <dl className="grid content-start gap-2">
         <div>
-          <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">Event id</dt>
+          <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">{it ? "ID evento" : "Event id"}</dt>
           <dd className="font-mono text-xs break-all">{row.id}</dd>
         </div>
         <div>
-          <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">Time</dt>
+          <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">{it ? "Ora" : "Time"}</dt>
           <dd>
             <time dateTime={row.iso}>{row.iso}</time>
           </dd>
         </div>
         {row.targetId && (
           <div>
-            <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">Target id</dt>
+            <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">{it ? "ID elemento" : "Target id"}</dt>
             <dd className="font-mono text-xs break-all">{row.targetId}</dd>
           </div>
         )}
         <div>
-          <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">IP address</dt>
+          <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">{it ? "Indirizzo IP" : "IP address"}</dt>
           <dd className="font-mono text-xs">{row.ip ?? "—"}</dd>
         </div>
         <div>
-          <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">User agent</dt>
+          <dt className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">{it ? "Browser e dispositivo" : "User agent"}</dt>
           <dd className="text-xs break-words text-muted-foreground">{row.userAgent ?? "—"}</dd>
         </div>
       </dl>
       <div className="min-w-0">
-        <div className="mb-1 font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">Metadata</div>
+        <div className="mb-1 font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">{it ? "Metadati" : "Metadata"}</div>
         {row.metadataJson ? (
           <pre className="scrollbar-thin max-h-72 overflow-auto rounded-md border border-border bg-card p-3 font-mono text-xs leading-relaxed">
             {row.metadataJson}
           </pre>
         ) : (
-          <p className="text-muted-foreground">No metadata recorded.</p>
+          <p className="text-muted-foreground">{it ? "Nessun metadato registrato." : "No metadata recorded."}</p>
         )}
       </div>
     </div>
@@ -124,6 +128,8 @@ function Details({ row }: { row: AuditRowView }) {
 }
 
 export function AuditTable({ rows }: { rows: AuditRowView[] }) {
+  const { locale } = useI18n()
+  const it = locale === "it"
   const [open, setOpen] = useState<Set<string>>(new Set())
   const toggle = (id: string) =>
     setOpen((prev) => {
@@ -141,13 +147,13 @@ export function AuditTable({ rows }: { rows: AuditRowView[] }) {
           <table className="w-full min-w-[820px] border-collapse text-sm">
             <thead>
               <tr>
-                {["", "Time", "Actor", "Action", "Target", "Workspace", "IP"].map((h, i) => (
+                {["", it ? "Ora" : "Time", it ? "Autore" : "Actor", it ? "Azione" : "Action", it ? "Elemento" : "Target", "Workspace", "IP"].map((h, i) => (
                   <th
                     key={i}
                     scope="col"
                     className="h-9 border-b border-border bg-surface/60 px-3 text-left align-middle font-mono text-[10.5px] font-normal uppercase tracking-wider whitespace-nowrap text-muted-foreground first:w-10 first:pr-0 first:pl-2 last:pr-4"
                   >
-                    {h || <span className="sr-only">Details</span>}
+                    {h || <span className="sr-only">{it ? "Dettagli" : "Details"}</span>}
                   </th>
                 ))}
               </tr>
@@ -170,7 +176,7 @@ export function AuditTable({ rows }: { rows: AuditRowView[] }) {
                           onClick={() => toggle(row.id)}
                           aria-expanded={expanded}
                           aria-controls={`audit-details-${row.id}`}
-                          aria-label={expanded ? "Hide details" : "Show details"}
+                          aria-label={expanded ? (it ? "Nascondi dettagli" : "Hide details") : (it ? "Mostra dettagli" : "Show details")}
                           className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
@@ -195,7 +201,7 @@ export function AuditTable({ rows }: { rows: AuditRowView[] }) {
                             {row.orgName ?? row.orgId.slice(0, 8)}
                           </Link>
                         ) : (
-                          <span className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">Instance</span>
+                          <span className="font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground">{it ? "Istanza" : "Instance"}</span>
                         )}
                       </td>
                       <td className="max-w-[140px] truncate border-b border-border py-2.5 pr-4 pl-3 align-middle font-mono text-xs text-muted-foreground">
@@ -234,9 +240,9 @@ export function AuditTable({ rows }: { rows: AuditRowView[] }) {
                     <ActionBadge action={row.action} />
                     <LocalTime date={row.iso} format="relative" className="shrink-0 text-[11px] text-muted-foreground" />
                   </span>
-                  <span className="block truncate text-[13px]">{row.actorEmail ?? "System"}</span>
+                  <span className="block truncate text-[13px]">{row.actorEmail ?? (it ? "Sistema" : "System")}</span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {row.orgName ?? "Instance"}
+                    {row.orgName ?? (it ? "Istanza" : "Instance")}
                     {row.targetLabel || row.targetType ? ` · ${row.targetLabel ?? row.targetType}` : ""}
                   </span>
                 </span>
@@ -250,12 +256,12 @@ export function AuditTable({ rows }: { rows: AuditRowView[] }) {
                     <LocalTime date={row.iso} className="text-muted-foreground" />
                     {row.targetHref && (
                       <Link href={row.targetHref} className="underline underline-offset-2">
-                        Open {row.targetType ?? "target"}
+                        {it ? "Apri" : "Open"} {row.targetType ?? (it ? "elemento" : "target")}
                       </Link>
                     )}
                     {row.orgId && (
                       <Link href={`/admin/workspaces/${row.orgId}`} className="underline underline-offset-2">
-                        Open workspace
+                        {it ? "Apri workspace" : "Open workspace"}
                       </Link>
                     )}
                   </div>

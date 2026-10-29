@@ -37,6 +37,11 @@ export default async function WorkspaceLayout({ children, params }: LayoutProps<
       plan: ctx.org.plan,
       subscriptionStatus: ctx.org.subscriptionStatus,
       trialEndsAt: ctx.org.trialEndsAt?.toISOString() ?? null,
+      features: { chat: ctx.org.settings.features?.chat !== false },
+      navigation: {
+        hiddenItems: ctx.org.settings.navigation?.hiddenItems ?? [],
+        hiddenSections: ctx.org.settings.navigation?.hiddenSections ?? [],
+      },
     },
     user: {
       id: ctx.user.id,
@@ -54,24 +59,34 @@ export default async function WorkspaceLayout({ children, params }: LayoutProps<
     workspaces: workspaces.map((w) => ({ id: w.id, name: w.name, slug: w.slug, logoUrl: w.logoUrl })),
     productName: branding.productName || general.instanceName,
   }
+  const it = ctx.user.locale === "it"
+  const lockedMessage = !ctx.locked ? null : it
+    ? ctx.locked.message === "Your free trial has ended. Subscribe to keep using this workspace."
+      ? "Il periodo di prova è terminato. Abbonati per continuare a usare questo workspace."
+      : ctx.locked.message === "This workspace has no active subscription. Subscribe to continue."
+        ? "Questo workspace non ha un abbonamento attivo. Abbonati per continuare."
+        : ctx.locked.message === "This workspace has been suspended by the instance administrator."
+          ? "Questo workspace è stato sospeso dall’amministratore dell’istanza."
+          : ctx.locked.message
+    : ctx.locked.message
 
   return (
     <OrgProvider value={value}>
       <div className="flex h-dvh flex-col overflow-hidden bg-background">
         {value.impersonating && (
           <div className="flex shrink-0 items-center justify-center gap-3 bg-amber-500 px-4 py-1.5 text-xs font-medium text-black">
-            You are impersonating {ctx.user.email}.
+            {it ? `Stai impersonando ${ctx.user.email}.` : `You are impersonating ${ctx.user.email}.`}
             <form action="/admin/impersonate/stop" method="post">
-              <button className="underline underline-offset-2">Stop impersonating</button>
+              <button className="underline underline-offset-2">{it ? "Termina impersonificazione" : "Stop impersonating"}</button>
             </form>
           </div>
         )}
         {ctx.locked && (
           <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-900 dark:text-amber-200">
-            <span>{ctx.locked.message} The workspace is read-only.</span>
+            <span>{lockedMessage} {it ? "Il workspace è in sola lettura." : "The workspace is read-only."}</span>
             {ctx.locked.reason === "billing" && ctx.permissions.has("billing.manage") && (
               <Link href={`/w/${slug}/settings/billing`} className="font-semibold underline underline-offset-2">
-                Subscribe now
+                {it ? "Abbonati ora" : "Subscribe now"}
               </Link>
             )}
           </div>

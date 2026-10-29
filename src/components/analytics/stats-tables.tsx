@@ -7,6 +7,7 @@ import { UserAvatar } from "@/components/app/user-avatar"
 import { formatCount, formatDuration } from "@/components/analytics/format"
 import type { InboxStat, TeammateStat } from "@/server/workspace/queries/analytics"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 type Column<T> = {
   key: string
@@ -117,7 +118,8 @@ function SortableTable<T>({
 }
 
 function Zeroable({ n }: { n: number }) {
-  return <span className={cn(n === 0 && "text-muted-foreground")}>{formatCount(n)}</span>
+  const { locale } = useI18n()
+  return <span className={cn(n === 0 && "text-muted-foreground")}>{formatCount(n, "—", locale)}</span>
 }
 
 function Duration({ s }: { s: number | null }) {
@@ -137,11 +139,12 @@ function TableCard({ title, description, children }: { title: string; descriptio
 }
 
 export function TeammatesTable({ rows }: { rows: TeammateStat[] }) {
+  const { t } = useI18n()
   const columns = useMemo<Column<TeammateStat>[]>(
     () => [
       {
         key: "name",
-        label: "Teammate",
+        label: t("analyticsTableTeammate"),
         sortValue: (r) => (r.name || r.email).toLowerCase(),
         render: (r) => (
           <span className="flex min-w-0 items-center gap-2.5">
@@ -154,39 +157,40 @@ export function TeammatesTable({ rows }: { rows: TeammateStat[] }) {
         ),
         className: "min-w-[200px]",
       },
-      { key: "assigned", label: "Assigned", align: "right", sortValue: (r) => r.assigned, render: (r) => <Zeroable n={r.assigned} /> },
-      { key: "replies", label: "Replies", align: "right", sortValue: (r) => r.replies, render: (r) => <Zeroable n={r.replies} /> },
-      { key: "closed", label: "Closed", align: "right", sortValue: (r) => r.closed, render: (r) => <Zeroable n={r.closed} /> },
+      { key: "assigned", label: t("analyticsAssigned"), align: "right", sortValue: (r) => r.assigned, render: (r) => <Zeroable n={r.assigned} /> },
+      { key: "replies", label: t("analyticsRepliesCount"), align: "right", sortValue: (r) => r.replies, render: (r) => <Zeroable n={r.replies} /> },
+      { key: "closed", label: t("analyticsClosed"), align: "right", sortValue: (r) => r.closed, render: (r) => <Zeroable n={r.closed} /> },
       {
         key: "frt",
-        label: "First response",
+        label: t("analyticsFirstResponse"),
         align: "right",
         sortValue: (r) => r.medianFirstResponse,
         render: (r) => <Duration s={r.medianFirstResponse} />,
       },
     ],
-    []
+    [t]
   )
   return (
-    <TableCard title="Teammates" description="Assignments, replies and closes in this period. First response is the median for conversations they answered first.">
+    <TableCard title={t("analyticsTeammates")} description={t("analyticsTeammatesDescription")}>
       <SortableTable
         columns={columns}
         rows={rows}
         rowKey={(r) => r.userId}
         initialSort={{ key: "replies", dir: "desc" }}
-        caption="Teammate performance"
-        empty="No teammates match these filters."
+        caption={t("analyticsTeammatePerformance")}
+        empty={t("analyticsNoTeammateFilters")}
       />
     </TableCard>
   )
 }
 
 export function InboxesTable({ rows }: { rows: InboxStat[] }) {
+  const { t } = useI18n()
   const columns = useMemo<Column<InboxStat>[]>(
     () => [
       {
         key: "name",
-        label: "Inbox",
+        label: t("analyticsInbox"),
         sortValue: (r) => r.name.toLowerCase(),
         render: (r) => (
           <span className="flex min-w-0 items-center gap-2.5">
@@ -203,29 +207,29 @@ export function InboxesTable({ rows }: { rows: InboxStat[] }) {
         ),
         className: "min-w-[200px]",
       },
-      { key: "received", label: "Received", align: "right", sortValue: (r) => r.received, render: (r) => <Zeroable n={r.received} /> },
-      { key: "replies", label: "Replies", align: "right", sortValue: (r) => r.replies, render: (r) => <Zeroable n={r.replies} /> },
+      { key: "received", label: t("analyticsReceived"), align: "right", sortValue: (r) => r.received, render: (r) => <Zeroable n={r.received} /> },
+      { key: "replies", label: t("analyticsRepliesCount"), align: "right", sortValue: (r) => r.replies, render: (r) => <Zeroable n={r.replies} /> },
       {
         key: "frt",
-        label: "First response",
+        label: t("analyticsFirstResponse"),
         align: "right",
         sortValue: (r) => r.medianFirstResponse,
         render: (r) => <Duration s={r.medianFirstResponse} />,
       },
-      { key: "open", label: "Open now", align: "right", sortValue: (r) => r.open, render: (r) => <Zeroable n={r.open} /> },
-      { key: "closed", label: "Closed", align: "right", sortValue: (r) => r.closed, render: (r) => <Zeroable n={r.closed} /> },
+      { key: "open", label: t("analyticsOpenNow"), align: "right", sortValue: (r) => r.open, render: (r) => <Zeroable n={r.open} /> },
+      { key: "closed", label: t("analyticsClosed"), align: "right", sortValue: (r) => r.closed, render: (r) => <Zeroable n={r.closed} /> },
     ],
-    []
+    [t]
   )
   return (
-    <TableCard title="Inboxes" description="Volume and responsiveness per shared inbox in this period.">
+    <TableCard title={t("analyticsInboxes")} description={t("analyticsInboxesDescription")}>
       <SortableTable
         columns={columns}
         rows={rows}
         rowKey={(r) => r.accountId}
         initialSort={{ key: "received", dir: "desc" }}
-        caption="Inbox performance"
-        empty="No shared inboxes match these filters."
+        caption={t("analyticsInboxPerformance")}
+        empty={t("analyticsNoInboxesFilters")}
       />
     </TableCard>
   )

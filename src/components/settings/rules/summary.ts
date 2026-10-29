@@ -7,6 +7,8 @@ import {
   type RuleConditions,
   type RuleTrigger,
 } from "@/components/settings/rules/definitions"
+import type { Locale } from "@/lib/i18n"
+import { ruleText } from "@/components/settings/rules/rule-labels"
 
 /** Name lookups used to describe rules in plain language. */
 export type RuleLookup = {
@@ -19,53 +21,53 @@ export type RuleLookup = {
 
 const quote = (s: string) => `“${s.length > 48 ? `${s.slice(0, 47)}…` : s}”`
 
-export function describeCondition(c: RuleCondition, lookup: RuleLookup): string {
+export function describeCondition(c: RuleCondition, lookup: RuleLookup, locale: Locale = "en"): string {
   const def = CONDITION_FIELDS[c.field]
-  if (!def) return "unknown condition"
-  const field = c.field === "header" ? `header ${c.header ?? ""}`.trim() : def.label.toLowerCase()
-  const op = operatorLabel(c.field, c.operator)
-  if (c.field === "business_hours") return c.operator === "is_true" ? "received during business hours" : "received outside business hours"
-  if (def.kind === "boolean") return c.operator === "is_true" ? "has an attachment" : "has no attachment"
-  if (def.kind === "account") return `inbox ${op} ${lookup.accounts[c.value ?? ""] ?? "(deleted inbox)"}`
+  if (!def) return ruleText("unknown condition", locale)
+  const field = c.field === "header" ? `${ruleText("header", locale)} ${c.header ?? ""}`.trim() : ruleText(def.label, locale).toLowerCase()
+  const op = ruleText(operatorLabel(c.field, c.operator), locale)
+  if (c.field === "business_hours") return ruleText(c.operator === "is_true" ? "received during business hours" : "received outside business hours", locale)
+  if (def.kind === "boolean") return ruleText(c.operator === "is_true" ? "has an attachment" : "has no attachment", locale)
+  if (def.kind === "account") return `${ruleText("inbox", locale)} ${op} ${lookup.accounts[c.value ?? ""] ?? ruleText("(deleted inbox)", locale)}`
   if (def.kind === "label") {
-    const name = lookup.labels[c.value ?? ""] ?? "(deleted label)"
-    return c.operator === "equals" ? `has label ${name}` : `doesn't have label ${name}`
+    const name = lookup.labels[c.value ?? ""] ?? ruleText("(deleted label)", locale)
+    return `${c.operator === "equals" ? ruleText("has label", locale) : ruleText("doesn't have label", locale)} ${name}`
   }
   return `${field} ${op} ${quote(c.value ?? "")}`
 }
 
-export function describeAction(a: RuleAction, lookup: RuleLookup): string {
+export function describeAction(a: RuleAction, lookup: RuleLookup, locale: Locale = "en"): string {
   switch (a.type) {
     case "add_label":
-      return `add label ${lookup.labels[a.labelId] ?? "(deleted label)"}`
+      return `${ruleText("add label", locale)} ${lookup.labels[a.labelId] ?? ruleText("(deleted label)", locale)}`
     case "remove_label":
-      return `remove label ${lookup.labels[a.labelId] ?? "(deleted label)"}`
+      return `${ruleText("remove label", locale)} ${lookup.labels[a.labelId] ?? ruleText("(deleted label)", locale)}`
     case "assign":
-      return `assign to ${lookup.users[a.userId] ?? "(former member)"}`
+      return `${ruleText("assign to", locale)} ${lookup.users[a.userId] ?? ruleText("(former member)", locale)}`
     case "assign_team":
-      return `assign to ${lookup.teams[a.teamId] ?? "(deleted team)"}${a.balance ? " (balanced)" : ""}`
+      return `${ruleText("assign to", locale)} ${lookup.teams[a.teamId] ?? ruleText("(deleted team)", locale)}${a.balance ? ` (${ruleText("balanced", locale)})` : ""}`
     case "close":
-      return "close"
+      return ruleText("close", locale)
     case "snooze":
-      return `snooze for ${formatMinutes(a.minutes)}`
+      return `${ruleText("snooze for", locale)} ${formatMinutes(a.minutes)}`
     case "star":
-      return "star"
+      return ruleText("star", locale)
     case "priority":
-      return "mark as priority"
+      return ruleText("mark as priority", locale)
     case "mark_read":
-      return "mark as read"
+      return ruleText("mark as read", locale)
     case "mark_spam":
-      return "mark as spam"
+      return ruleText("mark as spam", locale)
     case "trash":
-      return "move to trash"
+      return ruleText("move to trash", locale)
     case "auto_reply":
       return a.cannedResponseId
-        ? `auto-reply with ${quote(lookup.responses[a.cannedResponseId] ?? "deleted response")}`
-        : "send an auto-reply"
+        ? `${ruleText("auto-reply with", locale)} ${quote(lookup.responses[a.cannedResponseId] ?? ruleText("deleted response", locale))}`
+        : ruleText("send an auto-reply", locale)
     case "forward":
-      return `forward to ${a.to}`
+      return `${ruleText("forward to", locale)} ${a.to}`
     case "comment":
-      return "add an internal comment"
+      return ruleText("add an internal comment", locale)
     case "webhook": {
       let host = a.url
       try {
@@ -73,7 +75,7 @@ export function describeAction(a: RuleAction, lookup: RuleLookup): string {
       } catch {
         /* keep raw */
       }
-      return `call webhook ${host}`
+      return `${ruleText("call webhook", locale)} ${host}`
     }
   }
 }
@@ -87,14 +89,15 @@ export type RuleSummary = {
 
 export function summarizeRule(
   rule: { trigger: string; conditions: RuleConditions; actions: RuleAction[] },
-  lookup: RuleLookup
+  lookup: RuleLookup,
+  locale: Locale = "en"
 ): RuleSummary {
   const trigger = rule.trigger as RuleTrigger
   return {
-    when: trigger === "outgoing" ? "When an email is sent" : "When an email arrives",
-    conditions: (rule.conditions?.conditions ?? []).map((c) => describeCondition(c, lookup)),
+    when: ruleText(trigger === "outgoing" ? "When an email is sent" : "When an email arrives", locale),
+    conditions: (rule.conditions?.conditions ?? []).map((c) => describeCondition(c, lookup, locale)),
     joiner: rule.conditions?.match === "any" ? "or" : "and",
-    actions: (rule.actions ?? []).map((a) => describeAction(a, lookup)),
+    actions: (rule.actions ?? []).map((a) => describeAction(a, lookup, locale)),
   }
 }
 

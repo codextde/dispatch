@@ -11,6 +11,7 @@ import { LocalTime } from "@/components/app/local-time"
 import { auditActionLabel, auditActionTone } from "@/components/settings/audit/action-labels"
 import { revokeDevice, revokeOtherDevices } from "@/server/workspace/actions/personal"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export type Device = {
   id: string
@@ -44,29 +45,30 @@ function DeviceIcon({ label, className }: { label: string; className?: string })
 }
 
 export function SecurityPanel({ slug, devices, activity }: { slug: string; devices: Device[]; activity: SignInEvent[] }) {
+  const { t } = useI18n()
   const { pending, run } = useServerAction()
   const others = devices.filter((d) => !d.current)
 
   return (
     <>
       <SettingsSection
-        title="Signed-in devices"
-        description="You stay signed in on each device for up to a year. Sign out anything you don't recognize."
+        title={t("secDevicesTitle")}
+        description={t("secDevicesDescription")}
         flush
         action={
           others.length > 0 && (
             <ConfirmDialog
-              title="Sign out all other devices?"
-              description={`${others.length} other ${others.length === 1 ? "session" : "sessions"} will be signed out immediately. This device stays signed in.`}
-              confirmLabel="Sign out others"
+              title={t("secSignOutOthersTitle")}
+              description={others.length === 1 ? t("secOneOtherSession") : t("secManyOtherSessions")}
+              confirmLabel={t("secSignOutOthers")}
               destructive
               onConfirm={async () => {
-                const res = await run(() => revokeOtherDevices({ slug }), { success: "Signed out all other devices" })
+                const res = await run(() => revokeOtherDevices({ slug }), { success: t("secSignedOutOthers") })
                 return res.ok
               }}
               trigger={
                 <Button size="sm" variant="outline">
-                  <LogOut /> Sign out all other devices
+                  <LogOut /> {t("secSignOutOthers")}
                 </Button>
               }
             />
@@ -88,28 +90,28 @@ export function SecurityPanel({ slug, devices, activity }: { slug: string; devic
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
                     <span className="truncate">{d.deviceLabel}</span>
-                    {d.current && <StatusBadge tone="success">This device</StatusBadge>}
-                    {d.impersonated && <StatusBadge tone="warning">Admin impersonation</StatusBadge>}
+                    {d.current && <StatusBadge tone="success">{t("secThisDevice")}</StatusBadge>}
+                    {d.impersonated && <StatusBadge tone="warning">{t("secAdminImpersonation")}</StatusBadge>}
                   </div>
                   <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                     {d.ip && <span className="font-mono">{d.ip}</span>}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span>Active {d.current ? "now" : <LocalTime date={d.lastUsedAt} format="relative" />}</span>
+                        <span>{d.current ? t("secActiveNow") : <><>{t("secLastActive")} </><LocalTime date={d.lastUsedAt} format="relative" /></>}</span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        Last active <LocalTime date={d.lastUsedAt} />
+                        {t("secLastActive")} <LocalTime date={d.lastUsedAt} />
                       </TooltipContent>
                     </Tooltip>
                     <span>
-                      Signed in <LocalTime date={d.createdAt} format="date" />
+                      {t("secSignedIn")} <LocalTime date={d.createdAt} format="date" />
                     </span>
                   </div>
                 </div>
               </div>
               {d.current ? (
                 <Button size="sm" variant="ghost" className="self-start sm:self-auto" onClick={signOut}>
-                  Sign out
+                  {t("secSignOut")}
                 </Button>
               ) : (
                 <Button
@@ -117,9 +119,9 @@ export function SecurityPanel({ slug, devices, activity }: { slug: string; devic
                   variant="outline"
                   className="self-start sm:self-auto"
                   disabled={pending}
-                  onClick={() => run(() => revokeDevice({ slug, sessionId: d.id }), { success: "Device signed out" })}
+                  onClick={() => run(() => revokeDevice({ slug, sessionId: d.id }), { success: t("secDeviceSignedOut") })}
                 >
-                  Sign out
+                  {t("secSignOut")}
                 </Button>
               )}
             </li>
@@ -128,15 +130,15 @@ export function SecurityPanel({ slug, devices, activity }: { slug: string; devic
       </SettingsSection>
 
       <SettingsSection
-        title="Recent sign-in activity"
-        description="Sign-ins and sign-outs on your account across all workspaces."
+        title={t("secRecentActivity")}
+        description={t("secRecentActivityDescription")}
         flush={activity.length > 0}
       >
         {activity.length === 0 ? (
           <EmptyState
             icon={<ShieldAlert />}
-            title="No activity recorded yet"
-            description="Sign-ins will appear here so you can spot anything unusual."
+            title={t("secNoActivity")}
+            description={t("secActivityDescription")}
           />
         ) : (
           <ul className="divide-y border-t">
@@ -146,7 +148,7 @@ export function SecurityPanel({ slug, devices, activity }: { slug: string; devic
                   <StatusBadge tone={auditActionTone(e.action) === "danger" ? "danger" : e.action === "auth.login" ? "success" : "neutral"}>
                     {auditActionLabel(e.action)}
                   </StatusBadge>
-                  <span className="truncate text-[13px] text-muted-foreground">{e.device ?? "Unknown device"}</span>
+                  <span className="truncate text-[13px] text-muted-foreground">{e.device ?? t("secUnknownDevice")}</span>
                 </div>
                 <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
                   {e.ip && <span className="font-mono">{e.ip}</span>}

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { differenceInCalendarDays } from "date-fns"
 import { ChevronRight, Inbox, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import {
   AssigneeAvatar,
   AssigneePicker,
@@ -11,6 +12,7 @@ import {
   STATUS_META,
   STATUS_ORDER,
   StatusIcon,
+  statusLabel,
 } from "./task-fields"
 import type { TaskDto, TaskOptions, TaskPatch, TaskStatus } from "./use-tasks"
 
@@ -39,11 +41,11 @@ const byPosition = (a: TaskDto, b: TaskDto) => a.position - b.position || a.crea
 const byDue = (a: TaskDto, b: TaskDto) =>
   (a.dueAt ?? "9999").localeCompare(b.dueAt ?? "9999") || byPosition(a, b)
 
-export function groupTasks(tasks: TaskDto[], groupBy: GroupBy, meId: string): TaskGroup[] {
+export function groupTasks(tasks: TaskDto[], groupBy: GroupBy, meId: string, locale: "en" | "it" = "en"): TaskGroup[] {
   if (groupBy === "status") {
     return STATUS_ORDER.map((s) => ({
       key: s,
-      label: STATUS_META[s].label,
+      label: statusLabel(s, locale),
       icon: <StatusIcon status={s} className="size-3.5" />,
       tasks: tasks.filter((t) => t.status === s).sort(s === "done" ? (a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? "") : byPosition),
       defaults: { status: s },
@@ -53,11 +55,11 @@ export function groupTasks(tasks: TaskDto[], groupBy: GroupBy, meId: string): Ta
     const today = new Date()
     today.setHours(17, 0, 0, 0)
     const groups: TaskGroup[] = [
-      { key: "overdue", label: "Overdue", tasks: [], defaults: {}, tone: "danger" },
-      { key: "today", label: "Today", tasks: [], defaults: { dueAt: today.toISOString() }, tone: "warning" },
-      { key: "upcoming", label: "Upcoming", tasks: [], defaults: {} },
-      { key: "none", label: "No due date", tasks: [], defaults: {} },
-      { key: "done", label: "Completed", tasks: [], defaults: { status: "done" } },
+      { key: "overdue", label: locale === "it" ? "In ritardo" : "Overdue", tasks: [], defaults: {}, tone: "danger" },
+      { key: "today", label: locale === "it" ? "Oggi" : "Today", tasks: [], defaults: { dueAt: today.toISOString() }, tone: "warning" },
+      { key: "upcoming", label: locale === "it" ? "In arrivo" : "Upcoming", tasks: [], defaults: {} },
+      { key: "none", label: locale === "it" ? "Senza scadenza" : "No due date", tasks: [], defaults: {} },
+      { key: "done", label: locale === "it" ? "Completate" : "Completed", tasks: [], defaults: { status: "done" } },
     ]
     for (const t of tasks) groups.find((g) => g.key === dueGroup(t))!.tasks.push(t)
     for (const g of groups) g.tasks.sort(g.key === "done" ? (a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? "") : byDue)
@@ -68,7 +70,7 @@ export function groupTasks(tasks: TaskDto[], groupBy: GroupBy, meId: string): Ta
   for (const t of tasks) {
     const key = t.assignee?.id ?? "unassigned"
     if (!map.has(key)) {
-      const label = t.assignee ? (t.assignee.id === meId ? "Me" : t.assignee.name || t.assignee.email) : "Unassigned"
+      const label = t.assignee ? (t.assignee.id === meId ? (locale === "it" ? "Io" : "Me") : t.assignee.name || t.assignee.email) : (locale === "it" ? "Non assegnate" : "Unassigned")
       map.set(key, {
         key,
         label,
@@ -106,6 +108,7 @@ export function TaskRow({
   onUpdate: (id: string, patch: TaskPatch) => void
   showConversation?: boolean
 }) {
+  const { locale } = useI18n()
   const done = task.status === "done"
   return (
     <div
@@ -120,8 +123,8 @@ export function TaskRow({
         disabled={!task.canEdit}
         onClick={() => onUpdate(task.id, { status: done ? "todo" : "done" })}
         className="-m-1.5 flex size-7 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
-        aria-label={done ? `Reopen “${task.title}”` : `Complete “${task.title}”`}
-        title={done ? "Reopen" : "Mark done"}
+        aria-label={done ? `${locale === "it" ? "Riapri" : "Reopen"} “${task.title}”` : `${locale === "it" ? "Completa" : "Complete"} “${task.title}”`}
+        title={done ? (locale === "it" ? "Riapri" : "Reopen") : (locale === "it" ? "Segna come completata" : "Mark done")}
       >
         <StatusIcon status={task.status} className="transition-transform group-hover/row:scale-110" />
       </button>
@@ -165,7 +168,7 @@ export function TaskRow({
             <button
               type="button"
               className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={task.assignee ? `Assigned to ${task.assignee.name || task.assignee.email}` : "Assign"}
+              aria-label={task.assignee ? `${locale === "it" ? "Assegnata a" : "Assigned to"} ${task.assignee.name || task.assignee.email}` : locale === "it" ? "Assegna" : "Assign"}
             >
               <AssigneeAvatar assignee={task.assignee} />
             </button>
@@ -197,7 +200,8 @@ export function TaskListView({
   onUpdate: (id: string, patch: TaskPatch) => void
   onAddInGroup: (defaults: TaskPatch) => void
 }) {
-  const groups = useMemo(() => groupTasks(tasks, groupBy, meId), [tasks, groupBy, meId])
+  const { locale } = useI18n()
+  const groups = useMemo(() => groupTasks(tasks, groupBy, meId, locale), [tasks, groupBy, meId, locale])
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ done: false })
 
   return (
@@ -231,7 +235,7 @@ export function TaskListView({
                   type="button"
                   onClick={() => onAddInGroup(g.defaults)}
                   className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`Add task to ${g.label}`}
+                  aria-label={`${locale === "it" ? "Aggiungi attività a" : "Add task to"} ${g.label}`}
                 >
                   <Plus className="size-3.5" />
                 </button>
@@ -251,7 +255,7 @@ export function TaskListView({
                   />
                 ))}
                 {g.tasks.length === 0 && (
-                  <div className="px-11 py-3 text-[13px] text-muted-foreground">Nothing here yet.</div>
+                  <div className="px-11 py-3 text-[13px] text-muted-foreground">{locale === "it" ? "Non c’è ancora nulla." : "Nothing here yet."}</div>
                 )}
               </div>
             )}

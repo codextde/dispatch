@@ -21,10 +21,10 @@ export default async function IntegrationsPage({ params }: PageProps<"/w/[slug]/
 
   return (
     <SettingsPage
-      eyebrow="Developers"
-      title="API & webhooks"
-      quiet="— connect Dispatch to your stack."
-      description="Create API keys for the REST API and stream workspace events to your own services."
+      eyebrow={ctx.user.locale === "it" ? "Sviluppatori" : "Developers"}
+      title={ctx.user.locale === "it" ? "API e webhook" : "API & webhooks"}
+      quiet={ctx.user.locale === "it" ? "— collega Dispatch ai tuoi strumenti." : "— connect Dispatch to your stack."}
+      description={ctx.user.locale === "it" ? "Crea chiavi API per la REST API e invia gli eventi del workspace ai tuoi servizi." : "Create API keys for the REST API and stream workspace events to your own services."}
     >
       <ApiKeysSection slug={ctx.org.slug} keys={keys} appUrl={appUrl} now={now} />
       <WebhooksSection slug={ctx.org.slug} webhooks={webhooks} events={WEBHOOK_EVENTS} />

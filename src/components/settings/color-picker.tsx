@@ -5,6 +5,7 @@ import { Check } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { localizeDictionaryText, useI18n } from "@/lib/i18n"
 
 export const PRESET_COLORS = [
   "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16", "#22c55e",
@@ -20,6 +21,7 @@ export function randomPresetColor() {
 
 /** Swatch grid + hex input. Used for labels, teams, roles and inboxes. */
 export function ColorSwatches({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+  const { locale } = useI18n()
   const [hex, setHex] = useState(value)
   const [synced, setSynced] = useState(value)
   // Follow external value changes (adjusting state during render, not in an effect)
@@ -29,7 +31,7 @@ export function ColorSwatches({ value, onChange }: { value: string; onChange: (c
   }
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-9 gap-1.5" role="radiogroup" aria-label="Color">
+      <div className="grid grid-cols-9 gap-1.5" role="radiogroup" aria-label={localizeDictionaryText("Color", locale) as string}>
         {PRESET_COLORS.map((c) => {
           const selected = c.toLowerCase() === value.toLowerCase()
           return (
@@ -53,7 +55,7 @@ export function ColorSwatches({ value, onChange }: { value: string; onChange: (c
       </div>
       <div className="flex items-center gap-2">
         <label className="relative size-8 shrink-0 cursor-pointer overflow-hidden rounded-lg border" style={{ backgroundColor: value }}>
-          <span className="sr-only">Custom color</span>
+          <span className="sr-only">{localizeDictionaryText("Custom color", locale)}</span>
           <input
             type="color"
             value={HEX_RE.test(value) ? value : "#64748b"}
@@ -62,7 +64,7 @@ export function ColorSwatches({ value, onChange }: { value: string; onChange: (c
           />
         </label>
         <Input
-          aria-label="Hex color"
+          aria-label={localizeDictionaryText("Hex color", locale) as string}
           value={hex}
           spellCheck={false}
           maxLength={7}
@@ -92,12 +94,13 @@ export function ColorPicker({
   className?: string
   label?: string
 }) {
+  const { locale } = useI18n()
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={label}
+          aria-label={localizeDictionaryText(label, locale) as string}
           className={cn(
             "flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:bg-input/30",
             className

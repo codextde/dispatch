@@ -28,6 +28,7 @@ export default async function VerifyPage({ searchParams }: PageProps<"/auth/veri
     getCurrentSession(),
   ])
   const productName = branding.productName || general.instanceName
+  const it = session?.user.locale === "it"
 
   return (
     <CenteredAuthLayout productName={productName} homeHref="/login">
@@ -38,25 +39,23 @@ export default async function VerifyPage({ searchParams }: PageProps<"/auth/veri
               <LinkIcon className="size-5 text-brand" />
             </div>
             <AuthHeading
-              eyebrow="Confirm sign-in"
-              title={`Sign in to ${productName}`}
-              quiet="on this device."
+              eyebrow={it ? "Conferma l’accesso" : "Confirm sign-in"}
+              title={it ? `Accedi a ${productName}` : `Sign in to ${productName}`}
+              quiet={it ? "su questo dispositivo." : "on this device."}
               description={
                 <>
-                  Continue as <span className="font-medium break-words text-foreground">{peek.email}</span>. This link can only be used
-                  once.
+                  {it ? "Continua come" : "Continue as"} <span className="font-medium break-words text-foreground">{peek.email}</span>. {it ? "Questo link può essere usato una sola volta." : "This link can only be used once."}
                 </>
               }
             />
             {session && session.user.email.toLowerCase() !== peek.email && (
               <p className="-mt-2 mb-5 text-[13px] text-muted-foreground">
-                You&apos;re currently signed in as <span className="font-medium text-foreground">{session.user.email}</span> on this
-                device. Continuing adds a session for {peek.email}.
+                {it ? "Hai già effettuato l’accesso come" : "You’re currently signed in as"} <span className="font-medium text-foreground">{session.user.email}</span> {it ? "su questo dispositivo. Continuando aggiungerai una sessione per" : "on this device. Continuing adds a session for"} {peek.email}.
               </p>
             )}
             <VerifyForm token={token} email={peek.email} />
             <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
-              Didn&apos;t request this? You can close this page — nothing happens until you click continue.
+              {it ? "Non hai richiesto questo accesso? Puoi chiudere la pagina: non succede nulla finché non fai clic su Continua." : "Didn’t request this? You can close this page — nothing happens until you click continue."}
             </p>
           </>
         ) : (
@@ -65,13 +64,13 @@ export default async function VerifyPage({ searchParams }: PageProps<"/auth/veri
               <MailX className="size-5 text-muted-foreground" />
             </div>
             <AuthHeading
-              eyebrow="Sign-in link"
-              title="This link has expired"
-              quiet="or was already used."
-              description="Sign-in links are valid for a short time and work only once. Request a new one and we'll email you a fresh link and code."
+              eyebrow={it ? "Link di accesso" : "Sign-in link"}
+              title={it ? "Questo link è scaduto" : "This link has expired"}
+              quiet={it ? "oppure è già stato usato." : "or was already used."}
+              description={it ? "I link di accesso sono validi per poco tempo e si possono usare una sola volta. Richiedine uno nuovo: ti invieremo un altro link e un nuovo codice." : "Sign-in links are valid for a short time and work only once. Request a new one and we'll email you a fresh link and code."}
             />
             <Button asChild size="lg" className="h-10 w-full rounded-md">
-              <Link href="/login">Request a new link</Link>
+              <Link href="/login">{it ? "Richiedi un nuovo link" : "Request a new link"}</Link>
             </Button>
           </>
         )}

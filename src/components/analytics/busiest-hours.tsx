@@ -3,13 +3,16 @@
 import { useMemo, useRef, useState } from "react"
 import { ChartCard, DataTable } from "@/components/analytics/chart-card"
 import { ChartEmpty } from "@/components/analytics/trend-charts"
-import { formatHour, WEEKDAYS } from "@/components/analytics/format"
+import { formatHour, WEEKDAYS, WEEKDAYS_IT } from "@/components/analytics/format"
 import { HEAT_STEPS, heatColor } from "@/components/analytics/palette"
 import type { HeatmapCell } from "@/server/workspace/queries/analytics"
+import { useI18n } from "@/lib/i18n"
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h)
 
 export function BusiestHours({ cells, timezone }: { cells: HeatmapCell[]; timezone: string }) {
+  const { t, locale } = useI18n()
+  const weekdays = locale === "it" ? WEEKDAYS_IT : WEEKDAYS
   const { grid, max, total, peak } = useMemo(() => {
     const g = Array.from({ length: 7 }, () => Array<number>(24).fill(0))
     let mx = 0
@@ -31,36 +34,36 @@ export function BusiestHours({ cells, timezone }: { cells: HeatmapCell[]; timezo
   const wrapRef = useRef<HTMLDivElement>(null)
 
   const step = (v: number) => (v <= 0 || max === 0 ? 0 : Math.max(1, Math.ceil((v / max) * HEAT_STEPS.length)))
-  const peakText = peak ? `${WEEKDAYS[peak.weekday - 1]} ${formatHour(peak.hour)} (${peak.count.toLocaleString("en-US")} messages)` : ""
+  const peakText = peak ? `${weekdays[peak.weekday - 1]} ${formatHour(peak.hour)} (${peak.count.toLocaleString(locale === "it" ? "it-IT" : "en-US")} ${t("analyticsMessages")})` : ""
 
   return (
     <ChartCard
-      title="Busiest hours"
-      description={`Incoming emails by weekday and hour (${timezone.replace(/_/g, " ")}).`}
+      title={t("busiestHours")}
+      description={t("analyticsIncomingByDay").replace("{timezone}", timezone.replace(/_/g, " "))}
       table={
         <DataTable
-          caption="Incoming emails by weekday and hour"
-          columns={[{ key: "day", label: "Day" }, ...HOURS.map((h) => ({ key: String(h), label: String(h).padStart(2, "0"), align: "right" as const }))]}
+          caption={t("incomingByWeekday")}
+          columns={[{ key: "day", label: t("analyticsDayLabel") }, ...HOURS.map((h) => ({ key: String(h), label: String(h).padStart(2, "0"), align: "right" as const }))]}
           rows={grid.map((row, d) => ({
-            day: WEEKDAYS[d]!.slice(0, 3),
+            day: weekdays[d]!.slice(0, 3),
             ...Object.fromEntries(row.map((v, h) => [String(h), v || ""])),
           }))}
         />
       }
     >
       {total === 0 ? (
-        <ChartEmpty>No incoming emails in this period.</ChartEmpty>
+        <ChartEmpty>{t("noIncomingEmails")}</ChartEmpty>
       ) : (
         <div className="flex flex-col gap-3">
           <div ref={wrapRef} className="relative -mx-1 overflow-x-auto px-1 pb-1" onPointerLeave={() => setHover(null)}>
             <div
               role="img"
-              aria-label={`Heatmap of incoming emails by weekday and hour. Busiest: ${peakText}. Use the table view for exact values.`}
+              aria-label={t("analyticsHeatmapAria").replace("{peak}", peakText)}
               className="grid min-w-[560px] grid-cols-[2.25rem_repeat(24,minmax(0,1fr))] gap-[2px]"
             >
               {grid.map((row, d) => (
                 <div key={d} className="contents">
-                  <div className="flex items-center pr-1.5 text-[11px] text-muted-foreground">{WEEKDAYS[d]!.slice(0, 3)}</div>
+                  <div className="flex items-center pr-1.5 text-[11px] text-muted-foreground">{weekdays[d]!.slice(0, 3)}</div>
                   {row.map((v, h) => (
                     <div
                       key={h}
@@ -95,24 +98,24 @@ export function BusiestHours({ cells, timezone }: { cells: HeatmapCell[]; timezo
                 style={{ left: hover.x, top: hover.y - 6 }}
               >
                 <div className="font-mono font-semibold text-foreground tabular-nums">
-                  {grid[hover.day]![hover.hour]!.toLocaleString("en-US")} {grid[hover.day]![hover.hour] === 1 ? "message" : "messages"}
+                  {grid[hover.day]![hover.hour]!.toLocaleString(locale === "it" ? "it-IT" : "en-US")} {grid[hover.day]![hover.hour] === 1 ? t("analyticsMessage") : t("analyticsMessages")}
                 </div>
                 <div className="text-muted-foreground">
-                  {WEEKDAYS[hover.day]} · {formatHour(hover.hour)}–{formatHour((hover.hour + 1) % 24)}
+                  {weekdays[hover.day]} · {formatHour(hover.hour)}–{formatHour((hover.hour + 1) % 24)}
                 </div>
               </div>
             )}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
             <span>
-              Busiest: <span className="font-medium text-foreground">{peakText}</span>
+              {t("analyticsBusiest")} <span className="font-medium text-foreground">{peakText}</span>
             </span>
             <span className="flex items-center gap-1.5" aria-hidden>
-              Less
+              {t("analyticsLess")}
               {[0, ...HEAT_STEPS.map((_, i) => i + 1)].map((s) => (
                 <span key={s} className="size-3 rounded-[3px]" style={{ backgroundColor: heatColor(s) }} />
               ))}
-              More
+              {t("analyticsMore")}
             </span>
           </div>
         </div>

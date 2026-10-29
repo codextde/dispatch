@@ -14,6 +14,7 @@ import { EmptyState, MicroLabel, SettingsSection, StatusBadge } from "@/componen
 import { LocalTime } from "@/components/app/local-time"
 import { auditActionLabel, auditActionTone, auditResourceLabel } from "@/components/settings/audit/action-labels"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export type AuditItem = {
   id: string
@@ -43,21 +44,24 @@ const SECTION_LABELS: Record<string, string> = {
   ai: "AI assistant",
 }
 
-function targetLabel(item: AuditItem): string | null {
+function targetLabel(item: AuditItem, locale: "en" | "it"): string | null {
   const m = item.metadata
   if (item.action === "workspace.slug_changed" && typeof m.from === "string" && typeof m.to === "string") return `/w/${m.from} → /w/${m.to}`
-  if (typeof m.section === "string") return SECTION_LABELS[m.section] ?? m.section.replace(/_/g, " ")
+  if (typeof m.section === "string") {
+    const itLabels: Record<string, string> = { profile: "Nome e fuso orario", logo: "Logo", conversations: "Impostazioni conversazioni", business_hours: "Orario di lavoro", access: "Accesso al workspace", ai: "Assistente IA" }
+    return (locale === "it" ? itLabels[m.section] : SECTION_LABELS[m.section]) ?? m.section.replace(/_/g, " ")
+  }
   for (const key of ["email", "name", "title", "slug"] as const) {
     const v = m[key]
     if (typeof v === "string" && v) return v
   }
   if (!item.targetType) return null
-  return `${item.targetType.replace(/_/g, " ")}${item.targetId ? ` · ${item.targetId.slice(0, 8)}` : ""}`
+  return `${auditResourceLabel(item.targetType, locale)}${item.targetId ? ` · ${item.targetId.slice(0, 8)}` : ""}`
 }
 
-function actorLabel(item: AuditItem) {
+function actorLabel(item: AuditItem, locale: "en" | "it") {
   if (item.actor.name || item.actor.email) return item.actor.name || item.actor.email!
-  return item.action.startsWith("billing.") ? "Stripe" : "System"
+  return item.action.startsWith("billing.") ? "Stripe" : locale === "it" ? "Sistema" : "System"
 }
 
 export function AuditLog({
@@ -77,6 +81,7 @@ export function AuditLog({
   facets: Facets
   filters: Filters
 }) {
+  const { t, locale } = useI18n()
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -98,15 +103,15 @@ export function AuditLog({
   const actionOptions = useMemo<ComboOption[]>(() => {
     const resources = [...new Set(facets.actions.map((a) => a.action.split(".")[0]!))]
     return [
-      ...resources.map((r) => ({ value: `${r}.*`, label: `All ${auditResourceLabel(r).toLowerCase()} events`, group: "Categories" })),
+      ...resources.map((r) => ({ value: `${r}.*`, label: `${t("auditAll")} ${auditResourceLabel(r, locale).toLowerCase()} ${t("auditEvents")}`, group: t("auditCategories") })),
       ...facets.actions.map((a) => ({
         value: a.action,
-        label: auditActionLabel(a.action),
+        label: auditActionLabel(a.action, locale),
         hint: String(a.count),
-        group: auditResourceLabel(a.action.split(".")[0]!),
+        group: auditResourceLabel(a.action.split(".")[0]!, locale),
       })),
     ]
-  }, [facets.actions])
+  }, [facets.actions, locale, t])
 
   const actorOptions = useMemo<ComboOption[]>(
     () =>
@@ -135,8 +140,8 @@ export function AuditLog({
         >
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            aria-label="Search the audit log"
-            placeholder="Search email, IP, details…"
+            aria-label={t("auditSearchLabel")}
+            placeholder={t("auditSearchPlaceholder")}
             className="pl-8"
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -147,8 +152,8 @@ export function AuditLog({
           options={actorOptions}
           value={filters.actor ?? null}
           onChange={(v) => update({ actor: v ?? undefined })}
-          placeholder="Any member"
-          searchPlaceholder="Search members…"
+          placeholder={t("auditAnyMember")}
+          searchPlaceholder={t("auditSearchMembers")}
           clearable
           className="sm:w-48"
         />
@@ -156,8 +161,8 @@ export function AuditLog({
           options={actionOptions}
           value={filters.action ?? null}
           onChange={(v) => update({ action: v ?? undefined })}
-          placeholder="Any event"
-          searchPlaceholder="Search events…"
+          placeholder={t("auditAnyEvent")}
+          searchPlaceholder={t("auditSearchEvents")}
           clearable
           className="sm:w-56"
           contentClassName="min-w-72"
@@ -165,7 +170,7 @@ export function AuditLog({
         <div className="flex items-center gap-1.5">
           <Input
             type="date"
-            aria-label="From date"
+            aria-label={t("auditFromDate")}
             className="w-[9.5rem]"
             value={filters.from ?? ""}
             max={filters.to}
@@ -174,7 +179,7 @@ export function AuditLog({
           <span className="text-xs text-muted-foreground">–</span>
           <Input
             type="date"
-            aria-label="To date"
+            aria-label={t("auditToDate")}
             className="w-[9.5rem]"
             value={filters.to ?? ""}
             min={filters.from}
@@ -190,10 +195,10 @@ export function AuditLog({
               startTransition(() => router.replace(pathname, { scroll: false }))
             }}
           >
-            <X /> Clear
+            <X /> {t("auditClear")}
           </Button>
         )}
-        {loading && <Loader2 className="size-4 animate-spin text-muted-foreground sm:ml-auto" aria-label="Loading" />}
+        {loading && <Loader2 className="size-4 animate-spin text-muted-foreground sm:ml-auto" aria-label={t("auditLoading")} />}
       </div>
 
       <SettingsSection flush bodyClassName={cn("transition-opacity", loading && "opacity-60")}>
@@ -201,9 +206,9 @@ export function AuditLog({
           <div className="p-5">
             <EmptyState
               icon={<ScrollText />}
-              title={hasFilters ? "No matching events" : "No events yet"}
+              title={hasFilters ? t("auditNoMatchingEvents") : t("auditNoEventsYet")}
               description={
-                hasFilters ? "Try a different filter or date range." : "Security-relevant changes in this workspace will be recorded here."
+                hasFilters ? t("auditTryFilter") : t("auditSecurityChanges")
               }
             />
           </div>
@@ -213,11 +218,11 @@ export function AuditLog({
             <Table className="hidden md:table">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-40 pl-5">Time</TableHead>
-                  <TableHead>Actor</TableHead>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Target</TableHead>
-                  <TableHead className="pr-5 text-right">IP address</TableHead>
+                  <TableHead className="w-40 pl-5">{t("auditTime")}</TableHead>
+                  <TableHead>{t("auditActor")}</TableHead>
+                  <TableHead>{t("auditEvent")}</TableHead>
+                  <TableHead>{t("auditTarget")}</TableHead>
+                  <TableHead className="pr-5 text-right">{t("auditIpAddress")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -235,13 +240,13 @@ export function AuditLog({
                     <TableCell>
                       <span className="flex min-w-0 items-center gap-2">
                         <UserAvatar name={item.actor.name} email={item.actor.email} src={item.actor.avatarUrl} size="xs" />
-                        <span className="max-w-44 truncate text-[13px]">{actorLabel(item)}</span>
+                        <span className="max-w-44 truncate text-[13px]">{actorLabel(item, locale)}</span>
                       </span>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge tone={auditActionTone(item.action)}>{auditActionLabel(item.action)}</StatusBadge>
+                      <StatusBadge tone={auditActionTone(item.action)}>{auditActionLabel(item.action, locale)}</StatusBadge>
                     </TableCell>
-                    <TableCell className="max-w-56 truncate text-[13px] text-muted-foreground">{targetLabel(item) ?? "—"}</TableCell>
+                    <TableCell className="max-w-56 truncate text-[13px] text-muted-foreground">{targetLabel(item, locale) ?? "—"}</TableCell>
                     <TableCell className="pr-5 text-right font-mono text-xs text-muted-foreground">{item.ip ?? "—"}</TableCell>
                   </TableRow>
                 ))}
@@ -254,13 +259,13 @@ export function AuditLog({
                 <li key={item.id}>
                   <button type="button" onClick={() => setOpen(item)} className="flex w-full flex-col gap-1.5 px-4 py-3 text-left hover:bg-muted/40">
                     <span className="flex items-center justify-between gap-2">
-                      <StatusBadge tone={auditActionTone(item.action)}>{auditActionLabel(item.action)}</StatusBadge>
+                    <StatusBadge tone={auditActionTone(item.action)}>{auditActionLabel(item.action, locale)}</StatusBadge>
                       <LocalTime date={item.createdAt} format="relative" className="text-xs text-muted-foreground" />
                     </span>
                     <span className="flex items-center gap-2 text-[13px]">
                       <UserAvatar name={item.actor.name} email={item.actor.email} src={item.actor.avatarUrl} size="xs" />
-                      <span className="truncate">{actorLabel(item)}</span>
-                      {targetLabel(item) && <span className="truncate text-muted-foreground">→ {targetLabel(item)}</span>}
+                      <span className="truncate">{actorLabel(item, locale)}</span>
+                      {targetLabel(item, locale) && <span className="truncate text-muted-foreground">→ {targetLabel(item, locale)}</span>}
                     </span>
                   </button>
                 </li>
@@ -275,7 +280,7 @@ export function AuditLog({
                 <Button
                   variant="outline"
                   size="icon-sm"
-                  aria-label="Previous page"
+                  aria-label={t("auditPreviousPage")}
                   disabled={page <= 1 || loading}
                   onClick={() => update({ page: page - 1 > 1 ? String(page - 1) : undefined })}
                 >
@@ -287,7 +292,7 @@ export function AuditLog({
                 <Button
                   variant="outline"
                   size="icon-sm"
-                  aria-label="Next page"
+                  aria-label={t("auditNextPage")}
                   disabled={page >= pages || loading}
                   onClick={() => update({ page: String(page + 1) })}
                 >
@@ -304,45 +309,45 @@ export function AuditLog({
           {open && (
             <>
               <SheetHeader className="border-b">
-                <SheetTitle>{auditActionLabel(open.action)}</SheetTitle>
+                <SheetTitle>{auditActionLabel(open.action, locale)}</SheetTitle>
                 <SheetDescription>
                   <LocalTime date={open.createdAt} />
                 </SheetDescription>
               </SheetHeader>
               <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
                 <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-2.5 text-[13px]">
-                  <dt className="text-muted-foreground">Actor</dt>
+                  <dt className="text-muted-foreground">{t("auditActor")}</dt>
                   <dd className="flex min-w-0 items-center gap-2">
                     <UserAvatar name={open.actor.name} email={open.actor.email} src={open.actor.avatarUrl} size="xs" />
                     <span className="truncate">
-                      {actorLabel(open)}
+                      {actorLabel(open, locale)}
                       {open.actor.name && open.actor.email && <span className="text-muted-foreground"> · {open.actor.email}</span>}
                     </span>
                   </dd>
-                  <dt className="text-muted-foreground">Event</dt>
+                  <dt className="text-muted-foreground">{t("auditEvent")}</dt>
                   <dd className="font-mono text-xs">{open.action}</dd>
                   {open.targetType && (
                     <>
-                      <dt className="text-muted-foreground">Target</dt>
+                      <dt className="text-muted-foreground">{t("auditTarget")}</dt>
                       <dd className="min-w-0 font-mono text-xs break-all">
                         {open.targetType}
                         {open.targetId && ` · ${open.targetId}`}
                       </dd>
                     </>
                   )}
-                  <dt className="text-muted-foreground">IP address</dt>
+                  <dt className="text-muted-foreground">{t("auditIpAddress")}</dt>
                   <dd className="font-mono text-xs">{open.ip ?? "—"}</dd>
                   {open.userAgent && (
                     <>
-                      <dt className="text-muted-foreground">User agent</dt>
+                      <dt className="text-muted-foreground">{t("auditUserAgent")}</dt>
                       <dd className="text-xs break-words text-muted-foreground">{open.userAgent}</dd>
                     </>
                   )}
                 </dl>
                 <div className="flex min-h-0 flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <MicroLabel>Metadata</MicroLabel>
-                    <CopyButton value={JSON.stringify(open.metadata, null, 2)} variant="ghost" size="icon-xs" message="Metadata copied" />
+                    <MicroLabel>{t("auditMetadata")}</MicroLabel>
+                    <CopyButton value={JSON.stringify(open.metadata, null, 2)} variant="ghost" size="icon-xs" message={t("auditMetadataCopied")} />
                   </div>
                   <pre className="scrollbar-thin max-h-[50vh] overflow-auto rounded-lg border bg-surface p-3 font-mono text-[12px] leading-relaxed">
                     {JSON.stringify(open.metadata, null, 2)}

@@ -10,6 +10,7 @@ import {
   setUserStatus,
   setUserSuperAdmin,
   userDeletionBlockers,
+  updateUserCredentials,
 } from "@/server/admin/users"
 
 const id = z.uuid("Invalid user")
@@ -56,6 +57,20 @@ export const revokeAllUserSessionsAction = adminAction(z.object({ userId: id }),
   })
   return { count }
 })
+
+export const updateUserCredentialsAction = adminAction(
+  z.object({ id, email: z.string().trim().max(320).optional(), password: z.string().max(4000).optional() }),
+  async (input, admin) => {
+    if (input.email === undefined && input.password === undefined) throw new ApiError(400, "Provide an email or a password.")
+    const res = await updateUserCredentials(admin.user.id, input.id, input, admin.session.id)
+    await admin.audit("admin.user_credentials_updated", {
+      targetType: "user",
+      targetId: res.user.id,
+      metadata: { emailChanged: input.email !== undefined, passwordChanged: input.password !== undefined, revokedSessions: res.revokedSessions },
+    })
+    return { email: res.user.email, revokedSessions: res.revokedSessions }
+  }
+)
 
 export const deleteUserAction = adminAction(z.object({ id, confirm: z.string().trim() }), async (input, admin) => {
   const check = await userDeletionBlockers(admin.user.id, input.id)

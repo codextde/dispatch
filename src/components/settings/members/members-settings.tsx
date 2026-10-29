@@ -30,7 +30,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { UserAvatar } from "@/components/app/user-avatar"
 import { ConfirmDialog } from "@/components/settings/confirm-dialog"
 import { copyToClipboard, CopyField } from "@/components/settings/copy-button"
-import { pluralize } from "@/components/settings/format"
 import { LocalTime } from "@/components/app/local-time"
 import { ColorDot, EmptyState, SettingsPage, SettingsSection, StatusBadge } from "@/components/settings/settings-ui"
 import { useServerAction } from "@/components/settings/use-server-action"
@@ -44,6 +43,7 @@ import {
 } from "@/server/workspace/actions/members"
 import type { InvitationRow, MemberRow, MembersPageData } from "@/server/workspace/queries/members"
 import { cn } from "@/lib/utils"
+import { localizeRoleName, useI18n } from "@/lib/i18n"
 
 type Teams = MembersPageData["teams"]
 
@@ -55,6 +55,7 @@ type PendingConfirm =
   | null
 
 export function MembersSettings({ slug, orgName, data }: { slug: string; orgName: string; data: MembersPageData }) {
+  const { t, locale } = useI18n()
   const { members, invitations, roles, teams, canManage, canInvite, canAssignTeams, emailDelivery, defaultRoleId } = data
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<"all" | "active" | "suspended">("all")
@@ -73,9 +74,10 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
       if (status !== "all" && m.status !== status) return false
       if (roleFilter !== "all" && m.roleId !== roleFilter) return false
       if (!q) return true
-      return [m.name, m.email, m.title, roleById.get(m.roleId)?.name].some((v) => v?.toLowerCase().includes(q))
+      const role = roleById.get(m.roleId)
+      return [m.name, m.email, m.title, role && localizeRoleName(role.key, role.name, locale)].some((v) => v?.toLowerCase().includes(q))
     })
-  }, [members, query, status, roleFilter, roleById])
+  }, [members, query, status, roleFilter, roleById, locale])
 
   const requestRoleChange = (member: MemberRow, roleId: string) => {
     if (roleId === member.roleId) return
@@ -86,21 +88,21 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
 
   const changeRole = (member: MemberRow, roleId: string) =>
     run(() => changeMemberRoleAction({ slug, userId: member.userId, roleId }), {
-      success: (d) => `Changed ${member.name || member.email}'s role to ${d.roleName}`,
+      success: (d) => `${member.name || member.email}: ${t("memChangeRole")} → ${localizeRoleName(roleById.get(roleId)?.key, d.roleName, locale)}`,
     })
 
   const setMemberStatus = (member: MemberRow, next: "active" | "suspended") =>
     run(() => setMemberStatusAction({ slug, userId: member.userId, status: next }), {
-      success: next === "suspended" ? `${member.name || member.email} was suspended` : `${member.name || member.email} was reactivated`,
+      success: next === "suspended" ? `${member.name || member.email}: ${t("memSuspend")}` : `${member.name || member.email}: ${t("memActive")}`,
     })
 
   const shareLink = (inv: InvitationRow, sendEmail: boolean) =>
     run(() => resendInvitationAction({ slug, id: inv.id, sendEmail }), {
-      success: (d) => (d.delivered ? `Invitation re-sent to ${d.email}` : ""),
+      success: (d) => (d.delivered ? `${t("inviteSend")} ${d.email}` : ""),
       onSuccess: (d) => {
         if (!d.delivered) {
           setLink({ email: d.email, url: d.url })
-          void copyToClipboard(d.url, "New invite link copied")
+          void copyToClipboard(d.url, t("invCopyNewLink"))
         }
       },
     })
@@ -136,20 +138,20 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
       return (
         <span className={cn("inline-flex items-center gap-1.5 text-[13px]", className)}>
           <ColorDot color={role?.color ?? "#64748b"} className="size-2" />
-          {role?.name ?? "—"}
+          {role ? localizeRoleName(role.key, role.name, locale) : "—"}
         </span>
       )
     }
     return (
       <Select value={m.roleId} onValueChange={(v) => requestRoleChange(m, v)}>
-        <SelectTrigger size="sm" className={cn("w-36", className)} aria-label={`Role of ${m.name || m.email}`}>
+        <SelectTrigger size="sm" className={cn("w-36", className)} aria-label={`${t("invRoleOf")} ${m.name || m.email}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent position="popper" align="start">
           {roles.map((r) => (
             <SelectItem key={r.id} value={r.id} disabled={!r.grantable && r.id !== m.roleId}>
               <ColorDot color={r.color ?? "#64748b"} className="size-2" />
-              {r.name}
+              {localizeRoleName(r.key, r.name, locale)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -162,23 +164,23 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${m.name || m.email}`}>
+          <Button variant="ghost" size="icon-sm" aria-label={`${t("invActionFor")} ${m.name || m.email}`}>
             <MoreHorizontal />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
           {m.status === "active" ? (
             <DropdownMenuItem onClick={() => setConfirm({ kind: "suspend", member: m })}>
-              <Ban /> Suspend access
+              <Ban /> {t("invSuspend")}
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem onClick={() => void setMemberStatus(m, "active")}>
-              <UserCheck /> Reactivate
+              <UserCheck /> {t("invReactivate")}
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={() => setConfirm({ kind: "remove", member: m })}>
-            <UserMinus /> Remove from workspace
+            <UserMinus /> {t("invRemoveWorkspace")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -192,7 +194,7 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
         <div className="flex items-center gap-1.5">
           <span className="truncate text-[13px] font-medium">{m.name || m.email.split("@")[0]}</span>
           {m.isYou && (
-            <span className="rounded bg-muted px-1 py-px font-mono text-[10px] tracking-wide text-muted-foreground uppercase">You</span>
+            <span className="rounded bg-muted px-1 py-px font-mono text-[10px] tracking-wide text-muted-foreground uppercase">{t("memYou")}</span>
           )}
         </div>
         <div className="truncate text-xs text-muted-foreground">
@@ -204,7 +206,7 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
   )
 
   const statusBadge = (m: MemberRow) =>
-    m.status === "active" ? <StatusBadge tone="success">Active</StatusBadge> : <StatusBadge tone="warning">Suspended</StatusBadge>
+    m.status === "active" ? <StatusBadge tone="success">{t("memActive")}</StatusBadge> : <StatusBadge tone="warning">{t("memSuspendedStatus")}</StatusBadge>
 
   const confirmMember = confirm && "member" in confirm ? confirm.member : null
   const confirmName = confirmMember ? confirmMember.name || confirmMember.email : ""
@@ -212,10 +214,10 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
   return (
     <SettingsPage
       width="wide"
-      eyebrow="Workspace"
-      title="Members"
-      quiet="& invitations"
-      description={`Everyone with access to ${orgName}. Roles decide what people can do; inbox access is managed per inbox.`}
+      eyebrow={t("memWorkspace")}
+      title={t("memMembers")}
+      quiet={t("memInvitations")}
+      description={t("memEveryoneAccess").replace("{workspace}", orgName)}
       actions={
         canInvite && (
           <InviteDialog
@@ -231,8 +233,8 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
     >
       <SettingsSection
         flush
-        title={pluralize(members.length, "member")}
-        description={suspendedCount ? `${suspendedCount} suspended` : "People who can sign in to this workspace."}
+        title={`${members.length} ${members.length === 1 ? t("memMemberCount") : t("memMembersCount")}`}
+        description={suspendedCount ? `${suspendedCount} ${t("memSuspended")}` : t("memPeopleAccess")}
         action={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <div className="relative sm:w-56">
@@ -241,33 +243,33 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search name or email"
-                aria-label="Search members"
+                placeholder={t("memSearch")}
+                aria-label={t("memSearchMembers")}
                 className="pl-8"
               />
             </div>
             <div className="flex gap-2">
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="flex-1 sm:w-32" aria-label="Filter by role">
+                <SelectTrigger className="flex-1 sm:w-32" aria-label={t("memFilterRole")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper" align="end">
-                  <SelectItem value="all">All roles</SelectItem>
+                  <SelectItem value="all">{t("memAllRoles")}</SelectItem>
                   {roles.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
-                      {r.name}
+                      {localizeRoleName(r.key, r.name, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-                <SelectTrigger className="flex-1 sm:w-32" aria-label="Filter by status">
+                <SelectTrigger className="flex-1 sm:w-32" aria-label={t("memFilterStatus")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper" align="end">
-                  <SelectItem value="all">Any status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="all">{t("anyStatus")}</SelectItem>
+                  <SelectItem value="active">{t("memActive")}</SelectItem>
+                  <SelectItem value="suspended">{t("memSuspendedStatus")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -278,8 +280,8 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
           <div className="px-5 pb-5">
             <EmptyState
               icon={<Users />}
-              title="No matching members"
-              description="Try a different search or clear the filters."
+              title={t("memNoMatching")}
+              description={t("memTryDifferentSearch")}
             >
               <Button
                 variant="outline"
@@ -290,7 +292,7 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
                   setStatus("all")
                 }}
               >
-                Clear filters
+                {t("clearFilters")}
               </Button>
             </EmptyState>
           </div>
@@ -301,13 +303,13 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="border-b bg-surface/50 text-left">
-                    {["Member", "Role", "Teams", "Status", "Last active", "Joined"].map((h) => (
+                    {[t("memMember"), t("memRole"), t("memTeams"), t("memStatus"), t("memLastActive"), t("memJoined")].map((h) => (
                       <th key={h} scope="col" className="h-9 px-3 font-mono text-[10.5px] font-medium tracking-wider whitespace-nowrap text-muted-foreground uppercase first:pl-5">
                         {h}
                       </th>
                     ))}
                     <th scope="col" className="w-12 pr-3">
-                      <span className="sr-only">Actions</span>
+                      <span className="sr-only">{t("memActions")}</span>
                     </th>
                   </tr>
                 </thead>
@@ -319,7 +321,7 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
                       <td className="px-3 py-2.5">{teamChips(m.teamIds)}</td>
                       <td className="px-3 py-2.5">{statusBadge(m)}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
-                        <LocalTime date={m.lastSeenAt} format="relative" titleFormat="datetime" fallback="Never" />
+                        <LocalTime date={m.lastSeenAt} format="relative" titleFormat="datetime" fallback={t("never")} />
                       </td>
                       <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">
                         <LocalTime date={m.joinedAt} format="date" />
@@ -345,10 +347,10 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
                     <span className="text-xs text-muted-foreground">
                       {m.lastSeenAt ? (
                         <>
-                          Active <LocalTime date={m.lastSeenAt} format="relative" />
+                          {t("invLastActive")} <LocalTime date={m.lastSeenAt} format="relative" />
                         </>
                       ) : (
-                        "Never signed in"
+                        t("memNeverSignedIn")
                       )}
                     </span>
                   </div>
@@ -363,16 +365,16 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
       {canInvite && (
         <SettingsSection
           flush
-          title="Pending invitations"
+          title={t("memPending")}
           description={
             invitations.length
-              ? `${pluralize(invitations.length, "invitation")} waiting to be accepted.`
-              : "Invitations you send show up here until they're accepted."
+              ? `${invitations.length} ${t("inviteCreated")} ${t("memWaitingAccepted")}`
+              : t("memInvitationsHere")
           }
         >
           {invitations.length === 0 ? (
             <div className="px-5 pb-5">
-              <EmptyState icon={<Mail />} title="No pending invitations" description="Invite teammates to collaborate on shared inboxes." />
+              <EmptyState icon={<Mail />} title={t("memNoPending")} description={t("memInviteCollaborate")} />
             </div>
           ) : (
             <ul className="divide-y border-t">
@@ -387,7 +389,7 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
                       <div className="min-w-0">
                         <div className="truncate text-[13px] font-medium">{inv.email}</div>
                         <div className="truncate text-xs text-muted-foreground">
-                          Invited {inv.invitedByYou ? "by you" : inv.invitedByName ? `by ${inv.invitedByName}` : ""}{" "}
+                          {t("memInvited")} {inv.invitedByYou ? t("memByYou") : inv.invitedByName ? `da ${inv.invitedByName}` : ""}{" "}
                           <LocalTime date={inv.createdAt} format="relative" titleFormat="datetime" />
                           {inv.teamIds.length > 0 &&
                             ` · ${inv.teamIds
@@ -403,17 +405,17 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
                         {role?.name ?? "—"}
                       </span>
                       {inv.expired ? (
-                        <StatusBadge tone="danger">Expired</StatusBadge>
+                        <StatusBadge tone="danger">{locale === "it" ? "Scaduto" : "Expired"}</StatusBadge>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
-                          <Clock className="size-3" /> Expires <LocalTime date={inv.expiresAt} format="relative" titleFormat="datetime" />
+                          <Clock className="size-3" /> {t("memExpires")} <LocalTime date={inv.expiresAt} format="relative" titleFormat="datetime" />
                         </span>
                       )}
                       {inv.manageable && (
                         <div className="ml-auto flex items-center gap-1 sm:ml-2">
                           {emailDelivery && (
                             <Button variant="outline" size="sm" onClick={() => void shareLink(inv, true)}>
-                              <RefreshCw /> Resend
+                              <RefreshCw /> {t("invResend")}
                             </Button>
                           )}
                           <DropdownMenu>
@@ -428,7 +430,7 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem variant="destructive" onClick={() => setConfirm({ kind: "revoke", invitation: inv })}>
-                                <XCircle /> Revoke invitation
+                                <XCircle /> {t("memRevoke")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -445,7 +447,7 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
 
       {!canManage && (
         <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
-          <ShieldCheck className="size-4" /> Only people with the “Manage members” permission can change roles or remove members.
+          <ShieldCheck className="size-4" /> {t("memOnlyManage")}
         </p>
       )}
 
@@ -455,15 +457,15 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
         onOpenChange={(o) => !o && setConfirm(null)}
         title={
           confirm?.kind === "role" && roleById.get(confirm.roleId)?.key === "owner"
-            ? `Make ${confirmName} an owner?`
-            : "Change your own role?"
+            ? t("memMakeOwner").replace("{name}", confirmName)
+            : t("memChangeOwnRole")
         }
         description={
           confirm?.kind === "role" && roleById.get(confirm.roleId)?.key === "owner"
-            ? "Owners have full access to the workspace, including billing, roles and deleting the workspace."
-            : "You might lose access to settings you can see right now. This takes effect immediately."
+            ? t("memOwnerDesc")
+            : t("memRoleDesc")
         }
-        confirmLabel="Change role"
+        confirmLabel={t("memChangeRole")}
         onConfirm={async () => {
           if (confirm?.kind !== "role") return
           const res = await changeRole(confirm.member, confirm.roleId)
@@ -473,9 +475,9 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
       <ConfirmDialog
         open={confirm?.kind === "suspend"}
         onOpenChange={(o) => !o && setConfirm(null)}
-        title={`Suspend ${confirmName}?`}
-        description="They won't be able to open this workspace until you reactivate them. Their assignments, comments and data stay as they are."
-        confirmLabel="Suspend"
+        title={t("memSuspendTitle").replace("{name}", confirmName)}
+        description={t("memSuspendDesc")}
+        confirmLabel={t("memSuspend")}
         destructive
         onConfirm={async () => {
           if (confirm?.kind !== "suspend") return
@@ -486,15 +488,15 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
       <ConfirmDialog
         open={confirm?.kind === "remove"}
         onOpenChange={(o) => !o && setConfirm(null)}
-        title={`Remove ${confirmName} from ${orgName}?`}
-        description="They lose access immediately and are removed from all teams, inbox access and assignments. Their personal inboxes connected to this workspace — and those conversations — plus their private labels, responses, signatures and rules here are deleted. Shared conversations and comments are kept."
-        confirmLabel="Remove member"
+        title={t("memRemoveTitle").replace("{name}", confirmName).replace("{workspace}", orgName)}
+        description={t("memRemoveDesc")}
+        confirmLabel={t("memRemoveMember")}
         destructive
         confirmText={confirmMember?.email}
         onConfirm={async () => {
           if (confirm?.kind !== "remove") return
           const res = await run(() => removeMemberAction({ slug, userId: confirm.member.userId }), {
-            success: `${confirmName} was removed`,
+            success: t("memRemoved").replace("{name}", confirmName),
           })
           return res.ok
         }}
@@ -502,13 +504,13 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
       <ConfirmDialog
         open={confirm?.kind === "revoke"}
         onOpenChange={(o) => !o && setConfirm(null)}
-        title="Revoke invitation?"
-        description={confirm?.kind === "revoke" ? `The invite link sent to ${confirm.invitation.email} will stop working.` : undefined}
-        confirmLabel="Revoke"
+        title={t("memRevokeTitle")}
+        description={confirm?.kind === "revoke" ? t("memRevokeDesc").replace("{email}", confirm.invitation.email) : undefined}
+        confirmLabel={t("memRevoke")}
         destructive
         onConfirm={async () => {
           if (confirm?.kind !== "revoke") return
-          const res = await run(() => revokeInvitationAction({ slug, id: confirm.invitation.id }), { success: "Invitation revoked" })
+          const res = await run(() => revokeInvitationAction({ slug, id: confirm.invitation.id }), { success: t("memRevoked") })
           return res.ok
         }}
       />
@@ -516,14 +518,14 @@ export function MembersSettings({ slug, orgName, data }: { slug: string; orgName
       <Dialog open={!!link} onOpenChange={(o) => !o && setLink(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite link for {link?.email}</DialogTitle>
+            <DialogTitle>{t("memInviteLinkTitle").replace("{email}", link?.email ?? "")}</DialogTitle>
             <DialogDescription>
-              This new link replaces any earlier link for this invitation and is valid for 14 days.
+              {t("memInviteLinkDesc")}
             </DialogDescription>
           </DialogHeader>
           {link && <CopyField value={link.url} />}
           <DialogFooter>
-            <Button onClick={() => setLink(null)}>Done</Button>
+            <Button onClick={() => setLink(null)}>{t("memDone")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

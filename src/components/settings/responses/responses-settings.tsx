@@ -20,6 +20,7 @@ import { useServerAction } from "@/components/settings/use-server-action"
 import { deleteResponse } from "@/server/workspace/actions/responses"
 import { ResponseEditor, type ResponseDraft, type ResponseScope, type TeamOption } from "./response-editor"
 import { htmlSnippet } from "./text"
+import { useI18n } from "@/lib/i18n"
 
 export type ResponseItem = {
   id: string
@@ -36,11 +37,11 @@ export type ResponseItem = {
 
 type Filter = "all" | ResponseScope
 
-function ScopeBadge({ item, teams }: { item: ResponseItem; teams: Map<string, TeamOption> }) {
+function ScopeBadge({ item, teams, t }: { item: ResponseItem; teams: Map<string, TeamOption>; t: (key: any) => string }) {
   if (item.scope === "personal") {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-        <User className="size-3" /> Personal
+        <User className="size-3" /> {t("respPersonal")}
       </span>
     )
   }
@@ -49,13 +50,13 @@ function ScopeBadge({ item, teams }: { item: ResponseItem; teams: Map<string, Te
     return (
       <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
         <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: team?.color ?? "var(--subtle)" }} aria-hidden />
-        <span className="truncate">{team?.name ?? "Team"}</span>
+        <span className="truncate">{team?.name ?? t("respTeam")}</span>
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-      <Globe className="size-3" /> Workspace
+      <Globe className="size-3" /> {t("respWorkspace")}
     </span>
   )
 }
@@ -71,6 +72,7 @@ export function ResponsesSettings({
   teams: TeamOption[]
   canManageShared: boolean
 }) {
+  const { t, locale } = useI18n()
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<Filter>("all")
   const [editing, setEditing] = useState<ResponseDraft | null>(null)
@@ -130,14 +132,14 @@ export function ResponsesSettings({
 
   return (
     <SettingsPage
-      eyebrow="Productivity"
-      title="Canned responses"
-      quiet="for answers you send often"
-      description="Save replies once and insert them from the composer. Variables like {{contact.first_name}} are filled in automatically."
+      eyebrow={t("respProductivity")}
+      title={t("respTitle")}
+      quiet={t("respQuiet")}
+      description={t("respDescription")}
       width="wide"
       actions={
         <Button onClick={() => setEditing(newDraft())}>
-          <Plus /> New response
+          <Plus /> {t("respNew")}
         </Button>
       }
     >
@@ -148,8 +150,8 @@ export function ResponsesSettings({
               <Search />
             </InputGroupAddon>
             <InputGroupInput
-              aria-label="Search responses"
-              placeholder="Search by name, shortcut or text…"
+              aria-label={t("respSearch")}
+              placeholder={t("respSearch")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -158,10 +160,10 @@ export function ResponsesSettings({
             <TabsList className="w-full sm:w-fit">
               {(
                 [
-                  ["all", "All"],
-                  ["personal", "Personal"],
-                  ["team", "Team"],
-                  ["workspace", "Workspace"],
+                  ["all", t("respAll")],
+                  ["personal", t("respPersonal")],
+                  ["team", t("respTeam")],
+                  ["workspace", t("respWorkspace")],
                 ] as const
               ).map(([value, label]) => (
                 <TabsTrigger key={value} value={value} className="px-2.5 text-[13px]">
@@ -177,7 +179,7 @@ export function ResponsesSettings({
           <div className="p-5">
             <EmptyState
               icon={<MessageSquareText />}
-              title={responses.length === 0 ? "No canned responses yet" : "No matching responses"}
+              title={responses.length === 0 ? t("respNone") : t("respNoMatch")}
               description={
                 responses.length === 0
                   ? "Create replies for common questions — refunds, onboarding, bug reports — and send them in two keystrokes."
@@ -186,7 +188,7 @@ export function ResponsesSettings({
             >
               {responses.length === 0 && (
                 <Button size="sm" onClick={() => setEditing(newDraft())}>
-                  <Plus /> Create a response
+                  <Plus /> {t("respCreate")}
                 </Button>
               )}
             </EmptyState>
@@ -210,11 +212,11 @@ export function ResponsesSettings({
                     {htmlSnippet(r.body)}
                   </span>
                   <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <ScopeBadge item={r} teams={teamMap} />
+                    <ScopeBadge item={r} teams={teamMap} t={t} />
                     <span className="text-xs text-muted-foreground tabular-nums">
-                      {r.usageCount > 0 ? `Used ${pluralize(r.usageCount, "time")}` : "Not used yet"}
+                      {r.usageCount > 0 ? `${t("respUsed")} ${pluralize(r.usageCount, "time")}` : t("respNotUsed")}
                     </span>
-                    <span className="hidden text-xs text-muted-foreground sm:inline">Updated <LocalTime date={r.updatedAt} format="relative" />
+                    <span className="hidden text-xs text-muted-foreground sm:inline">{locale === "it" ? "Aggiornata" : "Updated"} <LocalTime date={r.updatedAt} format="relative" />
                     </span>
                   </span>
                 </button>
@@ -227,11 +229,11 @@ export function ResponsesSettings({
                   <DropdownMenuContent align="end" className="w-48">
                     {r.editable && (
                       <DropdownMenuItem onClick={() => setEditing(toDraft(r))}>
-                        <Pencil /> Edit
+                      <Pencil /> {t("respEdit")}
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={() => duplicate(r)}>
-                      <Copy /> {r.editable ? "Duplicate" : "Duplicate as personal"}
+                      <Copy /> {r.editable ? t("respDuplicate") : t("respDuplicatePersonal")}
                     </DropdownMenuItem>
                     {r.editable && (
                       <>
@@ -243,7 +245,7 @@ export function ResponsesSettings({
                             setDeleteOpen(true)
                           }}
                         >
-                          <Trash2 /> Delete
+                          <Trash2 /> {t("respDelete")}
                         </DropdownMenuItem>
                       </>
                     )}
@@ -275,11 +277,11 @@ export function ResponsesSettings({
             ? "This personal response will be removed. This can't be undone."
             : "Teammates won't be able to insert it anymore. This can't be undone."
         }
-        confirmLabel="Delete response"
+        confirmLabel={t("respDeleteConfirm")}
         destructive
         onConfirm={async () => {
           if (!deleting) return
-          const res = await run(() => deleteResponse({ slug, id: deleting.id }), { success: "Response deleted" })
+          const res = await run(() => deleteResponse({ slug, id: deleting.id }), { success: t("respDeleted") })
           return res.ok
         }}
       />

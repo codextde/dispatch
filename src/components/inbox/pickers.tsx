@@ -18,6 +18,7 @@ import type { LabelSummary } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
 import { useNow } from "@/hooks/inbox/use-now"
 import { useInbox } from "./inbox-provider"
+import { useI18n } from "@/lib/i18n"
 
 type PopoverProps = {
   open: boolean
@@ -44,6 +45,7 @@ export function AssigneePicker({
   side,
 }: PopoverProps & { value: string[]; partial?: string[]; onToggle: (userId: string, assign: boolean) => void }) {
   const { members, meId } = useInbox()
+  const { t } = useI18n()
   const { can } = useOrg()
   const canAssignOthers = can("conversations.assign")
   const sorted = useMemo(() => {
@@ -56,10 +58,10 @@ export function AssigneePicker({
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align={align} side={side} className="w-72 p-0">
         <Command>
-          <CommandInput placeholder="Assign to…" autoFocus />
+          <CommandInput placeholder={t("assignToPlaceholder")} autoFocus />
           <CommandList className="max-h-80">
-            <CommandEmpty>No teammates found.</CommandEmpty>
-            <CommandGroup heading="Teammates">
+            <CommandEmpty>{t("inboxUiNoTeammates")}</CommandEmpty>
+            <CommandGroup heading={t("inboxUiTeammates")}>
               {sorted.map((m) => {
                 const checked = value.includes(m.id)
                 const disabled = m.id !== meId && !canAssignOthers
@@ -74,9 +76,9 @@ export function AssigneePicker({
                     <UserAvatar name={m.name} email={m.email} src={m.avatarUrl} size="xs" />
                     <span className="min-w-0 flex-1 truncate">
                       {memberName(m)}
-                      {m.id === meId && <span className="text-muted-foreground"> (you)</span>}
+                      {m.id === meId && <span className="text-muted-foreground"> ({t("inboxUiYou")})</span>}
                     </span>
-                    {partial.includes(m.id) && !checked && <span className="size-1.5 rounded-full bg-muted-foreground" aria-label="Some" />}
+                    {partial.includes(m.id) && !checked && <span className="size-1.5 rounded-full bg-muted-foreground" aria-label={t("inboxUiPartial")} />}
                   </CommandItem>
                 )
               })}
@@ -86,7 +88,7 @@ export function AssigneePicker({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem value="__unassign_all" onSelect={() => value.forEach((id) => onToggle(id, false))}>
-                    <X /> Unassign everyone
+                    <X /> {t("inboxUiUnassignAll")}
                   </CommandItem>
                 </CommandGroup>
               </>
@@ -129,6 +131,7 @@ export function LabelPicker({
   side,
 }: PopoverProps & { value: string[]; partial?: string[]; onToggle: (labelId: string, add: boolean) => void }) {
   const { bootstrap, slug } = useInbox()
+  const { t } = useI18n()
   const { can } = useOrg()
   const router = useRouter()
   const flat = useMemo(() => flattenLabels(bootstrap.labels), [bootstrap.labels])
@@ -137,9 +140,9 @@ export function LabelPicker({
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align={align} side={side} className="w-72 p-0">
         <Command>
-          <CommandInput placeholder="Apply labels…" autoFocus />
+          <CommandInput placeholder={t("applyLabelsPlaceholder")} autoFocus />
           <CommandList className="max-h-80">
-            <CommandEmpty>No labels found.</CommandEmpty>
+            <CommandEmpty>{t("inboxUiNoLabels")}</CommandEmpty>
             <CommandGroup>
               {flat.map(({ label: l, depth, path }) => {
                 const checked = value.includes(l.id)
@@ -148,9 +151,9 @@ export function LabelPicker({
                     <span style={{ paddingLeft: depth * 12 }} className="flex min-w-0 flex-1 items-center gap-2">
                       <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: l.color }} />
                       <span className="truncate">{l.name}</span>
-                      {l.visibility === "private" && <UserRound className="size-3 text-muted-foreground" aria-label="Private" />}
+                      {l.visibility === "private" && <UserRound className="size-3 text-muted-foreground" aria-label={t("inboxUiPrivate")} />}
                     </span>
-                    {partial.includes(l.id) && !checked && <span className="size-1.5 rounded-full bg-muted-foreground" aria-label="Some" />}
+                    {partial.includes(l.id) && !checked && <span className="size-1.5 rounded-full bg-muted-foreground" aria-label={t("inboxUiPartial")} />}
                   </CommandItem>
                 )
               })}
@@ -158,7 +161,7 @@ export function LabelPicker({
             <CommandSeparator />
             <CommandGroup>
               <CommandItem value="__manage_labels" onSelect={() => router.push(`/w/${slug}/settings/labels`)}>
-                <Settings2 /> {can("labels.manage") ? "Manage labels" : "Personal labels"}
+                <Settings2 /> {can("labels.manage") ? t("inboxUiManageLabels") : t("inboxUiPersonalLabels")}
               </CommandItem>
             </CommandGroup>
           </CommandList>
@@ -172,14 +175,15 @@ export function LabelPicker({
 
 export function TeamPicker({ value, onSelect, open, onOpenChange, children, align = "end", side }: PopoverProps & { value: string | null; onSelect: (teamId: string | null) => void }) {
   const { bootstrap } = useInbox()
+  const { t } = useI18n()
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align={align} side={side} className="w-64 p-0">
         <Command>
-          <CommandInput placeholder="Move to team…" autoFocus />
+          <CommandInput placeholder={t("moveToTeamPlaceholder")} autoFocus />
           <CommandList>
-            <CommandEmpty>No teams found.</CommandEmpty>
+            <CommandEmpty>{t("inboxUiNoTeams")}</CommandEmpty>
             <CommandGroup>
               {bootstrap.teams.map((t) => (
                 <CommandItem key={t.id} value={t.name} data-checked={value === t.id} onSelect={() => onSelect(t.id)}>
@@ -188,7 +192,7 @@ export function TeamPicker({ value, onSelect, open, onOpenChange, children, alig
                 </CommandItem>
               ))}
               <CommandItem value="__no_team" data-checked={value === null} onSelect={() => onSelect(null)}>
-                <Users className="text-muted-foreground" /> No team
+                <Users className="text-muted-foreground" /> {t("inboxUiNoTeam")}
               </CommandItem>
             </CommandGroup>
           </CommandList>
@@ -201,6 +205,7 @@ export function TeamPicker({ value, onSelect, open, onOpenChange, children, alig
 /* ------------------------------ Date & time -------------------------------- */
 
 export function DateTimeForm({ onSubmit, submitLabel, initial }: { onSubmit: (date: Date) => void; submitLabel: string; initial?: Date }) {
+  const { t } = useI18n()
   const start = initial ?? timePresets()[1]!.date
   const [day, setDay] = useState<Date | undefined>(start)
   const [time, setTime] = useState(format(start, "HH:mm"))
@@ -225,7 +230,7 @@ export function DateTimeForm({ onSubmit, submitLabel, initial }: { onSubmit: (da
       <div className="flex items-end gap-2">
         <div className="grid flex-1 gap-1">
           <Label htmlFor="dt-time" className="text-xs text-muted-foreground">
-            Time
+            {t("inboxUiTime")}
           </Label>
           <Input id="dt-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-8" required />
         </div>
@@ -233,7 +238,7 @@ export function DateTimeForm({ onSubmit, submitLabel, initial }: { onSubmit: (da
           {submitLabel}
         </Button>
       </div>
-      {value && !valid && <p className="text-xs text-destructive">Pick a time in the future.</p>}
+      {value && !valid && <p className="text-xs text-destructive">{t("inboxUiFutureTime")}</p>}
     </form>
   )
 }
@@ -250,6 +255,7 @@ export function SnoozePicker({
   side,
   title = "Snooze until…",
 }: PopoverProps & { snoozedUntil?: string | null; onSnooze: (until: Date | null) => void; title?: string }) {
+  const { t } = useI18n()
   const [custom, setCustom] = useState(false)
   const presets = useMemo(() => (open ? timePresets() : []), [open])
   const now = useNow()
@@ -266,7 +272,7 @@ export function SnoozePicker({
       <PopoverContent align={align} side={side} className={cn("p-0", custom ? "w-auto p-3" : "w-72")}>
         {custom ? (
           <DateTimeForm
-            submitLabel="Snooze"
+            submitLabel={t("inboxUiSnooze")}
             onSubmit={(d) => {
               onSnooze(d)
               onOpenChange(false)
@@ -287,13 +293,13 @@ export function SnoozePicker({
                     }}
                   >
                     <Clock className="text-muted-foreground" />
-                    <span className="flex-1">{p.label}</span>
+                    <span className="flex-1">{t(({ later: "inboxUiLaterToday", tomorrow: "inboxUiTomorrow", weekend: "inboxUiWeekend", "next-week": "inboxUiNextWeek", month: "inboxUiInMonth" } as const)[p.id as "later" | "tomorrow" | "weekend" | "next-week" | "month"] ?? "inboxUiTomorrow")}</span>
                     <span className="font-mono text-[11px] text-muted-foreground">{p.hint}</span>
                   </CommandItem>
                 ))}
                 <CommandItem value="custom" onSelect={() => setCustom(true)}>
                   <CalendarDays className="text-muted-foreground" />
-                  Pick date & time…
+                  {t("inboxUiPickDate")}
                 </CommandItem>
               </CommandGroup>
               {snoozed && (
@@ -307,7 +313,7 @@ export function SnoozePicker({
                         onOpenChange(false)
                       }}
                     >
-                      <X /> Unsnooze
+                      <X /> {t("inboxUiUnsnooze")}
                     </CommandItem>
                   </CommandGroup>
                 </>

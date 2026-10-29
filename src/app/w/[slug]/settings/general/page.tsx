@@ -11,6 +11,8 @@ import { PUBLIC_EMAIL_DOMAINS, verifiedAdminDomains } from "@/server/workspace/s
 import { SettingsPage } from "@/components/settings/settings-ui"
 import { IdentitySection } from "@/components/settings/general/identity-section"
 import { BusinessHoursSection, ConversationSection } from "@/components/settings/general/behaviour-sections"
+import { WorkspaceFeaturesSection } from "@/components/settings/general/features-section"
+import { WorkspaceNavigationSection } from "@/components/settings/general/navigation-section"
 import { AccessSection } from "@/components/settings/general/access-section"
 import { AiSection, type AiMode } from "@/components/settings/general/ai-section"
 import { DangerZone, DemoDataSection } from "@/components/settings/general/danger-zone"
@@ -40,7 +42,7 @@ export default async function GeneralSettingsPage({ params }: PageProps<"/w/[slu
   const defaultRoleId = selectableRoles.some((r) => r.id === s.defaultRoleId) ? s.defaultRoleId! : (memberRole?.id ?? selectableRoles[0]?.id ?? "")
 
   return (
-    <SettingsPage eyebrow="Workspace" title="General" quiet="settings" description={`Manage ${ctx.org.name}'s profile, defaults and access.`}>
+    <SettingsPage eyebrow="Workspace" title={ctx.user.locale === "it" ? "Generale" : "General"} quiet={ctx.user.locale === "it" ? "impostazioni" : "settings"} description={ctx.user.locale === "it" ? `Gestisci il profilo, le impostazioni predefinite e gli accessi di ${ctx.org.name}.` : `Manage ${ctx.org.name}'s profile, defaults and access.`}>
       <IdentitySection
         slug={ctx.org.slug}
         name={ctx.org.name}
@@ -57,6 +59,8 @@ export default async function GeneralSettingsPage({ params }: PageProps<"/w/[slu
           undoSendSeconds: typeof s.undoSendSeconds === "number" ? s.undoSendSeconds : 5,
         }}
       />
+      <WorkspaceFeaturesSection slug={ctx.org.slug} chatEnabled={s.features?.chat !== false} />
+      <WorkspaceNavigationSection slug={ctx.org.slug} initialHiddenItems={s.navigation?.hiddenItems ?? []} initialHiddenSections={s.navigation?.hiddenSections ?? []} />
       <BusinessHoursSection
         slug={ctx.org.slug}
         timezone={timezone}

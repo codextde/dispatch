@@ -5,21 +5,24 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 
 export type GrowthPoint = { day: string; signups: number; workspaces: number }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 /** "2026-09-27" → "Sep 27" (parsed manually: no timezone shifts, SSR-stable). */
-function shortDay(day: string) {
+function shortDay(day: string, locale: "en" | "it" = "en") {
   const [, m, d] = day.split("-").map(Number)
-  return `${MONTHS[(m ?? 1) - 1]} ${d}`
+  const month = locale === "it" ? ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"][(m ?? 1) - 1] : MONTHS[(m ?? 1) - 1]
+  return `${month} ${d}`
 }
 
-function longDay(day: string) {
+function longDay(day: string, locale: "en" | "it" = "en") {
   const [y, m, d] = day.split("-").map(Number)
-  const weekday = new Date(Date.UTC(y!, (m ?? 1) - 1, d)).toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })
-  return `${weekday}, ${MONTHS[(m ?? 1) - 1]} ${d}`
+  const localeName = locale === "it" ? "it-IT" : "en-US"
+  const weekday = new Date(Date.UTC(y!, (m ?? 1) - 1, d)).toLocaleDateString(localeName, { weekday: "short", timeZone: "UTC" })
+  return `${weekday}, ${shortDay(day, locale)}`
 }
 
 /*
@@ -33,19 +36,14 @@ const SERIES_COLOR = {
   dark: "oklch(0.66 0.16 152)",
 }
 
-const config = {
-  signups: { label: "New users", theme: SERIES_COLOR },
-  workspaces: { label: "New workspaces", theme: SERIES_COLOR },
-} satisfies ChartConfig
-
-function Delta({ current, previous }: { current: number; previous: number }) {
+function Delta({ current, previous, locale }: { current: number; previous: number; locale: "en" | "it" }) {
   const diff = current - previous
-  if (current === 0 && previous === 0) return <span className="text-muted-foreground">No change</span>
+  if (current === 0 && previous === 0) return <span className="text-muted-foreground">{locale === "it" ? "Nessuna variazione" : "No change"}</span>
   const sign = diff > 0 ? "+" : diff < 0 ? "−" : "±"
   return (
     <span className={cn("text-muted-foreground", diff > 0 && "text-emerald-700 dark:text-emerald-400")}>
       {sign}
-      {Math.abs(diff)} vs previous 30 days
+      {Math.abs(diff)} {locale === "it" ? "rispetto ai 30 giorni precedenti" : "vs previous 30 days"}
     </span>
   )
 }
@@ -56,13 +54,16 @@ function SeriesChart({
   total,
   previous,
   points,
+  locale,
 }: {
   dataKey: "signups" | "workspaces"
   title: string
   total: number
   previous: number
   points: GrowthPoint[]
+  locale: "en" | "it"
 }) {
+  const chartConfig = { signups: { label: locale === "it" ? "Nuovi utenti" : "New users", theme: SERIES_COLOR }, workspaces: { label: locale === "it" ? "Nuovi workspace" : "New workspaces", theme: SERIES_COLOR } } satisfies ChartConfig
   // Weekly ticks counted back from today so the latest day is always labeled
   const ticks = points.filter((_, i) => (points.length - 1 - i) % 7 === 0).map((p) => p.day)
   return (
@@ -72,18 +73,18 @@ function SeriesChart({
         <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <span className="text-2xl font-semibold tracking-tight">{total.toLocaleString("en-US")}</span>
           <span className="text-xs">
-            <Delta current={total} previous={previous} />
+            <Delta current={total} previous={previous} locale={locale} />
           </span>
         </div>
       </figcaption>
       <div className="relative">
-        <ChartContainer config={config} className="aspect-auto h-36 w-full" initialDimension={{ width: 560, height: 144 }}>
+        <ChartContainer config={chartConfig} className="aspect-auto h-36 w-full" initialDimension={{ width: 560, height: 144 }}>
           <BarChart data={points} margin={{ top: 4, right: 16, bottom: 0, left: 0 }} barCategoryGap={2} accessibilityLayer>
             <CartesianGrid vertical={false} strokeWidth={1} />
             <XAxis
               dataKey="day"
               ticks={ticks}
-              tickFormatter={shortDay}
+              tickFormatter={(day: string) => shortDay(day, locale)}
               tickLine={false}
               axisLine={false}
               tickMargin={8}
@@ -107,7 +108,7 @@ function SeriesChart({
                   indicator="line"
                   labelFormatter={(_, payload) => {
                     const day = payload?.[0]?.payload?.day as string | undefined
-                    return day ? longDay(day) : ""
+                    return day ? longDay(day, locale) : ""
                   }}
                 />
               }
@@ -117,7 +118,7 @@ function SeriesChart({
         </ChartContainer>
         {total === 0 && (
           <div className="pointer-events-none absolute inset-x-0 top-1/3 text-center text-xs text-muted-foreground">
-            Nothing in the last 30 days
+            {locale === "it" ? "Nessun dato negli ultimi 30 giorni" : "Nothing in the last 30 days"}
           </div>
         )}
       </div>
@@ -135,69 +136,71 @@ export function GrowthChart({
   totals: { signups: number; workspaces: number }
   previous: { signups: number; workspaces: number }
 }) {
+  const { locale } = useI18n()
   const [view, setView] = useState<"chart" | "table">("chart")
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-[13px] text-muted-foreground">Daily, last 30 days</p>
+        <p className="text-[13px] text-muted-foreground">{locale === "it" ? "Giornaliero, ultimi 30 giorni" : "Daily, last 30 days"}</p>
         <ToggleGroup
           type="single"
           size="sm"
           variant="outline"
           value={view}
           onValueChange={(v) => v && setView(v as "chart" | "table")}
-          aria-label="Growth view"
+          aria-label={locale === "it" ? "Visualizzazione crescita" : "Growth view"}
         >
           <ToggleGroupItem value="chart" className="px-2.5 text-xs">
-            Chart
+            {locale === "it" ? "Grafico" : "Chart"}
           </ToggleGroupItem>
           <ToggleGroupItem value="table" className="px-2.5 text-xs">
-            Table
+            {locale === "it" ? "Tabella" : "Table"}
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
 
       {view === "chart" ? (
         <div className="grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-1 lg:gap-6">
-          <SeriesChart dataKey="signups" title="New users" total={totals.signups} previous={previous.signups} points={points} />
+          <SeriesChart dataKey="signups" title={locale === "it" ? "Nuovi utenti" : "New users"} total={totals.signups} previous={previous.signups} points={points} locale={locale} />
           <SeriesChart
             dataKey="workspaces"
-            title="New workspaces"
+            title={locale === "it" ? "Nuovi workspace" : "New workspaces"}
             total={totals.workspaces}
             previous={previous.workspaces}
             points={points}
+            locale={locale}
           />
         </div>
       ) : (
         <div className="scrollbar-thin max-h-64 overflow-y-auto rounded-md border border-border">
           <table className="w-full text-sm">
-            <caption className="sr-only">New users and workspaces per day, last 30 days</caption>
+            <caption className="sr-only">{locale === "it" ? "Nuovi utenti e workspace al giorno, ultimi 30 giorni" : "New users and workspaces per day, last 30 days"}</caption>
             <thead className="sticky top-0 bg-surface">
               <tr>
                 <th
                   scope="col"
                   className="px-3 py-2 text-left font-mono text-[10.5px] font-normal uppercase tracking-wider text-muted-foreground"
                 >
-                  Day
+                  {locale === "it" ? "Giorno" : "Day"}
                 </th>
                 <th
                   scope="col"
                   className="px-3 py-2 text-right font-mono text-[10.5px] font-normal uppercase tracking-wider text-muted-foreground"
                 >
-                  New users
+                  {locale === "it" ? "Nuovi utenti" : "New users"}
                 </th>
                 <th
                   scope="col"
                   className="px-3 py-2 text-right font-mono text-[10.5px] font-normal uppercase tracking-wider text-muted-foreground"
                 >
-                  New workspaces
+                  {locale === "it" ? "Nuovi workspace" : "New workspaces"}
                 </th>
               </tr>
             </thead>
             <tbody>
               {[...points].reverse().map((p) => (
                 <tr key={p.day} className="border-t border-border">
-                  <td className="px-3 py-1.5 text-[13px]">{longDay(p.day)}</td>
+                  <td className="px-3 py-1.5 text-[13px]">{longDay(p.day, locale)}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{p.signups}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums">{p.workspaces}</td>
                 </tr>

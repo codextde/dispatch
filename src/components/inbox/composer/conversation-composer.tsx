@@ -18,6 +18,7 @@ import { firstName } from "@/lib/inbox/format"
 import { replyDefaults } from "@/lib/inbox/reply"
 import type { ComposingKind, ConversationThread, DraftInfo, DraftMode, SendResult } from "@/lib/inbox/types"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n"
 import { useInbox } from "../inbox-provider"
 import { useShortcutHint } from "../shortcut-hint"
 import { CommentBox } from "./comment-box"
@@ -25,10 +26,10 @@ import { EmailComposer } from "./email-composer"
 import { draftFromInfo, type EmailDraftState } from "./use-email-draft"
 
 type ReplyMode = Exclude<DraftMode, "new">
-const MODE_META: Record<ReplyMode, { label: string; icon: typeof Reply }> = {
-  reply: { label: "Reply", icon: Reply },
-  reply_all: { label: "Reply all", icon: ReplyAll },
-  forward: { label: "Forward", icon: Forward },
+const MODE_META: Record<ReplyMode, { key: "reply" | "replyAll" | "forward"; icon: typeof Reply }> = {
+  reply: { key: "reply", icon: Reply },
+  reply_all: { key: "replyAll", icon: ReplyAll },
+  forward: { key: "forward", icon: Forward },
 }
 
 /**
@@ -49,6 +50,7 @@ export function ConversationComposer({
 }) {
   const conv = thread.conversation
   const { bootstrap, meId, ownAddresses, member } = useInbox()
+  const { t, locale } = useI18n()
   const hint = useShortcutHint()
   const isMobile = useIsMobile()
   const [email, setEmail] = useState<{ mode: ReplyMode; key: number; draft?: DraftInfo; messageId?: string; carry?: EmailDraftState } | null>(null)
@@ -169,7 +171,7 @@ export function ConversationComposer({
   if (conv.kind === "chat") {
     return (
       <div className="shrink-0 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6" data-comment-box>
-        <CommentBox conversationId={conv.id} variant="chat" placeholder="Message…" onActivity={() => activity("comment")} autoFocus={!isMobile} />
+        <CommentBox conversationId={conv.id} variant="chat" placeholder={`${t("message")}…`} onActivity={() => activity("comment")} autoFocus={!isMobile} />
       </div>
     )
   }
@@ -182,7 +184,7 @@ export function ConversationComposer({
             const Icon = MODE_META[email.mode].icon
             return <Icon className="size-3.5" />
           })()}
-          {MODE_META[email.mode].label}
+          {t(MODE_META[email.mode].key)}
           <ChevronDown className="size-3 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
@@ -191,7 +193,7 @@ export function ConversationComposer({
           const Icon = MODE_META[m].icon
           return (
             <DropdownMenuItem key={m} onSelect={() => switchMode(m)}>
-              <Icon /> {MODE_META[m].label}
+              <Icon /> {t(MODE_META[m].key)}
             </DropdownMenuItem>
           )
         })}
@@ -232,26 +234,26 @@ export function ConversationComposer({
           {canReply && (
             <Button variant="ghost" className="h-11 flex-1 flex-col gap-0.5 px-1 text-[11px]" onClick={() => openEmail("reply")}>
               {myDraft ? <FilePen className="size-5 text-red-500" /> : <Reply className="size-5" />}
-              {myDraft ? "Draft" : "Reply"}
+              {myDraft ? t("draft") : t("reply")}
             </Button>
           )}
           <Button variant="ghost" className="h-11 flex-1 flex-col gap-0.5 px-1 text-[11px]" onClick={() => setCommentOpen(true)}>
             <MessageSquare className="size-5" />
-            Comment
+            {t("comment")}
           </Button>
           {mobileActions}
         </div>
         <Drawer open={!!email} onOpenChange={(o) => !o && setEmail(null)} repositionInputs={false}>
           <DrawerContent className="h-[94dvh] max-h-[94dvh] p-0 data-[vaul-drawer-direction=bottom]:max-h-[94dvh]">
-            <DrawerTitle className="sr-only">{email ? MODE_META[email.mode].label : "Reply"}</DrawerTitle>
-            <DrawerDescription className="sr-only">Write an email reply</DrawerDescription>
+            <DrawerTitle className="sr-only">{email ? t(MODE_META[email.mode].key) : t("reply")}</DrawerTitle>
+            <DrawerDescription className="sr-only">{t("writeReply")}</DrawerDescription>
             <div className="min-h-0 flex-1">{emailComposer}</div>
           </DrawerContent>
         </Drawer>
         <Drawer open={commentOpen} onOpenChange={setCommentOpen} repositionInputs={false}>
           <DrawerContent className="p-0">
-            <DrawerTitle className="px-4 pt-2 text-sm">Internal comment</DrawerTitle>
-            <DrawerDescription className="px-4 text-xs">Only teammates can see comments. @mention to notify.</DrawerDescription>
+            <DrawerTitle className="px-4 pt-2 text-sm">{t("internalComment")}</DrawerTitle>
+            <DrawerDescription className="px-4 text-xs">{t("inboxUiOnlyTeammates")}</DrawerDescription>
             <div className="p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]" data-comment-box>
               <CommentBox conversationId={conv.id} variant="sheet" autoFocus onActivity={() => activity("comment")} onSent={() => setCommentOpen(false)} />
             </div>
@@ -275,25 +277,25 @@ export function ConversationComposer({
           <div className="flex shrink-0 items-center gap-1 pb-1">
             {myDraft ? (
               <Button variant="outline" size="sm" onClick={() => openEmail("reply")} className="border-red-500/30 text-red-600 hover:text-red-600 dark:text-red-400">
-                <FilePen /> {myDraft.authorId === meId ? "Draft" : `${firstName(member(myDraft.authorId))}'s draft`}
+                <FilePen /> {myDraft.authorId === meId ? t("draft") : `${locale === "it" ? "Bozza di" : `${firstName(member(myDraft.authorId))}'s`} ${t("draft").toLowerCase()}`}
               </Button>
             ) : (
               <Button variant="outline" size="sm" onClick={() => openEmail("reply")}>
-                <Reply /> Reply {hint("reply") && <Kbd className="ml-0.5 max-lg:hidden">{hint("reply")}</Kbd>}
+                <Reply /> {t("reply")} {hint("reply") && <Kbd className="ml-0.5 max-lg:hidden">{hint("reply")}</Kbd>}
               </Button>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon-sm" aria-label="More reply options">
+                <Button variant="outline" size="icon-sm" aria-label={locale === "it" ? "Altre opzioni di risposta" : "More reply options"}>
                   <ChevronDown />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top">
                 <DropdownMenuItem onSelect={() => openEmail("reply_all")}>
-                  <ReplyAll /> Reply all <span className="ml-auto text-xs text-muted-foreground">{hint("replyAll")}</span>
+                  <ReplyAll /> {t("replyAll")} <span className="ml-auto text-xs text-muted-foreground">{hint("replyAll")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => openEmail("forward")}>
-                  <Forward /> Forward <span className="ml-auto text-xs text-muted-foreground">{hint("forward")}</span>
+                  <Forward /> {t("forward")} <span className="ml-auto text-xs text-muted-foreground">{hint("forward")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

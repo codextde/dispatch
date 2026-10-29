@@ -14,6 +14,7 @@ import {
   setSuperAdminAction,
   setUserStatusAction,
 } from "@/app/admin/users/actions"
+import { useI18n } from "@/lib/i18n"
 
 function Blocked({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground">{children}</p>
@@ -30,20 +31,21 @@ export function SuperAdminControl({
   isSuperAdmin: boolean
   blockedReason: string | null
 }) {
+  const { t } = useI18n()
   if (isSuperAdmin) {
     return (
       <div className="grid gap-1.5">
         <ConfirmButton
           disabled={Boolean(blockedReason)}
-          title="Revoke super admin access?"
-          description={`${email} will lose access to the instance admin panel. Their workspace memberships are not affected.`}
-          confirmLabel="Revoke access"
+          title={t("usrRevokeSuperTitle")}
+          description={t("usrRevokeSuperDesc").replace("{email}", email)}
+          confirmLabel={t("usrRevokeAccess")}
           destructive
           action={() => setSuperAdminAction({ id, value: false })}
-          success="Super admin access revoked"
+          success={t("usrSuperRevoked")}
           className="w-full justify-start"
         >
-          <ShieldOff /> Revoke super admin
+          <ShieldOff /> {t("usrRevokeSuper")}
         </ConfirmButton>
         {blockedReason && <Blocked>{blockedReason}</Blocked>}
       </div>
@@ -53,19 +55,18 @@ export function SuperAdminControl({
     <div className="grid gap-1.5">
       <ConfirmButton
         disabled={Boolean(blockedReason)}
-        title="Grant super admin access?"
+        title={t("usrGrantSuperTitle")}
         description={
           <>
-            <strong className="text-foreground">{email}</strong> will be able to see every workspace and user, change instance settings, and
-            impersonate other people. Only grant this to people who operate the instance.
+            <strong className="text-foreground">{email}</strong> {t("usrGrantSuperDesc")}
           </>
         }
-        confirmLabel="Grant access"
+        confirmLabel={t("usrGrantAccess")}
         action={() => setSuperAdminAction({ id, value: true })}
-        success="Super admin access granted"
+        success={t("usrSuperGranted")}
         className="w-full justify-start"
       >
-        <ShieldCheck /> Make super admin
+        <ShieldCheck /> {t("usrMakeSuper")}
       </ConfirmButton>
       {blockedReason && <Blocked>{blockedReason}</Blocked>}
     </div>
@@ -83,17 +84,18 @@ export function AccountStatusControl({
   status: "active" | "disabled"
   blockedReason: string | null
 }) {
+  const { t } = useI18n()
   if (status === "disabled") {
     return (
       <ConfirmButton
-        title="Enable this account?"
-        description={`${email} will be able to sign in again.`}
-        confirmLabel="Enable account"
+        title={t("usrEnableTitle")}
+        description={`${email} ${t("usrCanSignIn")}`}
+        confirmLabel={t("usrEnableAccount")}
         action={() => setUserStatusAction({ id, status: "active" })}
-        success="Account enabled"
+        success={t("usrEnabled")}
         className="w-full justify-start"
       >
-        <CircleCheck /> Enable account
+        <CircleCheck /> {t("usrEnableAccount")}
       </ConfirmButton>
     )
   }
@@ -102,14 +104,14 @@ export function AccountStatusControl({
       <ConfirmButton
         disabled={Boolean(blockedReason)}
         destructive
-        title="Disable this account?"
-        description={`${email} is signed out on every device immediately and can't sign in until you enable the account again. Their data stays intact.`}
-        confirmLabel="Disable account"
+        title={t("usrDisableTitle")}
+        description={`${email} ${t("usrDisableDesc")}`}
+        confirmLabel={t("usrDisableAccount")}
         action={() => setUserStatusAction({ id, status: "disabled" })}
-        success="Account disabled"
+        success={t("usrDisabled")}
         className="w-full justify-start"
       >
-        <Ban /> Disable account
+        <Ban /> {t("usrDisableAccount")}
       </ConfirmButton>
       {blockedReason && <Blocked>{blockedReason}</Blocked>}
     </div>
@@ -129,6 +131,7 @@ export type SessionItem = {
 
 export function SessionsList({ userId, sessions, isSelf }: { userId: string; sessions: SessionItem[]; isSelf: boolean }) {
   const revoke = useAdminAction()
+  const { t } = useI18n()
   const revocable = sessions.filter((s) => !s.current)
   return (
     <div>
@@ -145,17 +148,17 @@ export function SessionsList({ userId, sessions, isSelf }: { userId: string; ses
                   <span className="truncate text-sm font-medium">{s.deviceLabel}</span>
                   {s.current && (
                     <StatusBadge tone="ok" dot={false} className="h-4 px-1.5 text-[10px]">
-                      This device
+                      {t("usrThisDevice")}
                     </StatusBadge>
                   )}
                   {s.impersonation && (
                     <StatusBadge tone="warn" dot={false} className="h-4 px-1.5 text-[10px]">
-                      Impersonation
+                      {t("usrImpersonation")}
                     </StatusBadge>
                   )}
                 </div>
                 <div className="truncate text-[12px] text-muted-foreground">
-                  {s.ip ?? "Unknown IP"} · active <LocalTime date={s.lastUsedAt} format="relative" titleFormat="datetime" /> · signed in{" "}
+                  {s.ip ?? t("usrUnknownIp")} · {t("usrActive")} <LocalTime date={s.lastUsedAt} format="relative" titleFormat="datetime" /> · {t("usrSignedIn")} {" "}
                   <LocalTime date={s.createdAt} format="relative" titleFormat="datetime" />
                 </div>
               </div>
@@ -164,10 +167,10 @@ export function SessionsList({ userId, sessions, isSelf }: { userId: string; ses
                   variant="ghost"
                   size="sm"
                   disabled={revoke.pending}
-                  aria-label={`Revoke session on ${s.deviceLabel}`}
-                  onClick={() => revoke.run(() => revokeUserSessionAction({ userId, sessionId: s.id }), { success: "Session revoked" })}
+                  aria-label={`${t("usrRevokeSession")} ${s.deviceLabel}`}
+                  onClick={() => revoke.run(() => revokeUserSessionAction({ userId, sessionId: s.id }), { success: t("usrSessionRevoked") })}
                 >
-                  <LogOut /> <span className="hidden sm:inline">Revoke</span>
+                  <LogOut /> <span className="hidden sm:inline">{t("usrRevokeSession")}</span>
                 </Button>
               )}
             </li>
@@ -178,17 +181,17 @@ export function SessionsList({ userId, sessions, isSelf }: { userId: string; ses
         <div className="flex justify-end border-t border-border px-4 py-3 md:px-5">
           <ConfirmButton
             destructive
-            title={isSelf ? "Sign out your other devices?" : "Revoke all sessions?"}
+            title={isSelf ? t("usrOtherDevicesTitle") : t("usrRevokeAllTitle")}
             description={
               isSelf
-                ? "Every other device is signed out. This device stays signed in."
-                : "The user is signed out everywhere and has to sign in again with a new link or code."
+                ? t("usrOtherDevicesDesc")
+                : t("usrRevokeAllDesc")
             }
-            confirmLabel="Revoke sessions"
+            confirmLabel={t("usrRevokeSessions")}
             action={() => revokeAllUserSessionsAction({ userId })}
-            success="Sessions revoked"
+            success={t("usrSessionRevoked")}
           >
-            <LogOut /> {isSelf ? "Sign out other devices" : "Revoke all"}
+            <LogOut /> {isSelf ? t("usrSignOutOther") : t("usrRevokeAll")}
           </ConfirmButton>
         </div>
       )}
@@ -208,21 +211,22 @@ export function DeleteUserControl({
   soleOwned: { id: string; name: string }[]
 }) {
   const router = useRouter()
+  const { t } = useI18n()
   return (
     <div className="grid gap-2">
       <ConfirmButton
         destructive
         disabled={Boolean(blockedReason)}
-        title={`Delete ${email}?`}
-        description="The account, its sessions, memberships, personal inboxes, private labels and personal contacts are deleted permanently. Messages and comments they wrote stay in their workspaces."
+        title={t("usrDeleteTitle").replace("{email}", email)}
+        description={t("usrDeleteDesc")}
         confirmText={email}
-        confirmLabel="Delete user"
+        confirmLabel={t("usrDeleteUser")}
         action={() => deleteUserAction({ id, confirm: email })}
-        success="User deleted"
+        success={t("usrDeleted")}
         onSuccess={() => router.push("/admin/users")}
         className="w-full justify-start sm:w-auto"
       >
-        <Trash2 /> Delete user
+        <Trash2 /> {t("usrDeleteUser")}
       </ConfirmButton>
       {blockedReason && (
         <div className="text-xs text-muted-foreground">
