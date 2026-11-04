@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { ArrowDownUp, Check, ListFilter, Plus, RefreshCw, Search, SearchX, SquarePen } from "lucide-react"
@@ -35,6 +35,7 @@ import { MobileNavButton } from "../mail-shell"
 import { BulkBar } from "./bulk-bar"
 import { ConversationRow } from "./conversation-row"
 import { useI18n } from "@/lib/i18n"
+import { parseSearch } from "@/lib/inbox/search-query"
 
 const EMPTY_FILTERS: ListFilters = {}
 
@@ -68,11 +69,54 @@ export function ConversationList({ box }: { box: string }) {
   const isSearch = box === "search"
   const isChats = box === "chats"
   const q = isSearch ? (searchParams.get("q") ?? "") : ""
-  const [searchInput, setSearchInput] = useState(q)
-  useEffect(() => setSearchInput(q), [q])
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const next = searchInput.trim()
+  const parsedSearch = useMemo(() => parseSearch(q), [q])
+  const [searchInput, setSearchInput] = useState(parsedSearch.text)
+  const [sender, setSender] = useState("")
+  const [recipient, setRecipient] = useState("")
+  const [dateAfter, setDateAfter] = useState("")
+  const [dateBefore, setDateBefore] = useState("")
+  const [searchState, setSearchState] = useState("")
+  const [attachmentMode, setAttachmentMode] = useState<"any" | "with" | "without">("any")
+  const [searchIn, setSearchIn] = useState<Set<"subject" | "body" | "people" | "attachments">>(new Set(["subject", "body", "people"]))
+  const [closedAfter, setClosedAfter] = useState("")
+  const [closedBefore, setClosedBefore] = useState("")
+  const [largerKb, setLargerKb] = useState("")
+  const [smallerKb, setSmallerKb] = useState("")
+  const [priorityOnly, setPriorityOnly] = useState(false)
+  useEffect(() => {
+    setSearchInput(parsedSearch.text)
+    setSender(parsedSearch.from[0] ?? "")
+    setRecipient(parsedSearch.to[0] ?? "")
+    setDateAfter(parsedSearch.after?.toISOString().slice(0, 10) ?? "")
+    const before = parsedSearch.before ? new Date(parsedSearch.before.getTime() - 86400000) : undefined
+    setDateBefore(before?.toISOString().slice(0, 10) ?? "")
+    setSearchState(["unread", "read", "open", "closed", "starred", "assigned", "unassigned", "priority"].find((s) => parsedSearch.is.has(s)) ?? "")
+    setAttachmentMode(parsedSearch.hasAttachment === true ? "with" : parsedSearch.hasAttachment === false ? "without" : "any")
+    setSearchIn(parsedSearch.searchIn.size ? new Set(parsedSearch.searchIn) : new Set(["subject", "body", "people"]))
+    setClosedAfter(parsedSearch.closedAfter?.toISOString().slice(0, 10) ?? "")
+    setClosedBefore(parsedSearch.closedBefore ? new Date(parsedSearch.closedBefore.getTime() - 86400000).toISOString().slice(0, 10) : "")
+    setLargerKb(parsedSearch.larger ? String(Math.floor(parsedSearch.larger / 1024)) : "")
+    setSmallerKb(parsedSearch.smaller ? String(Math.floor(parsedSearch.smaller / 1024)) : "")
+    setPriorityOnly(parsedSearch.is.has("priority"))
+  }, [parsedSearch])
+  const applySearchFilters = () => {
+    const searchText = parseSearch(searchInput).text
+    const tokens = [searchText]
+    if (sender.trim()) tokens.push(`from:"${sender.trim().replaceAll('"', "")}"`)
+    if (recipient.trim()) tokens.push(`to:"${recipient.trim().replaceAll('"', "")}"`)
+    if (dateAfter) tokens.push(`after:${dateAfter}`)
+    if (dateBefore) tokens.push(`before:${dateBefore}`)
+    if (closedAfter) tokens.push(`closedafter:${closedAfter}`)
+    if (closedBefore) tokens.push(`closedbefore:${closedBefore}`)
+    if (largerKb) tokens.push(`larger:${largerKb}`)
+    if (smallerKb) tokens.push(`smaller:${smallerKb}`)
+    if (priorityOnly && searchState !== "priority") tokens.push("is:priority")
+    if (searchState) tokens.push(`is:${searchState}`)
+    if (attachmentMode === "with") tokens.push("has:attachment")
+    if (attachmentMode === "without") tokens.push("has:noattachment")
+    if (searchText) for (const field of searchIn) tokens.push(`scope:${field}`)
+    const next = tokens.filter(Boolean).join(" ")
+    setSearchInput(next)
     router.push(`/w/${slug}/search${next ? `?q=${encodeURIComponent(next)}` : ""}`)
   }
   const viewDescription = (() => {
@@ -259,18 +303,7 @@ export function ConversationList({ box }: { box: string }) {
               ))}
               <div className="min-w-0 flex-1">
                 {isSearch ? (
-                  <form onSubmit={submitSearch} role="search" className="flex min-w-0 items-center gap-2">
-                    <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                    <Input
-                      type="search"
-                      value={searchInput}
-                      onChange={(event) => setSearchInput(event.target.value)}
-                      placeholder={locale === "it" ? "Cerca mittente, oggetto o contenuto…" : "Search sender, subject, or message…"}
-                      aria-label={locale === "it" ? "Cerca tutte le email" : "Search all email"}
-                      className="h-9 border-0 bg-transparent px-1 text-base shadow-none focus-visible:ring-0 md:text-sm"
-                    />
-                    <Button type="submit" size="sm" className="shrink-0">{locale === "it" ? "Cerca" : "Search"}</Button>
-                  </form>
+                  <h1 className="truncate text-[15px] font-semibold tracking-tight">{locale === "it" ? "Ricerca" : "Search"}</h1>
                 ) : (
                   <div className="flex min-w-0 items-center gap-2">
                     <h1 className="truncate text-[15px] font-semibold tracking-tight">{info.title}</h1>
@@ -304,7 +337,7 @@ export function ConversationList({ box }: { box: string }) {
                 <Plus />
               </Button>
             )}
-            {!isChats && (
+            {!isSearch && !isChats && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon-sm" className={cn("relative max-md:size-10", filtered && "text-foreground")} aria-label={t("inboxUiFilterSort")}>
@@ -360,6 +393,53 @@ export function ConversationList({ box }: { box: string }) {
         )}
       </header>
 
+      {isSearch && (
+        <form onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container max-h-[min(48dvh,34rem)] shrink-0 overflow-y-auto border-b bg-surface/60 px-3 py-2 md:px-4">
+          <fieldset className="grid gap-2 border-b pb-2">
+            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Cerca" : "Search"}</legend>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Parole da cercare" : "Search terms"}<Input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={locale === "it" ? "Mittente, oggetto o contenuto…" : "Sender, subject, or message…"} aria-label={locale === "it" ? "Parole da cercare" : "Search terms"} className="h-9" /></label>
+            <div className="grid gap-1">
+              <span className="text-[11px] text-muted-foreground">{locale === "it" ? "Cerca in" : "Search in"}</span>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {([["subject", locale === "it" ? "Oggetto" : "Subject"], ["body", locale === "it" ? "Corpo del messaggio" : "Message body"], ["people", locale === "it" ? "Mittente/Destinatario" : "Sender/Recipient"], ["attachments", locale === "it" ? "Nomi file allegati" : "Attachment names"]] as const).map(([field, label]) => (
+                <label key={field} className="flex items-center gap-2 text-xs"><Checkbox checked={searchIn.has(field)} onCheckedChange={(checked) => setSearchIn((current) => { if (!checked && current.size <= 1) return current; const next = new Set(current); checked ? next.add(field) : next.delete(field); return next })} />{label}</label>
+              ))}
+            </div>
+            </div>
+          </fieldset>
+          <fieldset className="grid min-w-0 grid-cols-1 gap-2 border-b py-2 @min-[20rem]:grid-cols-2 @min-[34rem]:grid-cols-4">
+            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Generale" : "General"}</legend>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[34rem]:col-span-2">{locale === "it" ? "Da" : "From"}<Input value={sender} onChange={(e) => setSender(e.target.value)} placeholder="nome@email.com" className="h-8 min-w-0" /></label>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[34rem]:col-span-2">{locale === "it" ? "A/Cc/Ccn" : "To/Cc/Bcc"}<Input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="nome@email.com" className="h-8 min-w-0" /></label>
+            <label className="grid gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Ultima attività dal" : "Last activity after"}<Input type="date" value={dateAfter} onChange={(e) => setDateAfter(e.target.value)} className="h-8" /></label>
+            <label className="grid gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Ultima attività al" : "Last activity through"}<Input type="date" value={dateBefore} onChange={(e) => setDateBefore(e.target.value)} className="h-8" /></label>
+          </fieldset>
+          <fieldset className="grid min-w-0 grid-cols-1 gap-2 pt-2 @min-[20rem]:grid-cols-2 @min-[34rem]:grid-cols-4">
+            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Avanzato" : "Advanced"}</legend>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[20rem]:col-span-2">{locale === "it" ? "Stato" : "Status"}
+            <select className="h-8 rounded-md border bg-background px-2 text-sm text-foreground" value={searchState} onChange={(e) => setSearchState(e.target.value)}>
+              <option value="">{locale === "it" ? "Qualsiasi stato" : "Any status"}</option>
+              <option value="unread">{locale === "it" ? "Non lette" : "Unread"}</option><option value="read">{locale === "it" ? "Lette" : "Read"}</option>
+              <option value="open">{locale === "it" ? "Aperte" : "Open"}</option><option value="closed">{locale === "it" ? "Chiuse" : "Closed"}</option>
+              <option value="assigned">{locale === "it" ? "Assegnate" : "Assigned"}</option><option value="unassigned">{locale === "it" ? "Non assegnate" : "Unassigned"}</option>
+              <option value="starred">{locale === "it" ? "Preferite" : "Starred"}</option><option value="priority">{locale === "it" ? "Prioritarie" : "Priority"}</option>
+            </select>
+          </label>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[20rem]:col-span-2">{locale === "it" ? "Messaggi" : "Messages"}
+              <select className="h-8 rounded-md border bg-background px-2 text-sm text-foreground" value={attachmentMode} onChange={(e) => setAttachmentMode(e.target.value as typeof attachmentMode)}>
+                <option value="any">{locale === "it" ? "Con o senza allegati" : "With or without attachments"}</option><option value="with">{locale === "it" ? "Con allegati" : "With attachments"}</option><option value="without">{locale === "it" ? "Senza allegati" : "Without attachments"}</option>
+              </select>
+            </label>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Dimensione min. (KB)" : "Min size (KB)"}<Input type="number" min="0" value={largerKb} onChange={(e) => setLargerKb(e.target.value)} className="h-8 min-w-0" /></label>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Dimensione max. (KB)" : "Max size (KB)"}<Input type="number" min="0" value={smallerKb} onChange={(e) => setSmallerKb(e.target.value)} className="h-8 min-w-0" /></label>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Chiusura dal" : "Closed after"}<Input type="date" value={closedAfter} onChange={(e) => setClosedAfter(e.target.value)} className="h-8 min-w-0" /></label>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Chiusura al" : "Closed through"}<Input type="date" value={closedBefore} onChange={(e) => setClosedBefore(e.target.value)} className="h-8 min-w-0" /></label>
+            <label className="col-span-full flex h-8 items-center gap-2 text-xs @min-[34rem]:col-span-2"><Checkbox checked={priorityOnly} onCheckedChange={(v) => setPriorityOnly(v === true)} />{locale === "it" ? "Solo prioritarie" : "Priority only"}</label>
+          </fieldset>
+          <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setSearchInput(""); router.push(`/w/${slug}/search`) }}>{locale === "it" ? "Reimposta" : "Reset"}</Button><Button type="submit" size="sm" className="h-8">{locale === "it" ? "Cerca" : "Search"}</Button></div>
+        </form>
+      )}
+
       <div ref={scroller} role="listbox" aria-label={info.title} aria-multiselectable className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {list.isPending && list.fetchStatus !== "idle" && Array.from({ length: 8 }, (_, i) => <RowSkeleton key={i} />)}
 
@@ -374,7 +454,7 @@ export function ConversationList({ box }: { box: string }) {
 
         {isSearch && !q.trim() && (
           <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-            <p className="text-sm text-muted-foreground">{locale === "it" ? "Cerca per mittente, destinatario, oggetto o testo del messaggio. Puoi anche usare filtri come from: o has:attachment." : "Search by sender, recipient, subject, or message text. You can also use filters like from: or has:attachment."}</p>
+            <p className="text-sm text-muted-foreground">{locale === "it" ? "Inserisci le parole e scegli gli ambiti di ricerca qui sopra." : "Enter search terms and choose where to search above."}</p>
           </div>
         )}
 

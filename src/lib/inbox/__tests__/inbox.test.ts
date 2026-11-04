@@ -74,13 +74,25 @@ describe("search query parser", () => {
     expect([...q.is]).toEqual(["unread"])
     expect(q.label).toEqual(["Billing"])
     expect(q.assignee).toEqual(["me"])
-    expect(q.before?.toISOString().slice(0, 10)).toBe("2026-01-31")
+    // before: is inclusive for date-only values; SQL uses this as an exclusive next-day bound.
+    expect(q.before?.toISOString().slice(0, 10)).toBe("2026-02-01")
   })
 
   it("treats unknown operators as text", () => {
     const q = parseSearch("foo:bar baz")
     expect(q.text).toBe("foo:bar baz")
     expect(hasSearchCriteria(parseSearch("   "))).toBe(false)
+  })
+
+  it("parses advanced search scopes and message filters", () => {
+    const q = parseSearch("report scope:subject scope:attachments has:noattachment larger:128 smaller:2048 closedafter:2026-01-01 closedbefore:2026-01-31")
+    expect(q.text).toBe("report")
+    expect([...q.searchIn]).toEqual(["subject", "attachments"])
+    expect(q.hasAttachment).toBe(false)
+    expect(q.larger).toBe(128 * 1024)
+    expect(q.smaller).toBe(2048 * 1024)
+    expect(q.closedAfter?.toISOString().slice(0, 10)).toBe("2026-01-01")
+    expect(q.closedBefore?.toISOString().slice(0, 10)).toBe("2026-02-01")
   })
 })
 

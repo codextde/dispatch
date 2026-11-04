@@ -1,5 +1,5 @@
 import "server-only"
-import { and, eq, gte, lte, or, sql, type SQL } from "drizzle-orm"
+import { and, eq, gte, lt, or, sql, type SQL } from "drizzle-orm"
 import { db, schema } from "@/server/db"
 import type { ParsedSearch } from "@/lib/inbox/search-query"
 import { CONV_ID, activeSql, assignedToSql, snoozedSql, unassignedSql, unreadSql, userFlagSql } from "./boxes"
@@ -38,12 +38,32 @@ export async function searchSql(ctx: Ctx, q: ParsedSearch): Promise<SQL> {
   if (q.text) {
     const tsq = toPrefixTsQuery(q.text)
     if (tsq) {
+      const scopes = q.searchIn.size ? q.searchIn : new Set(["subject", "body", "people"] as const)
+      const textMatches: SQL[] = []
+      if (scopes.has("subject")) {
+        textMatches.push(
+          sql`to_tsvector('simple', coalesce(${c.subject}, '')) @@ to_tsquery('simple', ${tsq})`,
+          sql`${c.customSubject} ilike ${like(q.text)}`,
+          sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and m.subject ilike ${like(q.text)})`
+        )
+      }
+      if (scopes.has("body")) {
+        textMatches.push(
+          sql`to_tsvector('simple', coalesce(${c.snippet}, '')) @@ to_tsquery('simple', ${tsq})`,
+          sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and to_tsvector('simple', coalesce(m.text_body, '')) @@ to_tsquery('simple', ${tsq}))`
+        )
+        // Keep internal comments in the default broad search and body searches.
+        textMatches.push(sql`exists (select 1 from comments cm where cm.conversation_id = ${CONV_ID} and cm.deleted_at is null and cm.body ilike ${like(q.text)})`)
+      }
+      if (scopes.has("people")) {
+        textMatches.push(sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and concat_ws(' ', m.from_name, m.from_email, m.to::text, m.cc::text, m.bcc::text) ilike ${like(q.text)})`)
+      }
+      if (scopes.has("attachments")) {
+        textMatches.push(sql`exists (select 1 from attachments a join messages m on m.id = a.message_id where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and a.is_inline = false and a.filename ilike ${like(q.text)})`)
+      }
       parts.push(
         or(
-          sql`to_tsvector('simple', coalesce(${c.subject}, '') || ' ' || coalesce(${c.snippet}, '')) @@ to_tsquery('simple', ${tsq})`,
-          sql`${c.customSubject} ilike ${like(q.text)}`,
-          sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and (to_tsvector('simple', coalesce(m.subject, '') || ' ' || coalesce(m.text_body, '')) @@ to_tsquery('simple', ${tsq}) or concat_ws(' ', m.from_name, m.from_email, m.to::text, m.cc::text) ilike ${like(q.text)}))`,
-          sql`exists (select 1 from comments cm where cm.conversation_id = ${CONV_ID} and cm.deleted_at is null and cm.body ilike ${like(q.text)})`,
+          ...textMatches,
           sql`${c.number}::text = ${q.text.replace(/^#/, "")}`
         )!
       )
@@ -59,7 +79,7 @@ export async function searchSql(ctx: Ctx, q: ParsedSearch): Promise<SQL> {
   for (const to of q.to) {
     const v = like(to)
     parts.push(
-      sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and (m.to::text ilike ${v} or m.cc::text ilike ${v}))`
+      sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and (m.to::text ilike ${v} or m.cc::text ilike ${v} or m.bcc::text ilike ${v}))`
     )
   }
   for (const s of q.subject) {
@@ -72,7 +92,7 @@ export async function searchSql(ctx: Ctx, q: ParsedSearch): Promise<SQL> {
     )
   }
 
-  if (q.hasAttachment) parts.push(eq(c.hasAttachments, true))
+  if (q.hasAttachment !== undefined) parts.push(eq(c.hasAttachments, q.hasAttachment))
 
   for (const flag of q.is) {
     switch (flag) {
@@ -153,7 +173,11 @@ export async function searchSql(ctx: Ctx, q: ParsedSearch): Promise<SQL> {
   }
 
   if (q.after) parts.push(gte(c.lastActivityAt, q.after))
-  if (q.before) parts.push(lte(c.lastActivityAt, q.before))
+  if (q.before) parts.push(lt(c.lastActivityAt, q.before))
+  if (q.closedAfter) parts.push(gte(c.closedAt, q.closedAfter))
+  if (q.closedBefore) parts.push(lt(c.closedAt, q.closedBefore))
+  if (q.larger !== undefined) parts.push(sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and m.size >= ${q.larger})`)
+  if (q.smaller !== undefined) parts.push(sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.status <> 'draft' and m.size < ${q.smaller})`)
 
   return parts.length ? and(...parts)! : sql`true`
 }

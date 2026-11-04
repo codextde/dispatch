@@ -16,13 +16,18 @@ export type ParsedSearch = {
   label: string[]
   assignee: string[]
   hasAttachment?: boolean
+  searchIn: Set<"subject" | "body" | "people" | "attachments">
   is: Set<string>
   in: Set<string>
   before?: Date
   after?: Date
+  closedBefore?: Date
+  closedAfter?: Date
+  larger?: number
+  smaller?: number
 }
 
-const OPERATORS = new Set(["from", "to", "subject", "label", "assignee", "has", "is", "in", "before", "after"])
+const OPERATORS = new Set(["from", "to", "subject", "label", "assignee", "has", "is", "in", "before", "after", "scope", "closedbefore", "closedafter", "larger", "smaller"])
 
 function tokenize(input: string): string[] {
   const tokens: string[] = []
@@ -37,9 +42,13 @@ function tokenize(input: string): string[] {
   return tokens
 }
 
-function parseDate(value: string): Date | undefined {
+function parseDate(value: string, inclusiveDay = false): Date | undefined {
   const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? undefined : d
+  if (Number.isNaN(d.getTime())) return undefined
+  // Date picker values are calendar dates. Treat `before:YYYY-MM-DD` as
+  // inclusive by storing the start of the following day as an exclusive bound.
+  if (inclusiveDay && /^\d{4}-\d{2}-\d{2}$/.test(value)) d.setUTCDate(d.getUTCDate() + 1)
+  return d
 }
 
 export function parseSearch(input: string): ParsedSearch {
@@ -50,6 +59,7 @@ export function parseSearch(input: string): ParsedSearch {
     subject: [],
     label: [],
     assignee: [],
+    searchIn: new Set(),
     is: new Set(),
     in: new Set(),
   }
@@ -72,6 +82,10 @@ export function parseSearch(input: string): ParsedSearch {
         break
       case "has":
         if (/^attachments?$/i.test(value)) out.hasAttachment = true
+        else if (/^no-?attachments?$/i.test(value)) out.hasAttachment = false
+        break
+      case "scope":
+        if (["subject", "body", "people", "attachments"].includes(value.toLowerCase())) out.searchIn.add(value.toLowerCase() as "subject" | "body" | "people" | "attachments")
         break
       case "is":
         out.is.add(value.toLowerCase())
@@ -80,10 +94,22 @@ export function parseSearch(input: string): ParsedSearch {
         out.in.add(value.toLowerCase())
         break
       case "before":
-        out.before = parseDate(value)
+        out.before = parseDate(value, true)
         break
       case "after":
         out.after = parseDate(value)
+        break
+      case "closedbefore":
+        out.closedBefore = parseDate(value, true)
+        break
+      case "closedafter":
+        out.closedAfter = parseDate(value)
+        break
+      case "larger":
+        if (/^\d+$/.test(value)) out.larger = Math.min(Number(value), 2_000_000) * 1024
+        break
+      case "smaller":
+        if (/^\d+$/.test(value)) out.smaller = Math.min(Number(value), 2_000_000) * 1024
         break
     }
   }
@@ -99,11 +125,15 @@ export function hasSearchCriteria(p: ParsedSearch) {
       p.subject.length ||
       p.label.length ||
       p.assignee.length ||
-      p.hasAttachment ||
+      p.hasAttachment !== undefined ||
       p.is.size ||
       p.in.size ||
       p.before ||
-      p.after
+      p.after ||
+      p.closedBefore ||
+      p.closedAfter ||
+      p.larger !== undefined ||
+      p.smaller !== undefined
   )
 }
 
