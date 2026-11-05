@@ -417,7 +417,7 @@ export function ConversationList({ box }: { box: string }) {
           <fieldset className="grid min-w-0 grid-cols-1 gap-2 pt-2 @min-[20rem]:grid-cols-2 @min-[34rem]:grid-cols-4">
             <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Avanzato" : "Advanced"}</legend>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[20rem]:col-span-2">{locale === "it" ? "Stato" : "Status"}
-            <select className="h-8 rounded-md border bg-background px-2 text-sm text-foreground" value={searchState} onChange={(e) => setSearchState(e.target.value)}>
+            <select className="h-8 rounded-md border bg-background px-2 text-base text-foreground md:text-sm" value={searchState} onChange={(e) => setSearchState(e.target.value)}>
               <option value="">{locale === "it" ? "Qualsiasi stato" : "Any status"}</option>
               <option value="unread">{locale === "it" ? "Non lette" : "Unread"}</option><option value="read">{locale === "it" ? "Lette" : "Read"}</option>
               <option value="open">{locale === "it" ? "Aperte" : "Open"}</option><option value="closed">{locale === "it" ? "Chiuse" : "Closed"}</option>
@@ -426,7 +426,7 @@ export function ConversationList({ box }: { box: string }) {
             </select>
           </label>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[20rem]:col-span-2">{locale === "it" ? "Messaggi" : "Messages"}
-              <select className="h-8 rounded-md border bg-background px-2 text-sm text-foreground" value={attachmentMode} onChange={(e) => setAttachmentMode(e.target.value as typeof attachmentMode)}>
+              <select className="h-8 rounded-md border bg-background px-2 text-base text-foreground md:text-sm" value={attachmentMode} onChange={(e) => setAttachmentMode(e.target.value as typeof attachmentMode)}>
                 <option value="any">{locale === "it" ? "Con o senza allegati" : "With or without attachments"}</option><option value="with">{locale === "it" ? "Con allegati" : "With attachments"}</option><option value="without">{locale === "it" ? "Senza allegati" : "Without attachments"}</option>
               </select>
             </label>

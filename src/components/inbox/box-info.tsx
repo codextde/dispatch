@@ -78,10 +78,10 @@ export function useBoxInfo(box: string): BoxInfo {
       const name = t?.name ?? "Team"
       return {
         title: name,
-        description: translate("boxTeamOpenDescription"),
+        description: localize("Open conversations routed to this team"),
         icon: Users,
         color: t?.color,
-        empty: { title: translate("boxNothingOpenFor").replace("{name}", name), description: translate("boxNewTeamConversations") },
+        empty: localizeEmpty({ title: `Nothing open for ${name}`, description: "New conversations for this team will show up here." }),
       }
     }
     case "account": {
@@ -92,7 +92,7 @@ export function useBoxInfo(box: string): BoxInfo {
         description: a?.email ?? "",
         icon: Mail,
         color: a?.color,
-        empty: { title: translate("boxAccountClear").replace("{name}", name), description: translate("boxNoOpenInbox") },
+        empty: localizeEmpty({ title: `${name} is clear`, description: "There are no open conversations in this inbox." }),
       }
     }
     case "label": {
@@ -100,10 +100,10 @@ export function useBoxInfo(box: string): BoxInfo {
       const name = l?.name ?? "Label"
       return {
         title: name,
-        description: translate("boxLabelDescription"),
+        description: localize("Conversations with this label"),
         icon: Tag,
         color: l?.color,
-        empty: { title: translate("boxNothingLabeled").replace("{name}", name), description: translate("boxAddLabelsHint") },
+        empty: localizeEmpty({ title: `Nothing labeled ${name}`, description: "Add labels with L to organize conversations." }),
       }
     }
   }
