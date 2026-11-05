@@ -43,6 +43,15 @@ const boxTitles: Record<string, string> = {
   trash: "inboxTrash",
 }
 
+/** Title the browser tab should show; kept so Next.js metadata updates cannot overwrite it. */
+let desiredTitle: string | null = null
+
+/** Set the browser tab title and keep it, even when Next.js re-applies the page metadata. */
+export function setDocumentTitle(title: string) {
+  desiredTitle = title
+  document.title = title
+}
+
 /** Keep the browser tab title in the selected UI language during client navigation. */
 export function DocumentTitle() {
   const pathname = usePathname()
@@ -62,6 +71,7 @@ export function DocumentTitle() {
       } else if (area === "analytics" || area === "contacts" || area === "tasks") key = workspaceTitles[area]
       else if (segments[3]) return // Conversation subject is set by the conversation view.
       else if (area === "chats") key = locale === "it" ? "Chat" : "Chats"
+      else if (area === "search") key = locale === "it" ? "Ricerca avanzata" : "Advanced search"
       else key = boxTitles[area] ?? "inbox"
     } else if (pathname === "/login") key = "signIn"
     else if (pathname === "/auth/verify") key = locale === "it" ? "Conferma accesso" : "Confirm sign-in"
@@ -91,10 +101,23 @@ export function DocumentTitle() {
       key = adminTitles[page]
     }
 
-    if (!key) return
+    if (!key) {
+      desiredTitle = null
+      return
+    }
     const title = t(key as never)
-    document.title = `${title} · Dispatch`
+    setDocumentTitle(`${title} · Dispatch`)
   }, [pathname, locale, t])
+
+  // Next.js writes the server-rendered <title> again after hydration and on navigation, which
+  // silently replaces the localized title above. Re-apply the wanted title whenever that happens.
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      if (desiredTitle !== null && document.title !== desiredTitle) document.title = desiredTitle
+    })
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true })
+    return () => observer.disconnect()
+  }, [])
 
   return null
 }

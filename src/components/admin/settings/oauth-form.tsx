@@ -92,7 +92,7 @@ export function OAuthSettingsForm({
               checked={g.enabled}
               onCheckedChange={(enabled) => form.setIn("google.enabled", enabled)}
             />
-            <SettingField label="ID client" htmlFor="google-client-id" error={form.error("google.clientId")}>
+            <SettingField label={it ? "ID client" : "Client ID"} htmlFor="google-client-id" error={form.error("google.clientId")}>
               <Input
                 id="google-client-id"
                 value={g.clientId}

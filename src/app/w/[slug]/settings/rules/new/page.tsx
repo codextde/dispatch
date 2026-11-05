@@ -1,3 +1,5 @@
+import type { Metadata } from "next"
+import { pageTitle } from "@/server/locale"
 import { notFound } from "next/navigation"
 import { requireOrgPage } from "@/server/authz"
 import { loadRuleOptions } from "@/server/workspace/queries/rules"
@@ -5,7 +7,9 @@ import { canUseScope } from "@/server/workspace/services/rules"
 import { RuleBuilder } from "@/components/settings/rules/rule-builder"
 import type { RuleScope } from "@/components/settings/rules/definitions"
 
-export const metadata = { title: "New rule" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("New rule", "Nuova regola") }
+}
 
 export default async function NewRulePage({ params, searchParams }: PageProps<"/w/[slug]/settings/rules/new">) {
   const { slug } = await params

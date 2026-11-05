@@ -1,10 +1,13 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { requireOrgPage } from "@/server/authz"
 import { getSettings } from "@/server/settings"
 import { SettingsPage } from "@/components/settings/settings-ui"
 import { PreferencesForm } from "@/components/settings/personal/preferences-form"
 
-export const metadata: Metadata = { title: "Preferences" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Preferences", "Preferenze") }
+}
 
 export default async function PreferencesPage({ params }: PageProps<"/w/[slug]/settings/preferences">) {
   const { slug } = await params

@@ -136,7 +136,7 @@ export function useEventText() {
       case "chat_created":
         return { icon: Hash, actor, text: t("eventStartedChat") }
       case "chat_renamed":
-        return { icon: Pencil, actor, text: <>{t("eventRenamedChatTo")} “{String(d.name ?? "")}"</> }
+        return { icon: Pencil, actor, text: <>{t("eventRenamedChatTo")} “{String(d.name ?? "")}”</> }
       case "chat_members_added":
         return { icon: UserPlus, actor, text: <>{t("eventAddedMembers")} {names(userIds)}</> }
       case "chat_members_removed":

@@ -18,7 +18,6 @@ import {
 } from "@/components/settings/settings-ui"
 import { ConfirmDialog } from "@/components/settings/confirm-dialog"
 import { Combobox } from "@/components/settings/combobox"
-import { pluralize } from "@/components/settings/format"
 import { LocalTime } from "@/components/app/local-time"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"

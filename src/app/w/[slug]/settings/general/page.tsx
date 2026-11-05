@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { isOwner, requirePagePermission, requireOrgPage } from "@/server/authz"
 import { getSettings, readSecret } from "@/server/settings"
@@ -17,7 +18,9 @@ import { AccessSection } from "@/components/settings/general/access-section"
 import { AiSection, type AiMode } from "@/components/settings/general/ai-section"
 import { DangerZone, DemoDataSection } from "@/components/settings/general/danger-zone"
 
-export const metadata: Metadata = { title: "General" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("General", "Generale") }
+}
 
 export default async function GeneralSettingsPage({ params }: PageProps<"/w/[slug]/settings/general">) {
   const { slug } = await params

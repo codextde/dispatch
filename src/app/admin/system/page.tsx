@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import Link from "next/link"
 import type { Metadata } from "next"
 import { CheckCircle2, CircleCheck, Cpu, Inbox, ListChecks, XCircle } from "lucide-react"
@@ -27,7 +28,9 @@ import { LocalTime } from "@/components/app/local-time"
 import { FailedJobsList, RecheckButton, RetryAllButton, type FailedJobView } from "@/components/admin/system/system-client"
 import { cn } from "@/lib/utils"
 
-export const metadata: Metadata = { title: "System" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("System", "Sistema") }
+}
 
 function formatDuration(totalSeconds: number) {
   const s = Math.max(0, Math.floor(totalSeconds))

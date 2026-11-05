@@ -1,9 +1,12 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { can, requireOrgPage } from "@/server/authz"
 import { loadSignaturesPage } from "@/server/workspace/queries/signatures"
 import { SignaturesSettings } from "@/components/settings/signatures/signatures-settings"
 
-export const metadata: Metadata = { title: "Signatures" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Signatures", "Firme") }
+}
 
 export default async function SignaturesPage({ params }: PageProps<"/w/[slug]/settings/signatures">) {
   const { slug } = await params

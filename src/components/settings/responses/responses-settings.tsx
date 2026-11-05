@@ -37,7 +37,7 @@ export type ResponseItem = {
 
 type Filter = "all" | ResponseScope
 
-function ScopeBadge({ item, teams, t }: { item: ResponseItem; teams: Map<string, TeamOption>; t: (key: any) => string }) {
+function ScopeBadge({ item, teams, t }: { item: ResponseItem; teams: Map<string, TeamOption>; t: ReturnType<typeof useI18n>["t"] }) {
   if (item.scope === "personal") {
     return (
       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

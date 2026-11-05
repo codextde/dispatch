@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ChevronRight, Users } from "lucide-react"
@@ -8,7 +9,9 @@ import { AdminPageHeader, DataTable, EmptyState, StatusBadge, Td, Th, formatNumb
 import { FilterSelect, Pager, SearchParamInput } from "@/components/admin/client"
 import { LocalTime } from "@/components/app/local-time"
 
-export const metadata: Metadata = { title: "Users" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Users", "Utenti") }
+}
 
 function first(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v

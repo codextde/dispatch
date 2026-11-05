@@ -1,14 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  const [italian, setItalian] = useState(false)
-  useEffect(() => {
-    setItalian(document.cookie.split(";").some((cookie) => cookie.trim() === "dispatch-locale=it") || navigator.language.toLowerCase().startsWith("it"))
-  }, [])
+  const [italian] = useState(() => typeof document !== "undefined" && (document.cookie.split(";").some((cookie) => cookie.trim() === "dispatch-locale=it") || navigator.language.toLowerCase().startsWith("it")))
   return (
-    <html lang={italian ? "it" : "en"}>
+    <html lang={italian ? "it" : "en"} suppressHydrationWarning>
       <body
         style={{
           margin: 0,

@@ -1,9 +1,12 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { can, requireOrgPage } from "@/server/authz"
 import { loadResponsesPage } from "@/server/workspace/queries/responses"
 import { ResponsesSettings } from "@/components/settings/responses/responses-settings"
 
-export const metadata: Metadata = { title: "Canned responses" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Canned responses", "Risposte predefinite") }
+}
 
 export default async function ResponsesPage({ params }: PageProps<"/w/[slug]/settings/responses">) {
   const { slug } = await params

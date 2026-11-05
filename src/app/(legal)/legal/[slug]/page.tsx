@@ -6,11 +6,12 @@ import sanitizeHtml from "sanitize-html"
 import { FileText } from "lucide-react"
 import { MonoLabel, Section } from "@/components/marketing/primitives"
 import { getSettings } from "@/server/settings"
+import { pageTitle } from "@/server/locale"
 
 const pages = {
-  imprint: { title: "Imprint", field: "imprint" },
-  privacy: { title: "Privacy policy", field: "privacy" },
-  terms: { title: "Terms of service", field: "terms" },
+  imprint: { title: "Imprint", it: "Note legali", field: "imprint" },
+  privacy: { title: "Privacy policy", it: "Informativa sulla privacy", field: "privacy" },
+  terms: { title: "Terms of service", it: "Termini di servizio", field: "terms" },
 } as const
 
 type LegalSlug = keyof typeof pages
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: PageProps<"/legal/[slug]">): 
   const legal = await getSettings("legal")
   const published = Boolean(legal[pages[slug].field].trim())
   return {
-    title: pages[slug].title,
+    title: await pageTitle(pages[slug].title, pages[slug].it),
     alternates: { canonical: `/legal/${slug}` },
     // Placeholder pages shouldn't end up in search results.
     ...(published ? {} : { robots: { index: false } }),

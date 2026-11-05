@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { ScrollText } from "lucide-react"
 import { requireSuperAdminPage } from "@/server/authz"
@@ -7,7 +8,9 @@ import { Pager } from "@/components/admin/client"
 import { AuditFilters } from "@/components/admin/audit/audit-filters"
 import { AuditTable, type AuditRowView } from "@/components/admin/audit/audit-table"
 
-export const metadata: Metadata = { title: "Audit log" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Audit log", "Registro attività") }
+}
 
 const PAGE_SIZE = 50
 

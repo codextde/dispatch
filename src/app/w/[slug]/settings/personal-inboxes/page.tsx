@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { requireOrgPage, requirePagePermission } from "@/server/authz"
 import { getConnectOptions, listInboxes } from "@/server/workspace/queries/inboxes"
@@ -6,7 +7,9 @@ import { ConnectInboxWizard } from "@/components/settings/inboxes/connect-wizard
 import { ConnectResultBanner } from "@/components/settings/inboxes/connect-banner"
 import { InboxList } from "@/components/settings/inboxes/inbox-list"
 
-export const metadata: Metadata = { title: "My inboxes" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("My inboxes", "Le mie caselle") }
+}
 
 export default async function PersonalInboxesPage({ params, searchParams }: PageProps<"/w/[slug]/settings/personal-inboxes">) {
   const { slug } = await params

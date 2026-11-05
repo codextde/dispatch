@@ -187,7 +187,7 @@ export function EmailDeliveryFields({
               aria-invalid={Boolean(err("host"))}
             />
           </FieldRow>
-          <FieldRow label="Port" htmlFor="email-port">
+          <FieldRow label={it ? "Porta" : "Port"} htmlFor="email-port">
             <Input
               id="email-port"
               inputMode="numeric"

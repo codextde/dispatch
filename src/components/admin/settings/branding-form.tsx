@@ -72,7 +72,7 @@ export function BrandingSettingsForm({ initial }: { initial: BrandingSettingsVal
               />
             </SettingField>
             <SettingField
-              label="URL del logo"
+              label={it ? "URL del logo" : "Logo URL"}
               htmlFor="logoUrl"
               description={it ? "Immagine quadrata (SVG o PNG, almeno 64×64). URL HTTPS o percorso come /logo.svg. Lascia vuoto per usare il logo predefinito." : "A square image (SVG or PNG, at least 64×64). HTTPS URL or a path such as /logo.svg. Leave empty for the default mark."}
               error={form.error("logoUrl")}

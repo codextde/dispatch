@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { requireOrgPage, requirePagePermission } from "@/server/authz"
 import { getAppUrl } from "@/server/env"
@@ -8,7 +9,9 @@ import { ApiKeysSection } from "@/components/settings/integrations/api-keys"
 import { WebhooksSection } from "@/components/settings/integrations/webhooks"
 import { ApiDocs } from "@/components/settings/integrations/api-docs"
 
-export const metadata: Metadata = { title: "API & webhooks" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("API & webhooks", "API e webhook") }
+}
 
 export default async function IntegrationsPage({ params }: PageProps<"/w/[slug]/settings/integrations">) {
   const { slug } = await params

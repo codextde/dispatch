@@ -88,7 +88,7 @@ export function AiSettingsForm({ initial }: { initial: AiSettingsValue }) {
         />
         <div className="mt-4 grid gap-x-6 border-t border-border pt-4 sm:grid-cols-2">
           <SettingField
-            label="Chiave API"
+            label={it ? "Chiave API" : "API key"}
             htmlFor="ai-key"
             className={`${GRID_FIELD} sm:col-span-2`}
             description={

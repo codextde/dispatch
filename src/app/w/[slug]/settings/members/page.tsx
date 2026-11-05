@@ -1,10 +1,13 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { can, requireOrgPage } from "@/server/authz"
 import { loadMembersPage } from "@/server/workspace/queries/members"
 import { MembersSettings } from "@/components/settings/members/members-settings"
 
-export const metadata: Metadata = { title: "Members" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Members", "Membri") }
+}
 
 export default async function MembersPage({ params }: PageProps<"/w/[slug]/settings/members">) {
   const { slug } = await params

@@ -313,7 +313,7 @@ function CreateApiKeyDialog({
                 value={name}
                 aria-invalid={Boolean(nameError)}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="CRM sync"
+                placeholder={it ? "Sincronizzazione CRM" : "CRM sync"}
               />
             </FormField>
 

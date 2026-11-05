@@ -19,7 +19,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities"
 import { Inbox, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { AssigneeAvatar, DueBadge, STATUS_META, STATUS_ORDER, StatusIcon, statusLabel } from "./task-fields"
+import { AssigneeAvatar, DueBadge, STATUS_ORDER, StatusIcon, statusLabel } from "./task-fields"
 import { useI18n } from "@/lib/i18n"
 import type { TaskDto, TaskPatch, TaskStatus } from "./use-tasks"
 
@@ -33,7 +33,6 @@ function buildColumns(tasks: TaskDto[]): Columns {
 }
 
 function TaskCard({ task, overlay, onOpen }: { task: TaskDto; overlay?: boolean; onOpen?: (id: string) => void }) {
-  const { locale } = useI18n()
   const done = task.status === "done"
   return (
     <div

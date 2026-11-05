@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { requireOrgPage, requirePagePermission } from "@/server/authz"
 import { BILLING_ERRORS, type BillingErrorCode } from "@/server/billing"
@@ -5,7 +6,9 @@ import { loadBillingOverview } from "@/server/workspace/queries/billing"
 import { SettingsPage } from "@/components/settings/settings-ui"
 import { BillingView } from "@/components/settings/billing/billing-view"
 
-export const metadata: Metadata = { title: "Billing" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Billing", "Fatturazione") }
+}
 
 export default async function BillingPage({ params, searchParams }: PageProps<"/w/[slug]/settings/billing">) {
   const { slug } = await params

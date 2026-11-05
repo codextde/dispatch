@@ -1,15 +1,11 @@
 import type { Metadata } from "next"
-import { cookies } from "next/headers"
+import { pageTitle } from "@/server/locale"
 import { requireOrgPage } from "@/server/authz"
-import { getCurrentSession } from "@/server/auth/session"
 import { getSettings } from "@/server/settings"
 import { ProfilePageContent } from "@/components/settings/personal/profile-page"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const session = await getCurrentSession()
-  const preferredLocale = (await cookies()).get("dispatch-locale")?.value
-  const locale = session?.user.locale === "it" || (!session && preferredLocale === "it") ? "it" : "en"
-  return { title: locale === "it" ? "Profilo" : "Profile" }
+  return { title: await pageTitle("Profile", "Profilo") }
 }
 
 export default async function ProfilePage({ params }: PageProps<"/w/[slug]/settings/profile">) {

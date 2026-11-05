@@ -225,7 +225,7 @@ export function LoginForm({
 
       <form
         className="mt-7"
-        onSubmit={(e) => { e.preventDefault(); mode === "password" ? loginWithPassword() : requestCode() }}
+        onSubmit={(e) => { e.preventDefault(); if (mode === "password") loginWithPassword(); else requestCode() }}
       >
         <Label htmlFor="login-email" className="mb-1.5 text-[13px]">
           {t("workEmail")}

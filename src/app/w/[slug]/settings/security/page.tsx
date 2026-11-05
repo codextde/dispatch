@@ -1,10 +1,13 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { requireOrgPage } from "@/server/authz"
 import { loadDevices, loadSignInActivity } from "@/server/workspace/queries/personal"
 import { SettingsPage } from "@/components/settings/settings-ui"
 import { SecurityPanel } from "@/components/settings/personal/security-panel"
 
-export const metadata: Metadata = { title: "Security & devices" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Security & devices", "Sicurezza e dispositivi") }
+}
 
 export default async function SecurityPage({ params }: PageProps<"/w/[slug]/settings/security">) {
   const { slug } = await params

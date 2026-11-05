@@ -273,7 +273,7 @@ export function ActionRow({
                 <RichTextEditor
                   value={draft.body}
                   onChange={(html) => onChange({ body: html })}
-                  placeholder="Hi {{contact.first_name}}, thanks for reaching out…"
+                  placeholder={locale === "it" ? "Ciao {{contact.first_name}}, grazie per averci scritto…" : "Hi {{contact.first_name}}, thanks for reaching out…"}
                   variables={RESPONSE_VARIABLES}
                   minHeight={120}
                   aria-invalid={Boolean(err("body"))}

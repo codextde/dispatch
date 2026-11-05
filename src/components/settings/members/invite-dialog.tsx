@@ -68,7 +68,6 @@ export function InviteDialog({
       },
     })
 
-  const unsent = result?.invited.filter((i) => !i.delivered) ?? []
   const sent = result?.invited.filter((i) => i.delivered) ?? []
 
   return (

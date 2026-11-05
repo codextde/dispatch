@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { LinkIcon, MailX } from "lucide-react"
@@ -8,10 +9,12 @@ import { AuthCard, AuthHeading, CenteredAuthLayout } from "@/components/auth/aut
 import { VerifyForm } from "@/components/auth/verify-form"
 import { Button } from "@/components/ui/button"
 
-export const metadata: Metadata = {
-  title: "Confirm sign-in",
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await pageTitle("Confirm sign-in", "Conferma accesso"),
+    robots: { index: false, follow: false },
+    referrer: "no-referrer",
+  }
 }
 
 /**

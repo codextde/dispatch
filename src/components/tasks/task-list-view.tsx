@@ -9,7 +9,6 @@ import {
   AssigneeAvatar,
   AssigneePicker,
   DueBadge,
-  STATUS_META,
   STATUS_ORDER,
   StatusIcon,
   statusLabel,

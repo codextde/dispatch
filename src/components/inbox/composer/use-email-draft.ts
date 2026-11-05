@@ -137,7 +137,7 @@ export function useEmailDraft({ initial, saveOnMount = false, attachmentIds, onR
       cbs.current.onResetAttachments(info)
       if (reason) toast.info(reason)
     },
-    [locale]
+    []
   )
 
   const save = useCallback(async () => {

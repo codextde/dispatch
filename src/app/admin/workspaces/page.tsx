@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Building2, ChevronRight } from "lucide-react"
@@ -16,7 +17,9 @@ import {
 } from "@/components/admin/workspaces/labels"
 import { WorkspaceInitial } from "@/components/admin/workspaces/workspace-initial"
 
-export const metadata: Metadata = { title: "Workspaces" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Workspaces", "Workspace") }
+}
 
 function first(v: string | string[] | undefined) {
   return Array.isArray(v) ? v[0] : v

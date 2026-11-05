@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { pageTitle } from "@/server/locale"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { AlertTriangle, ArrowUpRight, Inbox, MessagesSquare, Users } from "lucide-react"
@@ -39,7 +40,8 @@ export async function generateMetadata({ params }: PageProps<"/admin/workspaces/
   await requireSuperAdminPage()
   const { id } = await params
   const detail = await getWorkspaceDetail(id)
-  return { title: detail ? `${detail.org.name} · Workspaces` : "Workspace" }
+  const section = await pageTitle("Workspaces", "Workspace")
+  return { title: detail ? `${detail.org.name} · ${section}` : await pageTitle("Workspace", "Workspace") }
 }
 
 export default async function AdminWorkspaceDetailPage({ params }: PageProps<"/admin/workspaces/[id]">) {

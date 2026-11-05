@@ -30,7 +30,7 @@ import type { WebhookRow } from "@/server/workspace/queries/integrations"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n"
 
-function HealthBadge({ w, t, it }: { w: WebhookRow; t: (key: any) => string; it: boolean }) {
+function HealthBadge({ w, t, it }: { w: WebhookRow; t: ReturnType<typeof useI18n>["t"]; it: boolean }) {
   if (!w.enabled) return <StatusBadge tone="neutral">{t("paused")}</StatusBadge>
   if (w.lastStatus === null) return <StatusBadge tone="neutral">{t("noDeliveries")}</StatusBadge>
   if (w.lastStatus >= 200 && w.lastStatus < 300 && w.failureCount === 0) return <StatusBadge tone="success">{t("healthy")}</StatusBadge>

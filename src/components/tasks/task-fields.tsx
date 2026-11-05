@@ -79,7 +79,7 @@ export function StatusMenu({
   children: React.ReactNode
   align?: "start" | "end"
 }) {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const labels = { todo: t("toDo"), in_progress: t("inProgress"), done: t("done") } as const
   return (
     <DropdownMenu>

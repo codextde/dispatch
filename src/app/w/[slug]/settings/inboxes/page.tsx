@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { and, eq } from "drizzle-orm"
@@ -9,7 +10,9 @@ import { ConnectInboxWizard } from "@/components/settings/inboxes/connect-wizard
 import { ConnectResultBanner } from "@/components/settings/inboxes/connect-banner"
 import { InboxList } from "@/components/settings/inboxes/inbox-list"
 
-export const metadata: Metadata = { title: "Inboxes" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Inboxes", "Caselle") }
+}
 
 export default async function InboxesPage({ params, searchParams }: PageProps<"/w/[slug]/settings/inboxes">) {
   const { slug } = await params

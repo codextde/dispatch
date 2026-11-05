@@ -1,10 +1,13 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { requireOrgPage, requirePagePermission } from "@/server/authz"
 import { auditFilterSchema, listAuditFacets, listAuditLogs } from "@/server/workspace/queries/audit"
 import { SettingsPage } from "@/components/settings/settings-ui"
 import { AuditLog } from "@/components/settings/audit/audit-log"
 
-export const metadata: Metadata = { title: "Audit log" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Audit log", "Registro attività") }
+}
 
 export default async function AuditLogPage({ params, searchParams }: PageProps<"/w/[slug]/settings/audit-log">) {
   const { slug } = await params

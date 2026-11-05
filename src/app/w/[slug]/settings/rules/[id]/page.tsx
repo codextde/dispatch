@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { pageTitle } from "@/server/locale"
 import { notFound } from "next/navigation"
 import { and, eq } from "drizzle-orm"
 import { db, schema } from "@/server/db"
@@ -26,7 +27,7 @@ async function loadRule(slug: string, id: string) {
 export async function generateMetadata({ params }: PageProps<"/w/[slug]/settings/rules/[id]">): Promise<Metadata> {
   const { slug, id } = await params
   const rule = await loadRule(slug, id)
-  return { title: rule ? rule.name : "Rule" }
+  return { title: rule ? rule.name : await pageTitle("Rule", "Regola") }
 }
 
 export default async function EditRulePage({ params }: PageProps<"/w/[slug]/settings/rules/[id]">) {

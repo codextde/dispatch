@@ -158,7 +158,7 @@ function WebhookForm({
           value={name}
           aria-invalid={Boolean(err("name"))}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Production CRM"
+          placeholder={it ? "CRM di produzione" : "Production CRM"}
         />
       </FormField>
 

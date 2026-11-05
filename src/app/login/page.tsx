@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
@@ -11,9 +12,11 @@ import { headers } from "next/headers"
 import { SplitAuthLayout } from "@/components/auth/auth-layout"
 import { LoginForm, type LoginNotice } from "@/components/auth/login-form"
 
-export const metadata: Metadata = {
-  title: "Sign in",
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await pageTitle("Sign in", "Accedi"),
+    robots: { index: false, follow: false },
+  }
 }
 
 /**

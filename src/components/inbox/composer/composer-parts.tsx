@@ -213,7 +213,7 @@ export function SendButton({
   allowClose?: boolean
   label?: string
 }) {
-  const { t, locale } = useI18n()
+  const { locale } = useI18n()
   const buttonLabel = label ?? (locale === "it" ? "Invia" : "Send")
   const shortcutLabel = useShortcutLabel()
   const [later, setLater] = useState(false)

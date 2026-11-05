@@ -83,22 +83,25 @@ export function ConversationList({ box }: { box: string }) {
   const [largerKb, setLargerKb] = useState("")
   const [smallerKb, setSmallerKb] = useState("")
   const [priorityOnly, setPriorityOnly] = useState(false)
-  useEffect(() => {
-    setSearchInput(parsedSearch.text)
-    setSender(parsedSearch.from[0] ?? "")
-    setRecipient(parsedSearch.to[0] ?? "")
-    setDateAfter(parsedSearch.after?.toISOString().slice(0, 10) ?? "")
-    const before = parsedSearch.before ? new Date(parsedSearch.before.getTime() - 86400000) : undefined
-    setDateBefore(before?.toISOString().slice(0, 10) ?? "")
-    setSearchState(["unread", "read", "open", "closed", "starred", "assigned", "unassigned", "priority"].find((s) => parsedSearch.is.has(s)) ?? "")
-    setAttachmentMode(parsedSearch.hasAttachment === true ? "with" : parsedSearch.hasAttachment === false ? "without" : "any")
-    setSearchIn(parsedSearch.searchIn.size ? new Set(parsedSearch.searchIn) : new Set(["subject", "body", "people"]))
-    setClosedAfter(parsedSearch.closedAfter?.toISOString().slice(0, 10) ?? "")
-    setClosedBefore(parsedSearch.closedBefore ? new Date(parsedSearch.closedBefore.getTime() - 86400000).toISOString().slice(0, 10) : "")
-    setLargerKb(parsedSearch.larger ? String(Math.floor(parsedSearch.larger / 1024)) : "")
-    setSmallerKb(parsedSearch.smaller ? String(Math.floor(parsedSearch.smaller / 1024)) : "")
-    setPriorityOnly(parsedSearch.is.has("priority"))
-  }, [parsedSearch])
+  // Re-sync the form when the URL query changes. Adjusting state during render avoids an effect.
+  const [syncedSearch, setSyncedSearch] = useState(parsedSearch)
+  if (syncedSearch !== parsedSearch) {
+    setSyncedSearch(parsedSearch)
+      setSearchInput(parsedSearch.text)
+      setSender(parsedSearch.from[0] ?? "")
+      setRecipient(parsedSearch.to[0] ?? "")
+      setDateAfter(parsedSearch.after?.toISOString().slice(0, 10) ?? "")
+      const before = parsedSearch.before ? new Date(parsedSearch.before.getTime() - 86400000) : undefined
+      setDateBefore(before?.toISOString().slice(0, 10) ?? "")
+      setSearchState(["unread", "read", "open", "closed", "starred", "assigned", "unassigned", "priority"].find((s) => parsedSearch.is.has(s)) ?? "")
+      setAttachmentMode(parsedSearch.hasAttachment === true ? "with" : parsedSearch.hasAttachment === false ? "without" : "any")
+      setSearchIn(parsedSearch.searchIn.size ? new Set(parsedSearch.searchIn) : new Set(["subject", "body", "people"]))
+      setClosedAfter(parsedSearch.closedAfter?.toISOString().slice(0, 10) ?? "")
+      setClosedBefore(parsedSearch.closedBefore ? new Date(parsedSearch.closedBefore.getTime() - 86400000).toISOString().slice(0, 10) : "")
+      setLargerKb(parsedSearch.larger ? String(Math.floor(parsedSearch.larger / 1024)) : "")
+      setSmallerKb(parsedSearch.smaller ? String(Math.floor(parsedSearch.smaller / 1024)) : "")
+      setPriorityOnly(parsedSearch.is.has("priority"))
+  }
   const applySearchFilters = () => {
     const searchText = parseSearch(searchInput).text
     const tokens = [searchText]
@@ -223,7 +226,7 @@ export function ConversationList({ box }: { box: string }) {
         run([item.id], { snoozedUntil: tomorrow.date.toISOString() }, { undo: `${t("inboxUiSnoozedUntil")} ${tomorrow.hint}` })
       }
     },
-    [run]
+    [run, t]
   )
 
   // Infinite scroll
@@ -394,19 +397,7 @@ export function ConversationList({ box }: { box: string }) {
       </header>
 
       {isSearch && (
-        <form onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container max-h-[min(48dvh,34rem)] shrink-0 overflow-y-auto border-b bg-surface/60 px-3 py-2 md:px-4">
-          <fieldset className="grid gap-2 border-b pb-2">
-            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Cerca" : "Search"}</legend>
-            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Parole da cercare" : "Search terms"}<Input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={locale === "it" ? "Mittente, oggetto o contenuto…" : "Sender, subject, or message…"} aria-label={locale === "it" ? "Parole da cercare" : "Search terms"} className="h-9" /></label>
-            <div className="grid gap-1">
-              <span className="text-[11px] text-muted-foreground">{locale === "it" ? "Cerca in" : "Search in"}</span>
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {([["subject", locale === "it" ? "Oggetto" : "Subject"], ["body", locale === "it" ? "Corpo del messaggio" : "Message body"], ["people", locale === "it" ? "Mittente/Destinatario" : "Sender/Recipient"], ["attachments", locale === "it" ? "Nomi file allegati" : "Attachment names"]] as const).map(([field, label]) => (
-                <label key={field} className="flex items-center gap-2 text-xs"><Checkbox checked={searchIn.has(field)} onCheckedChange={(checked) => setSearchIn((current) => { if (!checked && current.size <= 1) return current; const next = new Set(current); checked ? next.add(field) : next.delete(field); return next })} />{label}</label>
-              ))}
-            </div>
-            </div>
-          </fieldset>
+        <form onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container shrink-0 border-b bg-surface/60 px-3 py-1.5 md:px-4">
           <fieldset className="grid min-w-0 grid-cols-1 gap-2 border-b py-2 @min-[20rem]:grid-cols-2 @min-[34rem]:grid-cols-4">
             <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Generale" : "General"}</legend>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[34rem]:col-span-2">{locale === "it" ? "Da" : "From"}<Input value={sender} onChange={(e) => setSender(e.target.value)} placeholder="nome@email.com" className="h-8 min-w-0" /></label>
@@ -435,6 +426,18 @@ export function ConversationList({ box }: { box: string }) {
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Chiusura dal" : "Closed after"}<Input type="date" value={closedAfter} onChange={(e) => setClosedAfter(e.target.value)} className="h-8 min-w-0" /></label>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Chiusura al" : "Closed through"}<Input type="date" value={closedBefore} onChange={(e) => setClosedBefore(e.target.value)} className="h-8 min-w-0" /></label>
             <label className="col-span-full flex h-8 items-center gap-2 text-xs @min-[34rem]:col-span-2"><Checkbox checked={priorityOnly} onCheckedChange={(v) => setPriorityOnly(v === true)} />{locale === "it" ? "Solo prioritarie" : "Priority only"}</label>
+          </fieldset>
+          <fieldset className="grid gap-2 border-b pb-2">
+            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Cerca" : "Search"}</legend>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Parole da cercare" : "Search terms"}<Input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={locale === "it" ? "Mittente, oggetto o contenuto…" : "Sender, subject, or message…"} aria-label={locale === "it" ? "Parole da cercare" : "Search terms"} className="h-9" /></label>
+            <div className="grid gap-1">
+              <span className="text-[11px] text-muted-foreground">{locale === "it" ? "Cerca in" : "Search in"}</span>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {([["subject", locale === "it" ? "Oggetto" : "Subject"], ["body", locale === "it" ? "Corpo del messaggio" : "Message body"], ["people", locale === "it" ? "Mittente/Destinatario" : "Sender/Recipient"], ["attachments", locale === "it" ? "Nomi file allegati" : "Attachment names"]] as const).map(([field, label]) => (
+                <label key={field} className="flex items-center gap-2 text-xs"><Checkbox checked={searchIn.has(field)} onCheckedChange={(checked) => setSearchIn((current) => { if (!checked && current.size <= 1) return current; const next = new Set(current); if (checked) next.add(field); else next.delete(field); return next })} />{label}</label>
+              ))}
+            </div>
+            </div>
           </fieldset>
           <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setSearchInput(""); router.push(`/w/${slug}/search`) }}>{locale === "it" ? "Reimposta" : "Reset"}</Button><Button type="submit" size="sm" className="h-8">{locale === "it" ? "Cerca" : "Search"}</Button></div>
         </form>

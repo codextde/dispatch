@@ -1,10 +1,13 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { requireOrgPage, requirePagePermission } from "@/server/authz"
 import { loadInboxEditor } from "@/server/workspace/queries/inboxes"
 import { InboxEditor } from "@/components/settings/inboxes/inbox-editor"
 
-export const metadata: Metadata = { title: "Inbox settings" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Inbox settings", "Impostazioni casella") }
+}
 
 export default async function InboxSettingsPage({ params }: PageProps<"/w/[slug]/settings/inboxes/[id]">) {
   const { slug, id } = await params

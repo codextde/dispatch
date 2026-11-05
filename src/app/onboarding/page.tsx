@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { Clock3, LogOut, MailPlus } from "lucide-react"
@@ -13,9 +14,11 @@ import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard"
 import { PendingInvitations } from "@/components/onboarding/pending-invitations"
 import { formatMoney } from "@/components/admin/ui"
 
-export const metadata: Metadata = {
-  title: "Create your workspace",
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await pageTitle("Create your workspace", "Crea il tuo workspace"),
+    robots: { index: false, follow: false },
+  }
 }
 
 /**

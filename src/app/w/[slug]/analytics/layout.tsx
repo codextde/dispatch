@@ -1,8 +1,11 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { requireOrgPage, requirePagePermission } from "@/server/authz"
 import { AnalyticsTopBar } from "@/components/analytics/analytics-top-bar"
 
-export const metadata: Metadata = { title: "Analytics" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Analytics", "Statistiche") }
+}
 
 export default async function AnalyticsLayout({ children, params }: LayoutProps<"/w/[slug]/analytics">) {
   const { slug } = await params

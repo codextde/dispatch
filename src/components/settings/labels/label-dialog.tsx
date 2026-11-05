@@ -77,7 +77,7 @@ export function LabelDialog({
       })
     }
     return opts
-  }, [labels, form.visibility, editing])
+  }, [labels, form.visibility, editing, t])
 
   const nameError = fieldErrors.name
   const canSave = form.name.trim().length > 0 && !pending

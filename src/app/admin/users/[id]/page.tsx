@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { pageTitle } from "@/server/locale"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { UAParser } from "ua-parser-js"
@@ -23,7 +24,8 @@ export async function generateMetadata({ params }: PageProps<"/admin/users/[id]"
   await requireSuperAdminPage()
   const { id } = await params
   const detail = await getUserDetail(id)
-  return { title: detail ? `${detail.user.name || detail.user.email} · Users` : "User" }
+  const section = await pageTitle("Users", "Utenti")
+  return { title: detail ? `${detail.user.name || detail.user.email} · ${section}` : await pageTitle("User", "Utente") }
 }
 
 const IMPERSONATE_ERRORS: Record<string, string> = {

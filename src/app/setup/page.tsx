@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { ShieldCheck } from "lucide-react"
@@ -12,9 +13,11 @@ import { AuthCard, CenteredAuthLayout } from "@/components/auth/auth-layout"
 import { LoginForm } from "@/components/auth/login-form"
 import { SetupWizard } from "@/components/onboarding/setup-wizard"
 
-export const metadata: Metadata = {
-  title: "Set up Dispatch",
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await pageTitle("Set up Dispatch", "Configura Dispatch"),
+    robots: { index: false, follow: false },
+  }
 }
 
 /**

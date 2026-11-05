@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 import type { Metadata } from "next"
 import { requireSuperAdminPage } from "@/server/authz"
 import { getSettings } from "@/server/settings"
@@ -7,7 +8,9 @@ import { AdminPageHeader } from "@/components/admin/ui"
 import { BillingSettingsForm } from "@/components/admin/settings/billing-form"
 import { SECTION_HEADERS } from "@/app/admin/settings/sections"
 
-export const metadata: Metadata = { title: "Billing · Settings" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Billing · Settings", "Fatturazione · Impostazioni") }
+}
 
 /** Billing lives in its own route (not ./[section]) so only this page loads the Stripe integration. */
 export default async function AdminBillingSettingsPage() {

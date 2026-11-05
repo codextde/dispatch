@@ -27,6 +27,7 @@ import { DetailsPanel } from "./details-panel"
 import { Thread } from "./thread"
 import { useConversationCommands } from "./use-conversation-commands"
 import { useI18n } from "@/lib/i18n"
+import { setDocumentTitle } from "@/components/app/document-title"
 
 function ThreadSkeleton() {
   return (
@@ -104,7 +105,7 @@ export function ConversationView({ id, box }: { id: string; box: string }) {
 
   const title = conv ? (conv.kind === "chat" ? conv.subject || t("chatGroupChat") : conv.subject || t("convNoSubject")) : t("inboxConversation")
   useEffect(() => {
-    document.title = `${title} · Dispatch`
+    setDocumentTitle(`${title} · Dispatch`)
   }, [title])
 
   const writable = !!conv && conv.level !== "read" && conv.kind === "email"

@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { cookies } from "next/headers"
+import { requestLocale } from "@/server/locale"
 import path from "node:path"
 import { notFound } from "next/navigation"
 import { requireSuperAdminPage } from "@/server/authz"
@@ -29,7 +29,7 @@ function isSection(value: string): value is SettingsSectionSlug {
 export async function generateMetadata({ params }: PageProps<"/admin/settings/[section]">): Promise<Metadata> {
   const { section } = await params
   const meta = SETTINGS_SECTIONS.find((s) => s.slug === section)
-  const it = (await cookies()).get("dispatch-locale")?.value === "it"
+  const it = (await requestLocale()) === "it"
   const labels: Partial<Record<SettingsSectionSlug, string>> = {
     general: "Generale", authentication: "Accesso", email: "Email", oauth: "App OAuth", billing: "Fatturazione",
     storage: "Archiviazione", ai: "IA", branding: "Marchio", security: "Sicurezza", legal: "Note legali",
@@ -43,7 +43,7 @@ export default async function AdminSettingsSectionPage({ params }: PageProps<"/a
   const { section } = await params
   if (!isSection(section)) notFound()
 
-  const it = (await cookies()).get("dispatch-locale")?.value === "it"
+  const it = (await requestLocale()) === "it"
   const header = SECTION_HEADERS[section]
   const italianHeaders: Record<SettingsSectionSlug, { title: string; quiet: string; description: string }> = {
     general: { title: "Generale", quiet: "impostazioni", description: "Dai un nome all’istanza, scegli a chi è rivolta e comunica con tutti." },

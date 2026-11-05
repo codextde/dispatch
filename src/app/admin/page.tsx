@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { Metadata } from "next"
+import { pageTitle } from "@/server/locale"
 import { Activity, ArrowRight, Building2, CircleDollarSign, Inbox, MessagesSquare, Send, UserCheck, Users } from "lucide-react"
 import { requireSuperAdminPage } from "@/server/authz"
 import { getSettings } from "@/server/settings"
@@ -18,8 +19,8 @@ import { SetupChecklist } from "@/components/admin/overview/setup-checklist"
 import { RecentAuditList, RecentWorkspacesList } from "@/components/admin/overview/recent-lists"
 
 // Same segment as the admin layout, so its title template doesn't apply here
-export const metadata: Metadata = {
-  title: { absolute: "Overview · Instance admin" },
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: { absolute: await pageTitle("Overview · Instance admin", "Panoramica · Amministrazione istanza") } }
 }
 
 function greeting(timeZone: string, locale: string) {
@@ -126,7 +127,7 @@ export default async function AdminOverviewPage() {
           icon={CircleDollarSign}
         />
         <StatTile
-          label="MRR (stima)"
+          label={it ? "MRR (stima)" : "MRR (estimate)"}
           value={revenue.enabled ? formatMoney(revenue.mrrCents, revenue.currency) : "—"}
           hint={
             revenue.enabled

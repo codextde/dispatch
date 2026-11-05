@@ -1,9 +1,12 @@
 import type { Metadata } from "next"
 import { requireOrgPage } from "@/server/authz"
+import { pageTitle } from "@/server/locale"
 import { SettingsPage } from "@/components/settings/settings-ui"
 import { NotificationsForm } from "@/components/settings/personal/notifications-form"
 
-export const metadata: Metadata = { title: "Notifiche" }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: await pageTitle("Notifications", "Notifiche") }
+}
 
 export default async function NotificationsPage({ params }: PageProps<"/w/[slug]/settings/notifications">) {
   const { slug } = await params

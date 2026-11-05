@@ -1,3 +1,4 @@
+import { pageTitle } from "@/server/locale"
 /* eslint-disable @next/next/no-img-element -- workspace logos are user-provided URLs/uploads, not optimizable assets */
 import type { Metadata } from "next"
 import Link from "next/link"
@@ -17,10 +18,12 @@ import { Button } from "@/components/ui/button"
 import { LocalTime } from "@/components/app/local-time"
 import { InvitePasswordForm } from "@/components/auth/invite-password-form"
 
-export const metadata: Metadata = {
-  title: "Invitation",
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: await pageTitle("Invitation", "Invito"),
+    robots: { index: false, follow: false },
+    referrer: "no-referrer",
+  }
 }
 
 export default async function InvitePage({ params }: PageProps<"/invite/[token]">) {
