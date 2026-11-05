@@ -294,32 +294,16 @@ export function CommandPalette() {
               <CommandItem value="search:all" onSelect={searchAll}>
                 {searching && results.length > 0 ? <LoaderCircle className="animate-spin text-muted-foreground" /> : <Search className="text-muted-foreground" />}
                 <span className="min-w-0 flex-1 truncate">
-                  {locale === "it" ? "Cerca in tutte le conversazioni:" : "Search all conversations for"} <span className="font-medium">“{q}”</span>
+                  {locale === "it" ? "Cerca con filtri in tutte le conversazioni:" : "Search all conversations with filters for"} <span className="font-medium">“{q}”</span>
                 </span>
                 <Shortcut combo="Enter" />
               </CommandItem>
             </CommandGroup>
           )}
 
-          {!q && actionMatches.length > 0 && <CommandGroup heading={locale === "it" ? "Azioni" : "Actions"}>{actionMatches.map(renderStatic)}</CommandGroup>}
-
-          {goToMatches.length > 0 && (
-            <>
-              {(q || actionMatches.length > 0) && <CommandSeparator />}
-              <CommandGroup heading={locale === "it" ? "Vai a" : "Go to"}>{goToMatches.map(renderStatic)}</CommandGroup>
-            </>
-          )}
-
-          {q && actionMatches.length > 0 && (
-            <>
-              <CommandSeparator />
-              <CommandGroup heading={locale === "it" ? "Azioni" : "Actions"}>{actionMatches.map(renderStatic)}</CommandGroup>
-            </>
-          )}
-
           {hints.length > 0 && (
             <>
-              <CommandSeparator />
+              {q && <CommandSeparator />}
               <CommandGroup heading={locale === "it" ? "Operatori di ricerca" : "Search operators"}>
                 {hints.map((h) => (
                   <CommandItem key={h.token} value={`hint:${h.token}`} onSelect={() => insertHint(h.token)}>
@@ -341,6 +325,25 @@ export function CommandPalette() {
               </CommandGroup>
             </>
           )}
+
+          {!q && actionMatches.length > 0 && (hints.length > 0 ? <CommandSeparator /> : null)}
+          {!q && actionMatches.length > 0 && <CommandGroup heading={locale === "it" ? "Azioni" : "Actions"}>{actionMatches.map(renderStatic)}</CommandGroup>}
+
+
+          {goToMatches.length > 0 && (
+            <>
+              {(q || actionMatches.length > 0 || hints.length > 0) && <CommandSeparator />}
+              <CommandGroup heading={locale === "it" ? "Vai a" : "Go to"}>{goToMatches.map(renderStatic)}</CommandGroup>
+            </>
+          )}
+
+          {q && actionMatches.length > 0 && (
+            <>
+              <CommandSeparator />
+              <CommandGroup heading={locale === "it" ? "Azioni" : "Actions"}>{actionMatches.map(renderStatic)}</CommandGroup>
+            </>
+          )}
+
         </CommandList>
         <div className="flex items-center gap-3 border-t px-3 py-2 font-mono text-[10.5px] text-muted-foreground max-sm:hidden">
           <span>

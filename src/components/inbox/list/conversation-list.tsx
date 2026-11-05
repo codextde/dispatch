@@ -83,6 +83,7 @@ export function ConversationList({ box }: { box: string }) {
   const [largerKb, setLargerKb] = useState("")
   const [smallerKb, setSmallerKb] = useState("")
   const [priorityOnly, setPriorityOnly] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(true)
   // Re-sync the form when the URL query changes. Adjusting state during render avoids an effect.
   const [syncedSearch, setSyncedSearch] = useState(parsedSearch)
   if (syncedSearch !== parsedSearch) {
@@ -152,6 +153,7 @@ export function ConversationList({ box }: { box: string }) {
     }),
     [stored, parsed, q]
   )
+  const filtersActive = isSearch && /\b\w+:\S/.test(q)
   const filtered = !!(filters.unread || filters.assignee || (filters.status && filters.status !== defaultStatus(parsed)))
 
   const list = useConversationList(slug, box, filters, !isSearch || q.trim().length > 0)
@@ -383,6 +385,20 @@ export function ConversationList({ box }: { box: string }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            {isSearch && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={locale === "it" ? "Filtri di ricerca" : "Search filters"}
+                aria-expanded={showAdvanced}
+                aria-controls="search-filters"
+                className={cn("relative max-md:size-10", showAdvanced && "text-foreground")}
+                onClick={() => setShowAdvanced((open) => !open)}
+              >
+                <ListFilter />
+                {filtersActive && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-brand" />}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon-sm"
@@ -396,8 +412,8 @@ export function ConversationList({ box }: { box: string }) {
         )}
       </header>
 
-      {isSearch && (
-        <form onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container shrink-0 border-b bg-surface/60 px-3 py-1.5 md:px-4">
+      {isSearch && showAdvanced && (
+        <form id="search-filters" onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container shrink-0 border-b bg-surface/60 px-3 py-1.5 md:px-4">
           <fieldset className="grid min-w-0 grid-cols-1 gap-2 border-b py-2 @min-[20rem]:grid-cols-2 @min-[34rem]:grid-cols-4">
             <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Generale" : "General"}</legend>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[34rem]:col-span-2">{locale === "it" ? "Da" : "From"}<Input value={sender} onChange={(e) => setSender(e.target.value)} placeholder="nome@email.com" className="h-8 min-w-0" /></label>
