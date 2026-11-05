@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { DateField } from "@/components/ui/date-field"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -86,12 +87,11 @@ function DateInput({ param, label }: { param: "from" | "to"; label: string }) {
       <span className="w-10 shrink-0 font-mono text-[10.5px] uppercase tracking-wider text-muted-foreground sm:w-auto">
         {label}
       </span>
-      <Input
-        type="date"
+      <DateField
         value={params.get(param) ?? ""}
         max={param === "from" ? (params.get("to") ?? undefined) : undefined}
         min={param === "to" ? (params.get("from") ?? undefined) : undefined}
-        onChange={(e) => update({ [param]: e.target.value || null })}
+        onChange={(v) => update({ [param]: v || null })}
         className="w-full bg-card sm:w-[150px]"
       />
     </label>

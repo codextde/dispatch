@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
+import { DateField } from "@/components/ui/date-field"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { ChevronLeft, ChevronRight, Loader2, ScrollText, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -168,22 +169,20 @@ export function AuditLog({
           contentClassName="min-w-72"
         />
         <div className="flex items-center gap-1.5">
-          <Input
-            type="date"
-            aria-label={t("auditFromDate")}
+          <DateField
+            ariaLabel={t("auditFromDate")}
             className="w-[9.5rem]"
             value={filters.from ?? ""}
             max={filters.to}
-            onChange={(e) => update({ from: e.target.value || undefined })}
+            onChange={(v) => update({ from: v || undefined })}
           />
           <span className="text-xs text-muted-foreground">–</span>
-          <Input
-            type="date"
-            aria-label={t("auditToDate")}
+          <DateField
+            ariaLabel={t("auditToDate")}
             className="w-[9.5rem]"
             value={filters.to ?? ""}
             min={filters.from}
-            onChange={(e) => update({ to: e.target.value || undefined })}
+            onChange={(v) => update({ to: v || undefined })}
           />
         </div>
         {hasFilters && (

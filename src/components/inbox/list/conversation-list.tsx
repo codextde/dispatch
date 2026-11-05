@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { DateField } from "@/components/ui/date-field"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { ArrowDownUp, Check, ListFilter, Plus, RefreshCw, Search, SearchX, SquarePen } from "lucide-react"
@@ -153,7 +154,7 @@ export function ConversationList({ box }: { box: string }) {
     }),
     [stored, parsed, q]
   )
-  const filtersActive = isSearch && /\b\w+:\S/.test(q)
+  const activeFilterCount = isSearch ? (q.match(/\b\w+:\S/g) ?? []).length : 0
   const filtered = !!(filters.unread || filters.assignee || (filters.status && filters.status !== defaultStatus(parsed)))
 
   const list = useConversationList(slug, box, filters, !isSearch || q.trim().length > 0)
@@ -293,8 +294,8 @@ export function ConversationList({ box }: { box: string }) {
   const selectedItems = items.filter((i) => selected.has(i.id))
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
-      <header className="flex min-h-12 shrink-0 items-center gap-1 border-b px-2 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] md:px-3">
+    <div className={cn("relative flex h-full min-h-0 flex-col", isSearch && showAdvanced && "md:grid md:grid-cols-[18rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)]")}>
+      <header className={cn("flex min-h-12 shrink-0 items-center gap-1 border-b px-2 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] md:px-3", isSearch && showAdvanced && "md:col-start-2 md:row-start-1")}>
         {selectionMode ? (
           <BulkBar box={box} items={selectedItems} allSelected={allSelected} onSelectAll={() => inboxUI.set({ selected: new Set(ids) })} />
         ) : (
@@ -308,7 +309,14 @@ export function ConversationList({ box }: { box: string }) {
               ))}
               <div className="min-w-0 flex-1">
                 {isSearch ? (
-                  <h1 className="truncate text-[15px] font-semibold tracking-tight">{locale === "it" ? "Ricerca" : "Search"}</h1>
+                  <>
+                    <h1 className="truncate text-[15px] font-semibold tracking-tight">{locale === "it" ? "Ricerca" : "Search"}</h1>
+                    {q.trim() && (
+                      <p className="truncate text-xs leading-4 text-muted-foreground">
+                        {list.isPending ? (locale === "it" ? "Ricerca in corso…" : "Searching…") : locale === "it" ? `${items.length} risultati` : `${items.length} results`}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <div className="flex min-w-0 items-center gap-2">
                     <h1 className="truncate text-[15px] font-semibold tracking-tight">{info.title}</h1>
@@ -320,7 +328,7 @@ export function ConversationList({ box }: { box: string }) {
                 {!isSearch && viewDescription && <p className="line-clamp-2 text-xs leading-4 text-muted-foreground">{viewDescription}</p>}
               </div>
             </div>
-            {items.length > 0 && !isChats && (
+            {items.length > 0 && !isChats && !isSearch && (
               <Checkbox
                 aria-label={t("inboxUiSelectAll")}
                 className="mr-1 max-md:hidden"
@@ -387,18 +395,21 @@ export function ConversationList({ box }: { box: string }) {
             )}
             {isSearch && (
               <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={locale === "it" ? "Filtri di ricerca" : "Search filters"}
+                variant={showAdvanced ? "secondary" : "outline"}
+                size="sm"
                 aria-expanded={showAdvanced}
                 aria-controls="search-filters"
-                className={cn("relative max-md:size-10", showAdvanced && "text-foreground")}
+                className="h-8 gap-1.5 px-2.5"
                 onClick={() => setShowAdvanced((open) => !open)}
               >
-                <ListFilter />
-                {filtersActive && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-brand" />}
+                <ListFilter className="size-3.5" aria-hidden />
+                {locale === "it" ? "Filtri" : "Filters"}
+                {activeFilterCount > 0 && (
+                  <span className="rounded-full bg-brand-soft px-1.5 font-mono text-[10.5px] text-foreground tabular-nums">{activeFilterCount}</span>
+                )}
               </Button>
             )}
+            {!isSearch && (
             <Button
               variant="ghost"
               size="icon-sm"
@@ -408,21 +419,33 @@ export function ConversationList({ box }: { box: string }) {
             >
               <RefreshCw className={cn(list.isRefetching && !list.isFetchingNextPage && "animate-spin")} />
             </Button>
+            )}
           </>
         )}
       </header>
 
       {isSearch && showAdvanced && (
-        <form id="search-filters" onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container shrink-0 border-b bg-surface/60 px-3 py-1.5 md:px-4">
+        <form id="search-filters" onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container shrink-0 border-b bg-surface/60 px-3 py-1.5 md:col-start-1 md:row-span-2 md:row-start-1 md:overflow-y-auto md:border-r md:border-b-0 md:px-4 md:py-3">
+          <fieldset className="grid gap-2 border-b pb-2">
+            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Cerca" : "Search"}</legend>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Parole da cercare" : "Search terms"}<Input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={locale === "it" ? "Mittente, oggetto o contenuto…" : "Sender, subject, or message…"} aria-label={locale === "it" ? "Parole da cercare" : "Search terms"} className="h-9" /></label>
+            <div className="grid gap-1">
+              <span className="text-[11px] text-muted-foreground">{locale === "it" ? "Cerca in" : "Search in"}</span>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {([["subject", locale === "it" ? "Oggetto" : "Subject"], ["body", locale === "it" ? "Corpo del messaggio" : "Message body"], ["people", locale === "it" ? "Mittente/Destinatario" : "Sender/Recipient"], ["attachments", locale === "it" ? "Nomi file allegati" : "Attachment names"]] as const).map(([field, label]) => (
+                <label key={field} className="flex items-center gap-2 text-xs"><Checkbox checked={searchIn.has(field)} onCheckedChange={(checked) => setSearchIn((current) => { if (!checked && current.size <= 1) return current; const next = new Set(current); if (checked) next.add(field); else next.delete(field); return next })} />{label}</label>
+              ))}
+            </div>
+            </div>
+          </fieldset>
           <fieldset className="grid min-w-0 grid-cols-1 gap-2 border-b py-2 @min-[20rem]:grid-cols-2 @min-[34rem]:grid-cols-4">
-            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Generale" : "General"}</legend>
+            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Filtri" : "Filters"}</legend>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[34rem]:col-span-2">{locale === "it" ? "Da" : "From"}<Input value={sender} onChange={(e) => setSender(e.target.value)} placeholder="nome@email.com" className="h-8 min-w-0" /></label>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[34rem]:col-span-2">{locale === "it" ? "A/Cc/Ccn" : "To/Cc/Bcc"}<Input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="nome@email.com" className="h-8 min-w-0" /></label>
-            <label className="grid gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Ultima attività dal" : "Last activity after"}<Input type="date" value={dateAfter} onChange={(e) => setDateAfter(e.target.value)} className="h-8" /></label>
-            <label className="grid gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Ultima attività al" : "Last activity through"}<Input type="date" value={dateBefore} onChange={(e) => setDateBefore(e.target.value)} className="h-8" /></label>
+            <label className="grid gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Ultima attività dal" : "Last activity after"}<DateField value={dateAfter} onChange={setDateAfter} className="h-8" /></label>
+            <label className="grid gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Ultima attività al" : "Last activity through"}<DateField value={dateBefore} onChange={setDateBefore} className="h-8" /></label>
           </fieldset>
           <fieldset className="grid min-w-0 grid-cols-1 gap-2 pt-2 @min-[20rem]:grid-cols-2 @min-[34rem]:grid-cols-4">
-            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Avanzato" : "Advanced"}</legend>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground @min-[20rem]:col-span-2">{locale === "it" ? "Stato" : "Status"}
             <select className="h-8 rounded-md border bg-background px-2 text-base text-foreground md:text-sm" value={searchState} onChange={(e) => setSearchState(e.target.value)}>
               <option value="">{locale === "it" ? "Qualsiasi stato" : "Any status"}</option>
@@ -439,27 +462,15 @@ export function ConversationList({ box }: { box: string }) {
             </label>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Dimensione min. (KB)" : "Min size (KB)"}<Input type="number" min="0" value={largerKb} onChange={(e) => setLargerKb(e.target.value)} className="h-8 min-w-0" /></label>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Dimensione max. (KB)" : "Max size (KB)"}<Input type="number" min="0" value={smallerKb} onChange={(e) => setSmallerKb(e.target.value)} className="h-8 min-w-0" /></label>
-            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Chiusura dal" : "Closed after"}<Input type="date" value={closedAfter} onChange={(e) => setClosedAfter(e.target.value)} className="h-8 min-w-0" /></label>
-            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Chiusura al" : "Closed through"}<Input type="date" value={closedBefore} onChange={(e) => setClosedBefore(e.target.value)} className="h-8 min-w-0" /></label>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Chiusura dal" : "Closed after"}<DateField value={closedAfter} onChange={setClosedAfter} className="h-8 min-w-0" /></label>
+            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Chiusura al" : "Closed through"}<DateField value={closedBefore} onChange={setClosedBefore} className="h-8 min-w-0" /></label>
             <label className="col-span-full flex h-8 items-center gap-2 text-xs @min-[34rem]:col-span-2"><Checkbox checked={priorityOnly} onCheckedChange={(v) => setPriorityOnly(v === true)} />{locale === "it" ? "Solo prioritarie" : "Priority only"}</label>
-          </fieldset>
-          <fieldset className="grid gap-2 border-b pb-2">
-            <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Cerca" : "Search"}</legend>
-            <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Parole da cercare" : "Search terms"}<Input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={locale === "it" ? "Mittente, oggetto o contenuto…" : "Sender, subject, or message…"} aria-label={locale === "it" ? "Parole da cercare" : "Search terms"} className="h-9" /></label>
-            <div className="grid gap-1">
-              <span className="text-[11px] text-muted-foreground">{locale === "it" ? "Cerca in" : "Search in"}</span>
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {([["subject", locale === "it" ? "Oggetto" : "Subject"], ["body", locale === "it" ? "Corpo del messaggio" : "Message body"], ["people", locale === "it" ? "Mittente/Destinatario" : "Sender/Recipient"], ["attachments", locale === "it" ? "Nomi file allegati" : "Attachment names"]] as const).map(([field, label]) => (
-                <label key={field} className="flex items-center gap-2 text-xs"><Checkbox checked={searchIn.has(field)} onCheckedChange={(checked) => setSearchIn((current) => { if (!checked && current.size <= 1) return current; const next = new Set(current); if (checked) next.add(field); else next.delete(field); return next })} />{label}</label>
-              ))}
-            </div>
-            </div>
           </fieldset>
           <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setSearchInput(""); router.push(`/w/${slug}/search`) }}>{locale === "it" ? "Reimposta" : "Reset"}</Button><Button type="submit" size="sm" className="h-8">{locale === "it" ? "Cerca" : "Search"}</Button></div>
         </form>
       )}
 
-      <div ref={scroller} role="listbox" aria-label={info.title} aria-multiselectable className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <div ref={scroller} role="listbox" aria-label={info.title} aria-multiselectable className={cn("scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain", isSearch && showAdvanced && "md:col-start-2 md:row-start-2")}>
         {list.isPending && list.fetchStatus !== "idle" && Array.from({ length: 8 }, (_, i) => <RowSkeleton key={i} />)}
 
         {list.isError && (

@@ -26,10 +26,12 @@ export function MailPanes({ box, children }: { box: string; children: React.Reac
       <section
         aria-label={locale === "it" ? "Conversazioni" : "Conversations"}
         className={cn(
-          "h-full min-w-0 flex-col bg-card md:flex md:w-[min(var(--list-width),46vw)] md:shrink-0 md:border-r",
+          "h-full min-w-0 flex-col bg-card md:flex md:w-[min(var(--list-width),var(--list-cap,46vw))] md:shrink-0 md:border-r",
           open ? "hidden" : "flex w-full"
         )}
-        style={{ "--list-width": `${width}px` } as React.CSSProperties}
+        style={
+          (box === "search" ? { "--list-width": "820px", "--list-cap": "74vw" } : { "--list-width": `${width}px` }) as unknown as React.CSSProperties
+        }
       >
         <Suspense>
           <ConversationList box={box} />

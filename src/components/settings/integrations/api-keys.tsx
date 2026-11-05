@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { DateField } from "@/components/ui/date-field"
 import { ChevronDown, KeyRound, Loader2, Plus } from "lucide-react"
 import { useOrg } from "@/components/app/org-provider"
 import { UserAvatar } from "@/components/app/user-avatar"
@@ -332,11 +333,10 @@ function CreateApiKeyDialog({
                   </SelectContent>
                 </Select>
                 {expiry === "custom" && (
-                  <Input
-                    type="date"
-                    aria-label={it ? "Data di scadenza" : "Expiry date"}
+                  <DateField
+                    ariaLabel={it ? "Data di scadenza" : "Expiry date"}
                     value={customDate}
-                    onChange={(e) => setCustomDate(e.target.value)}
+                    onChange={setCustomDate}
                     className="sm:w-44"
                   />
                 )}
