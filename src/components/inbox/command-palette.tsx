@@ -208,6 +208,7 @@ export function CommandPalette() {
   const actions = useMemo<StaticItem[]>(() => {
     const list: StaticItem[] = [
       { id: "action:compose", label: locale === "it" ? "Scrivi un nuovo messaggio" : "Compose new message", keywords: "write email new", icon: SquarePen, shortcut: combo("compose"), run: () => inboxUI.openCompose() },
+      { id: "action:advanced-search", label: locale === "it" ? "Ricerca avanzata" : "Advanced search", keywords: "search filters advanced email", icon: Search, run: () => router.push(`${base}/search`) },
     ]
     if (chatVisible && can("chats.create")) {
       list.push({ id: "action:chat", label: locale === "it" ? "Nuova chat" : "New chat", keywords: "message teammate dm group", icon: MessagesSquare, shortcut: combo("newChat"), run: () => inboxUI.set({ newChatOpen: true }) })
@@ -322,7 +323,17 @@ export function CommandPalette() {
                   <CommandItem key={h.token} value={`hint:${h.token}`} onSelect={() => insertHint(h.token)}>
                     {h.token.startsWith("label:") ? <Tag className="text-muted-foreground" /> : h.token.startsWith("assignee:") ? <Users className="text-muted-foreground" /> : <TextSearch className="text-muted-foreground" />}
                     <code className="font-mono text-[12px]">{h.token}</code>
-                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{h.description}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{locale === "it" ? ({
+                      "from:": "Email o nome del mittente",
+                      "to:": "Destinatario",
+                      "subject:": "Parole nell’oggetto",
+                      "has:attachment": "Con allegati",
+                      "is:unread": "Conversazioni da leggere",
+                      "is:closed": "Conversazioni chiuse",
+                      "is:starred": "Conversazioni speciali",
+                      "label:": "Con un’etichetta",
+                      "assignee:me": "Assegnate a te",
+                    } as Record<string, string>)[h.token] ?? h.description : h.description}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
