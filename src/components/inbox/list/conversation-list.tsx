@@ -294,7 +294,7 @@ export function ConversationList({ box }: { box: string }) {
   const selectedItems = items.filter((i) => selected.has(i.id))
 
   return (
-    <div className={cn("relative flex h-full min-h-0 flex-col", isSearch && showAdvanced && "md:grid md:grid-cols-[18rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)]")}>
+    <div className={cn("relative flex h-full min-h-0 flex-col", isSearch && showAdvanced && "md:grid md:grid-cols-[22rem_minmax(0,1fr)] md:grid-rows-[auto_minmax(0,1fr)]")}>
       <header className={cn("flex min-h-12 shrink-0 items-center gap-1 border-b px-2 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] md:px-3", isSearch && showAdvanced && "md:col-start-2 md:row-start-1")}>
         {selectionMode ? (
           <BulkBar box={box} items={selectedItems} allSelected={allSelected} onSelectAll={() => inboxUI.set({ selected: new Set(ids) })} />
@@ -425,7 +425,7 @@ export function ConversationList({ box }: { box: string }) {
       </header>
 
       {isSearch && showAdvanced && (
-        <form id="search-filters" onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container shrink-0 border-b bg-surface/60 px-3 py-1.5 md:col-start-1 md:row-span-2 md:row-start-1 md:overflow-y-auto md:border-r md:border-b-0 md:px-4 md:py-3">
+        <form id="search-filters" onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container shrink-0 border-b bg-surface/60 px-3 py-1.5 md:col-start-1 md:row-span-2 md:row-start-1 md:overflow-y-auto md:border-r md:border-b-0 md:px-4 md:py-2">
           <fieldset className="grid gap-2 border-b pb-2">
             <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Cerca" : "Search"}</legend>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Parole da cercare" : "Search terms"}<Input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={locale === "it" ? "Mittente, oggetto o contenuto…" : "Sender, subject, or message…"} aria-label={locale === "it" ? "Parole da cercare" : "Search terms"} className="h-9" /></label>
@@ -466,7 +466,7 @@ export function ConversationList({ box }: { box: string }) {
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Chiusura al" : "Closed through"}<DateField value={closedBefore} onChange={setClosedBefore} className="h-8 min-w-0" /></label>
             <label className="col-span-full flex h-8 items-center gap-2 text-xs @min-[34rem]:col-span-2"><Checkbox checked={priorityOnly} onCheckedChange={(v) => setPriorityOnly(v === true)} />{locale === "it" ? "Solo prioritarie" : "Priority only"}</label>
           </fieldset>
-          <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setSearchInput(""); router.push(`/w/${slug}/search`) }}>{locale === "it" ? "Reimposta" : "Reset"}</Button><Button type="submit" size="sm" className="h-8">{locale === "it" ? "Cerca" : "Search"}</Button></div>
+          <div className="sticky bottom-0 -mx-3 mt-1 flex justify-end gap-2 border-t bg-surface px-3 py-2 md:-mx-4 md:px-4"><Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setSearchInput(""); router.push(`/w/${slug}/search`) }}>{locale === "it" ? "Reimposta" : "Reset"}</Button><Button type="submit" size="sm" className="h-8">{locale === "it" ? "Cerca" : "Search"}</Button></div>
         </form>
       )}
 
