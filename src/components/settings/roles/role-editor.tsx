@@ -138,26 +138,26 @@ function RoleEditorBody({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-4 border-b px-5 py-5">
           <div className="flex items-end gap-2">
-            <FormField label="Name" htmlFor="role-name" error={fieldErrors.name} className="flex-1">
+            <FormField label={locale === "it" ? "Nome" : "Name"} htmlFor="role-name" error={fieldErrors.name} className="flex-1">
               <Input
                 id="role-name"
                 value={name}
                 maxLength={40}
                 disabled={nameLocked}
-                placeholder="e.g. Support agent"
+                placeholder={locale === "it" ? "es. Agente di supporto" : "e.g. Support agent"}
                 onChange={(e) => setName(e.target.value)}
                 aria-invalid={!!fieldErrors.name}
               />
             </FormField>
-            <ColorPicker value={color} onChange={setColor} label="Role color" />
+            <ColorPicker value={color} onChange={setColor} label={locale === "it" ? "Colore ruolo" : "Role color"} />
           </div>
-          <FormField label="Description" optional htmlFor="role-description" error={fieldErrors.description}>
+          <FormField label={locale === "it" ? "Descrizione" : "Description"} optional htmlFor="role-description" error={fieldErrors.description}>
             <Textarea
               id="role-description"
               rows={2}
               maxLength={200}
               value={description}
-              placeholder="Who is this role for?"
+              placeholder={locale === "it" ? "A chi è rivolto questo ruolo?" : "Who is this role for?"}
               onChange={(e) => setDescription(e.target.value)}
             />
           </FormField>

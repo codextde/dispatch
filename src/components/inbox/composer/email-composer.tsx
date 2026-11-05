@@ -219,7 +219,7 @@ export function EmailComposer({
         }
       />
       {showCc && <RecipientInput label="Cc" value={draft.cc} onChange={(cc) => update({ cc })} />}
-      {showBcc && <RecipientInput label="Bcc" value={draft.bcc} onChange={(bcc) => update({ bcc })} />}
+      {showBcc && <RecipientInput label={locale === "it" ? "Ccn" : "Bcc"} value={draft.bcc} onChange={(bcc) => update({ bcc })} />}
       {(draft.mode === "new" || draft.mode === "forward") && (
         <div className="flex items-center gap-2 border-b px-3">
           <label htmlFor="composer-subject" className="shrink-0 whitespace-nowrap text-[13px] text-muted-foreground">

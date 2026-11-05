@@ -194,7 +194,7 @@ export function ResponsesSettings({
             </EmptyState>
           </div>
         ) : (
-          <ul className="divide-y" aria-label="Canned responses">
+          <ul className="divide-y" aria-label={locale === "it" ? "Risposte predefinite" : "Canned responses"}>
             {filtered.map((r) => (
               <li key={r.id} className="group relative flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/30 sm:px-5">
                 <button

@@ -134,7 +134,7 @@ export function ServerFields({
           onChange={(e) => set({ host: e.target.value.trim() })}
         />
       </FormField>
-      <FormField label="Port" htmlFor={id("port")} error={err("port")}>
+      <FormField label={it ? "Porta" : "Port"} htmlFor={id("port")} error={err("port")}>
         <Input
           id={id("port")}
           value={value.port}

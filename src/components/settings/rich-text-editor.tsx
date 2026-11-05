@@ -300,37 +300,37 @@ export function RichTextEditor({
       <div className="flex flex-wrap items-center gap-0.5 border-b bg-surface/60 px-1.5 py-1" role="toolbar" aria-label={locale === "it" ? "Formattazione" : "Formatting"}>
         {editor && state ? (
           <>
-            <ToolbarButton label="Bold" active={state.bold} onClick={() => editor.chain().focus().toggleBold().run()}>
+            <ToolbarButton label={locale === "it" ? "Grassetto" : "Bold"} active={state.bold} onClick={() => editor.chain().focus().toggleBold().run()}>
               <Bold />
             </ToolbarButton>
-            <ToolbarButton label="Italic" active={state.italic} onClick={() => editor.chain().focus().toggleItalic().run()}>
+            <ToolbarButton label={locale === "it" ? "Corsivo" : "Italic"} active={state.italic} onClick={() => editor.chain().focus().toggleItalic().run()}>
               <Italic />
             </ToolbarButton>
-            <ToolbarButton label="Underline" active={state.underline} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+            <ToolbarButton label={locale === "it" ? "Sottolineato" : "Underline"} active={state.underline} onClick={() => editor.chain().focus().toggleUnderline().run()}>
               <UnderlineIcon />
             </ToolbarButton>
-            <ToolbarButton label="Strikethrough" active={state.strike} onClick={() => editor.chain().focus().toggleStrike().run()}>
+            <ToolbarButton label={locale === "it" ? "Barrato" : "Strikethrough"} active={state.strike} onClick={() => editor.chain().focus().toggleStrike().run()}>
               <Strikethrough />
             </ToolbarButton>
             <span className="mx-1 h-4 w-px bg-border" aria-hidden />
             <LinkButton editor={editor} active={state.link} />
             {state.link && (
-              <ToolbarButton label="Remove link" onClick={() => editor.chain().focus().extendMarkRange("link").unsetLink().run()}>
+              <ToolbarButton label={locale === "it" ? "Rimuovi link" : "Remove link"} onClick={() => editor.chain().focus().extendMarkRange("link").unsetLink().run()}>
                 <Unlink />
               </ToolbarButton>
             )}
             {allowImages && <ImageButton editor={editor} />}
             <span className="mx-1 h-4 w-px bg-border" aria-hidden />
-            <ToolbarButton label="Bulleted list" active={state.bullet} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+            <ToolbarButton label={locale === "it" ? "Elenco puntato" : "Bulleted list"} active={state.bullet} onClick={() => editor.chain().focus().toggleBulletList().run()}>
               <List />
             </ToolbarButton>
-            <ToolbarButton label="Numbered list" active={state.ordered} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+            <ToolbarButton label={locale === "it" ? "Elenco numerato" : "Numbered list"} active={state.ordered} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
               <ListOrdered />
             </ToolbarButton>
-            <ToolbarButton label="Quote" active={state.quote} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+            <ToolbarButton label={locale === "it" ? "Citazione" : "Quote"} active={state.quote} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
               <Quote />
             </ToolbarButton>
-            <ToolbarButton label="Clear formatting" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>
+            <ToolbarButton label={locale === "it" ? "Rimuovi formattazione" : "Clear formatting"} onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>
               <RemoveFormatting />
             </ToolbarButton>
           </>
