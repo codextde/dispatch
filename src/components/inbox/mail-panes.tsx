@@ -30,7 +30,7 @@ export function MailPanes({ box, children }: { box: string; children: React.Reac
           open ? "hidden" : "flex w-full"
         )}
         style={
-          (box === "search" ? { "--list-width": "820px", "--list-cap": "74vw" } : { "--list-width": `${width}px` }) as unknown as React.CSSProperties
+          (box === "search" ? { "--list-width": "1000px", "--list-cap": "80vw" } : { "--list-width": `${width}px` }) as unknown as React.CSSProperties
         }
       >
         <Suspense>
