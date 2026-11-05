@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, useTransition } from "react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, ArrowRight, CheckCircle2, Info, MailCheck, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -212,10 +213,13 @@ export function LoginForm({
         <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{t("signIn")}</div>
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="sr-only">{t("language")}</span>
-          <select value={locale} onChange={(e) => changeLocale(e.target.value as "en" | "it")} className="rounded-md border bg-card px-2 py-1 text-xs text-foreground outline-none focus:ring-2 focus:ring-ring">
-            <option value="en">English</option>
-            <option value="it">Italiano</option>
-          </select>
+          <Select value={locale} onValueChange={(v) => changeLocale(v as "en" | "it")}>
+            <SelectTrigger className="h-7 w-auto gap-1 px-2 py-1 text-xs" aria-label={t("language")}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="it">Italiano</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
       </div>
       <h1 className="text-[26px] leading-tight font-semibold tracking-tight text-balance">

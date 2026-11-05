@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DateField } from "@/components/ui/date-field"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
@@ -427,7 +428,8 @@ export function ConversationList({ box }: { box: string }) {
       </header>
 
       {isSearch && showAdvanced && (
-        <form id="search-filters" onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container shrink-0 border-b bg-surface/60 px-3 py-1.5 md:col-start-1 md:row-span-2 md:row-start-1 md:overflow-y-auto md:border-r md:border-b-0 md:px-4 md:py-2">
+        <form id="search-filters" onSubmit={(event) => { event.preventDefault(); applySearchFilters() }} className="@container shrink-0 border-b bg-surface/60 px-3 py-1.5 md:col-start-1 md:row-span-2 md:row-start-1 md:flex md:min-h-0 md:flex-col md:overflow-hidden md:border-r md:border-b-0 md:px-4 md:py-2">
+          <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
           <fieldset className="grid gap-2 border-b pb-2">
             <legend className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{locale === "it" ? "Cerca" : "Search"}</legend>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Parole da cercare" : "Search terms"}<Input type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={locale === "it" ? "Mittente, oggetto o contenuto…" : "Sender, subject, or message…"} aria-label={locale === "it" ? "Parole da cercare" : "Search terms"} className="h-9" /></label>
@@ -453,22 +455,29 @@ export function ConversationList({ box }: { box: string }) {
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Dimensione min. (KB)" : "Min size (KB)"}<Input type="number" min="0" value={largerKb} onChange={(e) => setLargerKb(e.target.value)} className="h-8 min-w-0" /></label>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Dimensione max. (KB)" : "Max size (KB)"}<Input type="number" min="0" value={smallerKb} onChange={(e) => setSmallerKb(e.target.value)} className="h-8 min-w-0" /></label>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Stato" : "Status"}
-            <select className="h-8 rounded-md border bg-background px-2 text-base text-foreground md:text-sm" value={searchState} onChange={(e) => setSearchState(e.target.value)}>
-              <option value="">{locale === "it" ? "Qualsiasi stato" : "Any status"}</option>
-              <option value="unread">{locale === "it" ? "Non lette" : "Unread"}</option><option value="read">{locale === "it" ? "Lette" : "Read"}</option>
-              <option value="open">{locale === "it" ? "Aperte" : "Open"}</option><option value="closed">{locale === "it" ? "Chiuse" : "Closed"}</option>
-              <option value="assigned">{locale === "it" ? "Assegnate" : "Assigned"}</option><option value="unassigned">{locale === "it" ? "Non assegnate" : "Unassigned"}</option>
-              <option value="starred">{locale === "it" ? "Preferite" : "Starred"}</option><option value="priority">{locale === "it" ? "Prioritarie" : "Priority"}</option>
-            </select>
+            <Select value={searchState || "any"} onValueChange={(v) => setSearchState(v === "any" ? "" : v)}>
+              <SelectTrigger className="h-8 w-full text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {([["any", "Qualsiasi stato", "Any status"], ["unread", "Non lette", "Unread"], ["read", "Lette", "Read"], ["open", "Aperte", "Open"], ["closed", "Chiuse", "Closed"], ["assigned", "Assegnate", "Assigned"], ["unassigned", "Non assegnate", "Unassigned"], ["starred", "Preferite", "Starred"], ["priority", "Prioritarie", "Priority"]] as const).map(([v, it_, en]) => (
+                  <SelectItem key={v} value={v}>{locale === "it" ? it_ : en}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
             <label className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">{locale === "it" ? "Messaggi" : "Messages"}
-              <select className="h-8 rounded-md border bg-background px-2 text-base text-foreground md:text-sm" value={attachmentMode} onChange={(e) => setAttachmentMode(e.target.value as typeof attachmentMode)}>
-                <option value="any">{locale === "it" ? "Con o senza allegati" : "With or without attachments"}</option><option value="with">{locale === "it" ? "Con allegati" : "With attachments"}</option><option value="without">{locale === "it" ? "Senza allegati" : "Without attachments"}</option>
-              </select>
+              <Select value={attachmentMode} onValueChange={(v) => setAttachmentMode(v as typeof attachmentMode)}>
+                <SelectTrigger className="h-8 w-full text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {([["any", "Con o senza allegati", "With or without attachments"], ["with", "Con allegati", "With attachments"], ["without", "Senza allegati", "Without attachments"]] as const).map(([v, it_, en]) => (
+                    <SelectItem key={v} value={v}>{locale === "it" ? it_ : en}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
             <label className="col-span-full flex h-8 items-center gap-2 text-xs @min-[34rem]:col-span-2"><Checkbox checked={priorityOnly} onCheckedChange={(v) => setPriorityOnly(v === true)} />{locale === "it" ? "Solo prioritarie" : "Priority only"}</label>
           </fieldset>
-          <div className="sticky bottom-0 -mx-3 mt-1 flex justify-end gap-2 border-t bg-surface px-3 py-2 md:-mx-4 md:px-4"><Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setSearchInput(""); router.push(`/w/${slug}/search`) }}>{locale === "it" ? "Reimposta" : "Reset"}</Button><Button type="submit" size="sm" className="h-8">{locale === "it" ? "Cerca" : "Search"}</Button></div>
+          </div>
+          <div className="-mx-3 mt-1 md:mx-0 flex justify-end gap-2 border-t bg-surface px-3 py-2 md:px-4"><Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => { setSearchInput(""); router.push(`/w/${slug}/search`) }}>{locale === "it" ? "Reimposta" : "Reset"}</Button><Button type="submit" size="sm" className="h-8">{locale === "it" ? "Cerca" : "Search"}</Button></div>
         </form>
       )}
 
