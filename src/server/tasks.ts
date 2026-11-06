@@ -48,6 +48,8 @@ export const taskFiltersSchema = z.object({
   status: z.string().max(64).optional(),
   teamId: z.uuid().optional(),
   conversationId: z.uuid().optional(),
+  dueFrom: z.iso.datetime({ offset: true }).optional(),
+  dueBefore: z.iso.datetime({ offset: true }).optional(),
   due: z.enum(["overdue", "today", "week", "upcoming", "none"]).optional(),
   q: z.string().max(200).optional(),
   /** Timezone offset of the client in minutes (Date#getTimezoneOffset) for "today" */
@@ -159,6 +161,8 @@ export async function listTasks(ctx: Ctx, filters: TaskFilters = {}): Promise<Ta
     const like = `%${filters.q.trim().replace(/[%_\\]/g, (m) => `\\${m}`)}%`
     conds.push(or(ilike(t.title, like), ilike(t.description, like))!)
   }
+  if (filters.dueFrom) conds.push(gte(t.dueAt, new Date(filters.dueFrom)))
+  if (filters.dueBefore) conds.push(lt(t.dueAt, new Date(filters.dueBefore)))
   const tz = filters.tz ?? 0
   const today = startOfDay(tz)
   const tomorrow = startOfDay(tz, 1)

@@ -163,7 +163,7 @@ export const updateWorkspaceNavigation = action(
   async ({ slug: s, hiddenItems, hiddenSections }) => {
     const ctx = await workspaceAction(s, "settings.manage")
     const allowedItems = new Set(["assigned", "mentions", "starred", "snoozed", "drafts", "scheduled", "sent"])
-    const allowedSections = new Set(["teams", "inboxes", "labels", "chats", "tasks", "contacts"])
+    const allowedSections = new Set(["teams", "inboxes", "labels", "chats", "tasks", "contacts", "calendar"])
     const items = [...new Set(hiddenItems)].filter((item) => allowedItems.has(item))
     const sections = [...new Set(hiddenSections)].filter((section) => allowedSections.has(section))
     await patchOrgSettings(ctx.org.id, (cur) => ({ ...cur, navigation: { hiddenItems: items, hiddenSections: sections } }))

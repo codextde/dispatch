@@ -10,7 +10,7 @@ import { updateWorkspaceNavigation } from "@/server/workspace/actions/general"
 import { useI18n } from "@/lib/i18n"
 
 const ITEMS = ["assigned", "mentions", "starred", "snoozed", "drafts", "scheduled", "sent"] as const
-const SECTIONS = ["teams", "inboxes", "labels", "chats", "tasks", "contacts"] as const
+const SECTIONS = ["teams", "inboxes", "labels", "chats", "tasks", "contacts", "calendar"] as const
 
 export function WorkspaceNavigationSection({ slug, initialHiddenItems, initialHiddenSections }: {
   slug: string
@@ -40,6 +40,7 @@ export function WorkspaceNavigationSection({ slug, initialHiddenItems, initialHi
     labels: it ? "Etichette" : "Labels",
     chats: it ? "Chat" : "Chats",
     tasks: it ? "Attività" : "Tasks",
+    calendar: it ? "Calendario" : "Calendar",
     contacts: it ? "Contatti" : "Contacts",
   }
   const save = (nextItems: string[], nextSections: string[]) => {

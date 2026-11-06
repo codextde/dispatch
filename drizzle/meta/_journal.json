@@ -29,6 +29,20 @@
       "when": 1790540929284,
       "tag": "0003_password_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793957398311,
+      "tag": "0004_calendar",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793958068383,
+      "tag": "0005_calendar_invitations",
+      "breakpoints": true
     }
   ]
 }

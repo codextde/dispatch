@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import {
+  CalendarDays,
   Contact,
   Hash,
   Keyboard,
@@ -202,6 +203,7 @@ export function CommandPalette() {
       })
     }
     if (!hiddenSections.includes("tasks")) items.push({ id: "page:tasks", label: locale === "it" ? "Attività" : "Tasks", keywords: "todo", icon: SquareCheckBig, run: () => router.push(`${base}/tasks`) })
+    if (can("calendar.use") && !hiddenSections.includes("calendar")) items.push({ id: "page:calendar", label: locale === "it" ? "Calendario" : "Calendar", keywords: "event agenda appointment", icon: CalendarDays, run: () => router.push(`${base}/calendar`) })
     if (!hiddenSections.includes("contacts")) items.push({ id: "page:contacts", label: locale === "it" ? "Contatti" : "Contacts", keywords: "people address book", icon: Contact, run: () => router.push(`${base}/contacts`) })
     items.push({ id: "page:settings", label: locale === "it" ? "Impostazioni" : "Settings", keywords: "preferences workspace", icon: Settings, run: () => router.push(`${base}/settings`) })
     return items

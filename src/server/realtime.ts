@@ -31,6 +31,7 @@ export type RealtimeEvent = {
     | "account.updated"
     | "labels.updated"
     | "task.updated"
+    | "calendar.updated"
     | "org.updated"
   conversationId?: string
   /** Restrict delivery to these users (e.g. notifications). Omit = everyone in org (subject to visibility refetch). */

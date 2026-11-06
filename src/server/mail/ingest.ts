@@ -5,7 +5,8 @@ import type { Account, Conversation, Message, OrgSettings, Participant } from "@
 import { nextConversationNumber } from "@/server/orgs"
 import { deleteObject, makeStorageKey, putObject } from "@/server/storage"
 import { publish } from "@/server/realtime"
-import { emitWebhook } from "@/server/jobs"
+import { isCalendarAttachment } from "@/server/calendar/invitations"
+import { emitWebhook, enqueueJob } from "@/server/jobs"
 import { notify } from "@/server/notifications"
 import { upsertContactsFromParticipants } from "@/server/contacts"
 import { runRules } from "@/server/rules/engine"
@@ -315,7 +316,7 @@ export async function ingestRawMessage(input: IngestInput): Promise<IngestResult
       if (!message) throw new DuplicateMessage()
 
       if (stored.length) {
-        await tx.insert(schema.attachments).values(
+        const inserted = await tx.insert(schema.attachments).values(
           stored.map((s) => ({
             orgId: account.orgId,
             messageId: message.id,
@@ -326,7 +327,12 @@ export async function ingestRawMessage(input: IngestInput): Promise<IngestResult
             contentId: s.contentId,
             isInline: s.isInline,
           }))
-        )
+        ).returning({ id: schema.attachments.id, contentType: schema.attachments.contentType, filename: schema.attachments.filename })
+        if (mode === "live" && direction === "inbound") {
+          for (const attachment of inserted.filter(isCalendarAttachment)) {
+            await enqueueJob("calendar.invitation", { orgId: account.orgId, attachmentId: attachment.id }, { tx })
+          }
+        }
       }
 
       const set: Partial<typeof schema.conversations.$inferInsert> = {}

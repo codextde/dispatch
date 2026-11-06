@@ -47,6 +47,16 @@ export const PERMISSIONS = {
     label: "Create team chats",
     description: "Start internal chat rooms with teammates.",
   },
+  "calendar.use": {
+    group: "Collaboration",
+    label: "Use calendar",
+    description: "Use personal calendars and collaborate on shared events.",
+  },
+  "calendar.manage": {
+    group: "Collaboration",
+    label: "Manage shared calendars",
+    description: "Create shared calendars and manage their events.",
+  },
   "tasks.read": {
     group: "Collaboration",
     label: "Read tasks",
@@ -188,6 +198,7 @@ export const SYSTEM_ROLES: Record<
       "conversations.assign",
       "conversations.export",
       "chats.create",
+      "calendar.use",
       "tasks.read",
       "tasks.manage",
       "contacts.view",

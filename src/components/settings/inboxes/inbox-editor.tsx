@@ -93,7 +93,7 @@ export function InboxEditor({
   oauth: { google: boolean; microsoft: boolean }
 }) {
   const { t, locale } = useI18n()
-  const { org } = useOrg()
+  const { org, can } = useOrg()
   const router = useRouter()
   const scope = inbox.scope
   const base = `/w/${org.slug}/settings/${scope === "shared" ? "inboxes" : "personal-inboxes"}`
@@ -187,6 +187,9 @@ export function InboxEditor({
       actions={
         !isDemo && (
           <>
+            {isImap && can("calendar.use") && <Button variant="outline" size="sm" asChild>
+              <Link href={`/w/${org.slug}/calendar?mailbox=${inbox.id}`}>{locale === "it" ? "Collega calendario" : "Connect calendar"}</Link>
+            </Button>}
             {inbox.status !== "paused" && (
               <Button
                 variant="outline"

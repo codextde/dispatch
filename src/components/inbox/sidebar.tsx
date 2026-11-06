@@ -6,6 +6,7 @@ import { useMemo, useState } from "react"
 import {
   AtSign,
   CalendarClock,
+  CalendarDays,
   ChevronRight,
   CircleCheck,
   CircleDashed,
@@ -473,6 +474,16 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
             </Button>
           </TooltipTrigger>
           <TooltipContent>{t("inboxUiTasks")}</TooltipContent>
+        </Tooltip>}
+        {can("calendar.use") && !workspaceHiddenSections.includes("calendar") && <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" asChild className="max-lg:size-10">
+              <Link href={`${base}/calendar`} onClick={onNavigate} aria-label={locale === "it" ? "Calendario" : "Calendar"}>
+                <CalendarDays />
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{locale === "it" ? "Calendario" : "Calendar"}</TooltipContent>
         </Tooltip>}
         {!workspaceHiddenSections.includes("contacts") && <Tooltip>
           <TooltipTrigger asChild>

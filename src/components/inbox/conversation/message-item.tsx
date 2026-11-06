@@ -15,6 +15,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { InvitationCard } from "@/components/calendar/invitation-card"
+import { useOrg } from "@/components/app/org-provider"
 import { UserAvatar } from "@/components/app/user-avatar"
 import { api } from "@/lib/api-client"
 import { formatAddress, fullTime, memberName, participantName, threadTime, untilLabel } from "@/lib/inbox/format"
@@ -172,6 +174,7 @@ export function MessageItem({
   onToggle: () => void
   canReply: boolean
 }) {
+  const { can } = useOrg()
   const { t, locale } = useI18n()
   const { account, member, ownAddresses } = useInbox()
   const from: Participant = { name: message.fromName, email: message.fromEmail }
@@ -322,6 +325,9 @@ export function MessageItem({
       </header>
       <div className="px-4 pb-4">
         <MessageBodyView message={message} />
+        {can("calendar.use") && message.direction === "inbound" && message.attachments
+          .filter((file) => file.contentType.split(";")[0] === "text/calendar" || /\.ics$/i.test(file.filename))
+          .map((file) => <InvitationCard key={file.id} attachmentId={file.id} />)}
         <AttachmentList attachments={message.attachments} className="mt-3" />
         {message.direction === "outbound" && <OutboundStatus message={message} conversationId={conversationId} />}
       </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowLeft, BookUser, ListTodo } from "lucide-react"
+import { ArrowLeft, BookUser, CalendarDays, ListTodo } from "lucide-react"
 import { useOrg } from "@/components/app/org-provider"
 import { UserMenu, WorkspaceSwitcher } from "@/components/app/user-menu"
 import { cn } from "@/lib/utils"
@@ -13,13 +13,14 @@ import { useI18n } from "@/lib/i18n"
  * back to inbox, workspace switcher, area switch, page actions, user menu.
  */
 export function AreaTopBar({ children }: { children?: React.ReactNode }) {
-  const { org } = useOrg()
+  const { org, can } = useOrg()
   const { t, locale } = useI18n()
   const pathname = usePathname()
   const base = `/w/${org.slug}`
   const areas = [
     { href: `${base}/tasks`, label: t("tasks"), icon: ListTodo },
     { href: `${base}/contacts`, label: t("contacts"), icon: BookUser },
+    ...(can("calendar.use") && !org.navigation.hiddenSections.includes("calendar") ? [{ href: `${base}/calendar`, label: locale === "it" ? "Calendario" : "Calendar", icon: CalendarDays }] : []),
   ]
   return (
     <header className="safe-top sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur sm:px-4">
@@ -47,7 +48,7 @@ export function AreaTopBar({ children }: { children?: React.ReactNode }) {
               )}
             >
               <a.icon className="size-3.5" />
-              {a.label}
+              <span className="sr-only sm:not-sr-only">{a.label}</span>
             </Link>
           )
         })}

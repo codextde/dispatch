@@ -1224,3 +1224,39 @@ export type Webhook = typeof webhooks.$inferSelect
 export type ApiKey = typeof apiKeys.$inferSelect
 export type Notification = typeof notifications.$inferSelect
 export type AuditLog = typeof auditLogs.$inferSelect
+
+export const calendars = pgTable("calendars", {
+  id: id(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  ownerId: uuid("owner_id").references(() => users.id, { onDelete: "cascade" }),
+  accountId: uuid("account_id").references(() => accounts.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  remotePath: text("remote_path"),
+  credentialEnc: text("credential_enc"),
+  syncedAt: ts("synced_at"),
+  syncError: text("sync_error"),
+  createdAt: createdAt(),
+}, (t) => [
+  index("calendars_org_idx").on(t.orgId),
+  uniqueIndex("calendars_remote_uidx").on(t.orgId, t.accountId, t.remotePath),
+])
+
+export const calendarEvents = pgTable("calendar_events", {
+  id: id(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  calendarId: uuid("calendar_id").notNull().references(() => calendars.id, { onDelete: "cascade" }),
+  creatorId: uuid("creator_id").references(() => users.id, { onDelete: "set null" }),
+  conversationId: uuid("conversation_id").references(() => conversations.id, { onDelete: "set null" }),
+  ics: text("ics").notNull(),
+  invitationKey: text("invitation_key"),
+  invitationVersions: jsonb("invitation_versions").$type<Record<string, { sequence: number; stamp: number; response?: string }>>(),
+  organizerAccountId: uuid("organizer_account_id").references(() => accounts.id, { onDelete: "set null" }),
+  remotePath: text("remote_path"),
+  etag: text("etag"),
+  version: uuid("version").notNull().defaultRandom(),
+  createdAt: createdAt(),
+}, (t) => [
+  index("calendar_events_invitation_idx").on(t.orgId, t.invitationKey),
+  index("calendar_events_org_calendar_idx").on(t.orgId, t.calendarId),
+  uniqueIndex("calendar_events_remote_uidx").on(t.calendarId, t.remotePath),
+])

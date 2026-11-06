@@ -14,6 +14,9 @@
  * emitWebhook and the inbox when queueing mail). Multiple workers can run
  * side by side: every claim uses FOR UPDATE SKIP LOCKED.
  */
+import { handleCalendarMail, handleInvitationUpdate } from "@/server/calendar/invitations"
+import { sendCalendarReminders } from "@/server/calendar/reminders"
+import { syncArubaCalendars } from "@/server/calendar/sync"
 import fs from "node:fs"
 import postgres from "postgres"
 import { sql } from "drizzle-orm"
@@ -138,6 +141,8 @@ async function main() {
     }
   }
   const handlers: Record<string, JobHandler> = {
+    "calendar.mail": handleCalendarMail,
+    "calendar.invitation": handleInvitationUpdate,
     "account.sync": broadcastRestart,
     "account.test": broadcastRestart,
     "imap.append_sent": async (p) => {
@@ -156,7 +161,9 @@ async function main() {
     writeHeartbeat({ startedAt, version: VERSION, stats: () => accounts.stats(), lastError: () => lastError })
   const heartbeatLoop = new Loop("heartbeat", 30_000, heartbeat)
   const cleanupLoop = new Loop("cleanup", 3600_000, cleanup, 60_000)
-  const loops = [sendLoop, jobsLoop, webhookLoop, snoozeLoop, accountsLoop, heartbeatLoop, cleanupLoop]
+  const calendarLoop = new Loop("calendars", 60_000, syncArubaCalendars)
+  const reminderLoop = new Loop("calendar-reminders", 30_000, sendCalendarReminders)
+  const loops = [calendarLoop, reminderLoop, sendLoop, jobsLoop, webhookLoop, snoozeLoop, accountsLoop, heartbeatLoop, cleanupLoop]
 
   const stuck = await recoverStuckSends().catch(() => 0)
   if (stuck) log.warn("marked interrupted sends as failed", { count: stuck })

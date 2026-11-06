@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { CalendarPlus } from "lucide-react"
 import { useState } from "react"
 import {
   ArchiveRestore,
@@ -142,7 +144,7 @@ function Hint({ action }: { action: ShortcutAction }) {
 }
 
 export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: { conv: ConversationDetail; cmd: ConversationCommands; detailsOpen: boolean; onToggleDetails: () => void }) {
-  const { account, team, label, member, meId, bootstrap } = useInbox()
+  const { account, team, label, member, meId, bootstrap, slug } = useInbox()
   const { t, locale } = useI18n()
   const { can } = useOrg()
   const hint = useShortcutHint()
@@ -304,6 +306,11 @@ export function ConversationHeader({ conv, cmd, detailsOpen, onToggleDetails }: 
                 {conv.muted ? <Volume2 /> : <VolumeX />} {conv.muted ? t("inboxUiUnmute") : t("inboxUiMuteNotifications")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              {can("calendar.use") && <DropdownMenuItem asChild>
+                <Link href={`/w/${slug}/calendar?${new URLSearchParams({ conversation: conv.id })}`}>
+                  <CalendarPlus /> {locale === "it" ? "Crea evento" : "Create event"}
+                </Link>
+              </DropdownMenuItem>}
               <DropdownMenuItem onSelect={cmd.copyLink}>
                 <Copy /> {t("copyLink")}
               </DropdownMenuItem>

@@ -69,6 +69,7 @@ export function DocumentTitle() {
         if (section === "rules" && segments[4] === "new") key = locale === "it" ? "Nuova regola" : "New rule"
         else key = section ? workspaceTitles[section] : "workspaceSettings"
       } else if (area === "analytics" || area === "contacts" || area === "tasks") key = workspaceTitles[area]
+      else if (area === "calendar") key = locale === "it" ? "Calendario" : "Calendar"
       else if (segments[3]) return // Conversation subject is set by the conversation view.
       else if (area === "chats") key = locale === "it" ? "Chat" : "Chats"
       else if (area === "search") key = locale === "it" ? "Ricerca avanzata" : "Advanced search"
