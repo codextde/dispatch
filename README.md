@@ -11,9 +11,9 @@
 Self-host for free or use Dispatch Cloud for $50/month.</p>
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/codextde/dispatch?style=flat&logo=github)](https://github.com/codextde/dispatch/stargazers)
-[![Docker image](https://img.shields.io/badge/ghcr.io-codextde%2Fdispatch-2496ED?logo=docker&logoColor=white)](https://github.com/codextde/dispatch/pkgs/container/dispatch)
-[![CI](https://github.com/codextde/dispatch/actions/workflows/ci.yml/badge.svg)](https://github.com/codextde/dispatch/actions/workflows/ci.yml)
+[![GitHub stars](https://img.shields.io/github/stars/LSalami/dispatch?style=flat&logo=github)](https://github.com/LSalami/dispatch/stargazers)
+[![Docker image](https://img.shields.io/badge/ghcr.io-lsalami%2Fdispatch-2496ED?logo=docker&logoColor=white)](https://github.com/LSalami/dispatch/pkgs/container/dispatch)
+[![CI](https://github.com/LSalami/dispatch/actions/workflows/ci.yml/badge.svg)](https://github.com/LSalami/dispatch/actions/workflows/ci.yml)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Deploy on Coolify](https://img.shields.io/badge/deploy%20on-Coolify-8C52FF.svg)](docs/coolify.md)
 
@@ -92,7 +92,7 @@ Self-host for free or use Dispatch Cloud for $50/month.</p>
 On any server with Docker and a domain pointing to it:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/codextde/dispatch/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/LSalami/dispatch/main/docker-compose.yml
 echo "DOMAIN=mail.example.com" > .env
 docker compose up -d
 ```
@@ -100,7 +100,7 @@ docker compose up -d
 This starts the app, worker and PostgreSQL. The compose file publishes no ports, so put your reverse proxy in front of `app:3000`. Or download the [override with a bundled Caddy](docker-compose.override.example.yml) for automatic HTTPS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/codextde/dispatch/main/docker-compose.override.example.yml -o docker-compose.override.yml
+curl -fsSL https://raw.githubusercontent.com/LSalami/dispatch/main/docker-compose.override.example.yml -o docker-compose.override.yml
 docker compose up -d
 ```
 
@@ -169,7 +169,7 @@ The **app** serves the UI, API and realtime stream. The **worker** syncs mailbox
 - [ ] Website live chat widget
 - [ ] Importers for Missive and Front
 
-Have an idea? [Start a discussion](https://github.com/codextde/dispatch/discussions) or upvote existing [feature requests](https://github.com/codextde/dispatch/issues?q=is%3Aissue+label%3Aenhancement).
+Have an idea? [Start a discussion](https://github.com/LSalami/dispatch/discussions) or upvote existing [feature requests](https://github.com/LSalami/dispatch/issues?q=is%3Aissue+label%3Aenhancement).
 
 ## Contributing
 
@@ -177,7 +177,7 @@ Contributions are welcome: bug reports, docs, translations and code. Read [CONTR
 
 ## Security
 
-Please report vulnerabilities privately via [GitHub security advisories](https://github.com/codextde/dispatch/security/advisories/new), not in public issues. See [SECURITY.md](SECURITY.md).
+Please report vulnerabilities privately via [GitHub security advisories](https://github.com/LSalami/dispatch/security/advisories/new), not in public issues. See [SECURITY.md](SECURITY.md).
 
 ## License
 
@@ -187,7 +187,7 @@ Dispatch is licensed under the [GNU Affero General Public License v3.0](LICENSE)
 - **You can modify it.** If you let people use a modified version over a network, for example as a hosted service, you must offer them the source code of your modifications under the AGPL-3.0.
 - **Running it as a service is allowed.** The same condition applies: changes you make must be published to your users under the AGPL.
 
-Dispatch is built and maintained by [Codext GmbH](https://github.com/codextde), Germany. Dispatch Cloud is the hosted version run by the maintainers, and it funds development.
+Dispatch is originally built by [Codext GmbH](https://github.com/codextde), Germany. This is an independent fork maintained in this repository (AGPL-3.0-only, see [LICENSE](LICENSE)).
 
 ## Acknowledgements
 

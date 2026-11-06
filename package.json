@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "The open-source collaborative inbox for teams — shared Gmail & IMAP inboxes, internal comments, assignments and automation.",
   "license": "AGPL-3.0-only",
-  "homepage": "https://github.com/codextde/dispatch",
+  "homepage": "https://github.com/LSalami/dispatch",
   "repository": {
     "type": "git",
-    "url": "https://github.com/codextde/dispatch.git"
+    "url": "https://github.com/LSalami/dispatch.git"
   },
   "private": true,
   "scripts": {

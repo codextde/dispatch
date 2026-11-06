@@ -1,6 +1,6 @@
 # Upgrading
 
-Dispatch follows [semantic versioning](https://semver.org). Minor and patch releases can be applied directly. Major releases may need manual steps, which are listed below and in the [release notes](https://github.com/codextde/dispatch/releases).
+Dispatch follows [semantic versioning](https://semver.org). Minor and patch releases can be applied directly. Major releases may need manual steps, which are listed below and in the [release notes](https://github.com/LSalami/dispatch/releases).
 
 Database migrations run automatically when the new version starts. They're idempotent and guarded by a Postgres advisory lock, so the app and worker never run them twice.
 
@@ -39,7 +39,7 @@ Image tags:
 Also refresh `docker-compose.yml` from the repository when a release note says so:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/codextde/dispatch/main/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/LSalami/dispatch/main/docker-compose.yml
 ```
 
 ## Coolify

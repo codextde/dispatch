@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 #
 # Dispatch — one image, two roles:
-#   docker run ghcr.io/codextde/dispatch          web app (Next.js standalone server on :3000)
-#   docker run ghcr.io/codextde/dispatch worker   background worker (IMAP sync, sending, rules, webhooks)
+#   docker run ghcr.io/lsalami/dispatch          web app (Next.js standalone server on :3000)
+#   docker run ghcr.io/lsalami/dispatch worker   background worker (IMAP sync, sending, rules, webhooks)
 # See docker-compose.yml for the full stack and docs/self-hosting.md for details.
 
 # ---------------------------------------------------------------------------
@@ -41,11 +41,11 @@ FROM node:24-alpine AS runner
 
 LABEL org.opencontainers.image.title="Dispatch" \
       org.opencontainers.image.description="The open-source collaborative inbox for teams: shared Gmail, Outlook and IMAP inboxes with comments, assignments and automation." \
-      org.opencontainers.image.source="https://github.com/codextde/dispatch" \
-      org.opencontainers.image.url="https://github.com/codextde/dispatch" \
-      org.opencontainers.image.documentation="https://github.com/codextde/dispatch/tree/main/docs" \
+      org.opencontainers.image.source="https://github.com/LSalami/dispatch" \
+      org.opencontainers.image.url="https://github.com/LSalami/dispatch" \
+      org.opencontainers.image.documentation="https://github.com/LSalami/dispatch/tree/main/docs" \
       org.opencontainers.image.licenses="AGPL-3.0-only" \
-      org.opencontainers.image.vendor="Codext GmbH"
+      org.opencontainers.image.vendor="LSalami"
 
 # tini: proper PID 1 (signal forwarding, zombie reaping)
 RUN apk add --no-cache tini \

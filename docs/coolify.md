@@ -33,11 +33,11 @@ Pick **one** of the two ways. Both use the same compose file.
 The compose file stays in sync with the repository, and Coolify can redeploy when it changes.
 
 1. In your project, click **+ New** and choose **Public Repository**.
-2. Repository URL: `https://github.com/codextde/dispatch`, branch `main`.
+2. Repository URL: `https://github.com/LSalami/dispatch`, branch `main`.
 3. Build pack: **Docker Compose**. Base directory `/`, Docker Compose location `/docker-compose.yml`.
 4. Click **Continue**. Coolify reads the compose file and shows the services `app`, `worker` and `db`.
 
-Nothing is built on your server: the compose file uses the prebuilt image `ghcr.io/codextde/dispatch`, so Coolify only pulls it.
+Nothing is built on your server: the compose file uses the prebuilt image `ghcr.io/lsalami/dispatch`, so Coolify only pulls it.
 
 ### Option B: paste the compose file
 
@@ -92,7 +92,7 @@ Deleting the resource with "delete volumes" deletes all data. Back up `dispatch-
 
 Dispatch applies database migrations automatically when the new version starts.
 
-- **Pinned version (recommended):** set `DISPATCH_VERSION` to the new release (see [releases](https://github.com/codextde/dispatch/releases)) and click **Redeploy**. A new tag always makes Coolify pull the new image.
+- **Pinned version (recommended):** set `DISPATCH_VERSION` to the new release (see [releases](https://github.com/LSalami/dispatch/releases)) and click **Redeploy**. A new tag always makes Coolify pull the new image.
 - **Tracking `latest`:** redeploy and make sure Coolify pulls the image again instead of reusing the cached `latest` (depending on your Coolify version, via the *pull latest images* option of the redeploy/restart action).
 
 Read the [upgrade notes](upgrading.md) before jumping major versions, and take a backup first.

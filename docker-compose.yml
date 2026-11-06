@@ -17,7 +17,7 @@
 
 services:
   app:
-    image: ghcr.io/codextde/dispatch:${DISPATCH_VERSION:-latest}
+    image: ghcr.io/lsalami/dispatch:${DISPATCH_VERSION:-latest}
     restart: unless-stopped
     environment:
       # Public hostname, e.g. mail.example.com. On Coolify it falls back to the
@@ -39,7 +39,7 @@ services:
       start_period: 60s
 
   worker:
-    image: ghcr.io/codextde/dispatch:${DISPATCH_VERSION:-latest}
+    image: ghcr.io/lsalami/dispatch:${DISPATCH_VERSION:-latest}
     command: worker
     restart: unless-stopped
     environment:

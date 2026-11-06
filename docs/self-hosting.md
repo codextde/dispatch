@@ -35,8 +35,8 @@ A small cloud VM (e.g. 2 vCPU / 4 GB) comfortably serves a team of dozens with s
 mkdir -p /opt/dispatch && cd /opt/dispatch
 
 # 1. Get the compose file and the Caddy override (automatic HTTPS)
-curl -fsSLO https://raw.githubusercontent.com/codextde/dispatch/main/docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/codextde/dispatch/main/docker-compose.override.example.yml -o docker-compose.override.yml
+curl -fsSLO https://raw.githubusercontent.com/LSalami/dispatch/main/docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/LSalami/dispatch/main/docker-compose.override.example.yml -o docker-compose.override.yml
 
 # 2. Set your domain (the only setting)
 echo "DOMAIN=mail.example.com" > .env
@@ -229,4 +229,4 @@ docker compose exec app sh                                   # shell in the app 
 | Realtime updates only after refresh | A proxy is buffering Server-Sent Events. Disable buffering (`proxy_buffering off` in nginx). |
 | `password authentication failed for user "dispatch"` | The secrets volume was recreated while the database was kept. Restart `db` first, which re-applies the password, then `app` and `worker`. |
 
-Still stuck? Open a [discussion](https://github.com/codextde/dispatch/discussions) or a [bug report](https://github.com/codextde/dispatch/issues/new/choose) with the output of `docker compose ps` and the relevant logs (remove personal data).
+Still stuck? Open a [discussion](https://github.com/LSalami/dispatch/discussions) or a [bug report](https://github.com/LSalami/dispatch/issues/new/choose) with the output of `docker compose ps` and the relevant logs (remove personal data).

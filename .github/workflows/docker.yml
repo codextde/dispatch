@@ -1,6 +1,6 @@
 name: Docker image
 
-# Builds ghcr.io/codextde/dispatch for linux/amd64 and linux/arm64 on native
+# Builds ghcr.io/lsalami/dispatch for linux/amd64 and linux/arm64 on native
 # runners (no QEMU) with Docker's reusable github-builder workflow, which adds
 # SLSA provenance, an SBOM and signed attestations.
 #
@@ -41,7 +41,7 @@ jobs:
       output: image
       push: ${{ github.event_name != 'pull_request' }}
       platforms: linux/amd64,linux/arm64
-      meta-images: ghcr.io/codextde/dispatch
+      meta-images: ghcr.io/lsalami/dispatch
       meta-tags: |
         type=ref,event=branch
         type=semver,pattern={{version}}

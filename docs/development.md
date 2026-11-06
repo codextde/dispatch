@@ -11,7 +11,7 @@ This guide gets Dispatch running locally and explains how the code is organized.
 ## Setup
 
 ```bash
-git clone https://github.com/codextde/dispatch.git
+git clone https://github.com/LSalami/dispatch.git
 cd dispatch
 corepack enable
 pnpm install
@@ -109,7 +109,7 @@ The full list lives in [AGENTS.md](../AGENTS.md). The essentials:
 ## Building the Docker image locally
 
 ```bash
-docker build -t ghcr.io/codextde/dispatch:dev .
+docker build -t ghcr.io/lsalami/dispatch:dev .
 echo "DISPATCH_VERSION=dev" >> .env      # next to docker-compose.yml
 docker compose up -d
 ```
