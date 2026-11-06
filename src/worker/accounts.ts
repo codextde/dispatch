@@ -21,6 +21,7 @@ import {
   type ReconcileState,
   type SyncContext,
 } from "@/server/mail/sync"
+import { reconcileRemoteMoves } from "@/server/mail/remote-moves"
 import { OAuthReauthRequiredError } from "@/server/oauth/tokens"
 import type { FolderRole } from "@/server/mail/ingest"
 import { createLogger, type Logger } from "./log"
@@ -99,6 +100,8 @@ export class AccountSync {
   private sessionError: unknown = null
   private failures = new Map<string, number>()
   private reconcile: ReconcileState | null = null
+  private remoteMoveCursor: string | null = null
+  private nextRemoteMoveCheck = 0
   private backoff = BASE_BACKOFF_MS
   private forceTokenRefresh = false
   private pending = 0
@@ -341,7 +344,7 @@ export class AccountSync {
     let imported = false
     for (const role of ["inbox", "sent", "junk"] as const) {
       const res = await this.syncFolder(role)
-      if (res?.mode === "initial") imported = true
+      if (res?.mode === "initial" && res.created > 0) imported = true
     }
     if (imported) {
       await closeAnsweredConversations(this.accountId)
@@ -369,6 +372,15 @@ export class AccountSync {
     }
     if (this.paths && this.reconcile && (this.account!.config.markReadOnServer || this.account!.config.syncArchive)) {
       await reconcileServerState(this.ctx(), this.paths, this.reconcile)
+    }
+    if (this.paths && Date.now() >= this.nextRemoteMoveCheck) {
+      this.nextRemoteMoveCheck = Date.now() + 60_000
+      try {
+        this.remoteMoveCursor = await reconcileRemoteMoves(this.ctx(), this.paths, this.remoteMoveCursor)
+      } catch (err) {
+        if (!this.client?.usable) throw err
+        this.log.warn("could not check mail server moves")
+      }
     }
     await this.selectInbox()
     this.lastError = null

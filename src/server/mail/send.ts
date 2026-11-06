@@ -2,7 +2,7 @@ import "server-only"
 import { and, eq, inArray, isNull, lt, lte, or, sql } from "drizzle-orm"
 import { db, schema } from "@/server/db"
 import type { Account, Message, Participant } from "@/server/db/schema"
-import { getObjectBuffer } from "@/server/storage"
+import { readAttachmentBuffer } from "@/server/mail/remote-attachments"
 import { publish } from "@/server/realtime"
 import { emitWebhook, enqueueJob } from "@/server/jobs"
 import { notify } from "@/server/notifications"
@@ -107,7 +107,7 @@ async function loadAttachments(messageId: string): Promise<MimeAttachment[]> {
   const rows = await db.select().from(schema.attachments).where(eq(schema.attachments.messageId, messageId))
   const out: MimeAttachment[] = []
   for (const a of rows) {
-    const content = await getObjectBuffer(a.storageKey)
+    const content = await readAttachmentBuffer(a)
     // Storage reports every read error as null: treat it as retryable (3 attempts)
     if (!content) throw new Error(`The attachment “${a.filename}” could not be read from storage.`)
     out.push({ filename: a.filename, contentType: a.contentType, content, contentId: a.contentId, isInline: a.isInline })
@@ -253,6 +253,8 @@ async function markSent(msg: Message, messageId: string, size: number, sentAt: D
           },
         })
     }
+    const link = row?.headers["x-dispatch-imap-draft"]
+    if (link) await enqueueJob("imap.remove_draft", { orgId: msg.orgId, link }, { tx })
     return row!
   })
 }

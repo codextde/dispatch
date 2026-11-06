@@ -287,7 +287,7 @@ export function InboxEditor({
           </FormField>
           {!isDemo && (
             <SettingsRows>
-              <SettingsRow label={t("inboxImportHistory")} description={t("inboxImportHistoryDescription")}>
+              <SettingsRow label={t("inboxImportHistory")} description={locale === "it" ? "Seleziona lo storico da importare quando Dispatch inizia a sincronizzare una cartella. Con Solo nuove, lo storico resta consultabile in Cartelle sul server." : "Choose how much history to import when Dispatch starts syncing a folder. With New only, history remains available in Server folders."}>
                 <SyncDaysField value={form.syncDays} onChange={(syncDays) => setForm((f) => ({ ...f, syncDays }))} />
               </SettingsRow>
             </SettingsRows>

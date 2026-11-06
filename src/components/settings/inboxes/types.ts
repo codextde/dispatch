@@ -7,9 +7,9 @@ export type InboxScope = "shared" | "personal"
 export type InboxProvider = "imap" | "gmail" | "outlook" | "demo"
 export type InboxStatus = "pending" | "syncing" | "active" | "error" | "paused"
 export type AccessLevel = "read" | "reply" | "manage"
-export type SyncDays = 7 | 30 | 90 | 365
+export type SyncDays = 0 | 7 | 30 | 90 | 365
 
-export const SYNC_DAY_OPTIONS: SyncDays[] = [7, 30, 90, 365]
+export const SYNC_DAY_OPTIONS: SyncDays[] = [0, 7, 30, 90, 365]
 
 export type MailPreset = {
   id: string

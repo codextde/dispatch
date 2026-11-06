@@ -17,7 +17,7 @@
  *  snoozed     Active conversations snoozed until a future time.
  *  drafts      Conversations containing one of my drafts.
  *  scheduled   Conversations with a message I scheduled to send later.
- *  sent        Conversations with an outbound message written by me.
+ *  sent        Visible conversations with sent mail, or with an outbound send in progress or failed for me.
  *  unassigned  Open, awake, active conversations nobody is assigned to.
  *  all         Every active email conversation (any status, snoozed too).
  *  closed      Closed, active conversations.
@@ -135,7 +135,7 @@ export const STATIC_BOX_META: Record<StaticBox, { title: string; description: st
   snoozed: { title: "Snoozed", description: "Conversations that will come back later" },
   drafts: { title: "Drafts", description: "Replies and messages you have not sent yet" },
   scheduled: { title: "Scheduled", description: "Messages scheduled to be sent later" },
-  sent: { title: "Sent", description: "Conversations you replied to" },
+  sent: { title: "Sent", description: "Conversations with sent email" },
   unassigned: { title: "Unassigned", description: "Open conversations nobody owns yet" },
   all: { title: "All conversations", description: "Everything you have access to" },
   closed: { title: "Closed", description: "Conversations that are done" },

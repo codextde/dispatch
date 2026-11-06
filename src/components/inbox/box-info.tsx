@@ -51,7 +51,7 @@ const EMPTY: Record<StaticBox, { title: string; description: string }> = {
   snoozed: { title: "Nothing snoozed", description: "Snooze a conversation with H and it will come back when you need it." },
   drafts: { title: "No drafts", description: "Replies you start and don't send are saved here automatically." },
   scheduled: { title: "Nothing scheduled", description: "Use “Send later” in the composer to schedule a message." },
-  sent: { title: "Nothing sent yet", description: "Conversations you replied to or started appear here." },
+  sent: { title: "Nothing sent yet", description: "Conversations with sent email appear here." },
   unassigned: { title: "Everything has an owner", description: "Open conversations without an assignee show up here." },
   all: { title: "No conversations yet", description: "Connect an inbox to start receiving email." },
   closed: { title: "Nothing closed yet", description: "Close conversations with E when they're done." },

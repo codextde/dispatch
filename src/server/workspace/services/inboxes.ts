@@ -89,7 +89,7 @@ export const inboxSettingsSchema = z.object({
   color: z.string().regex(/^#[0-9a-f]{6}$/i, "Pick a color"),
   teamId: z.uuid().nullable().optional(),
   fromName: z.string().trim().max(120).optional().default(""),
-  syncDays: z.union([z.literal(7), z.literal(30), z.literal(90), z.literal(365)]),
+  syncDays: z.union([z.literal(0), z.literal(7), z.literal(30), z.literal(90), z.literal(365)]),
   aliases: emailList,
   autoCc: emailList,
   autoBcc: emailList,

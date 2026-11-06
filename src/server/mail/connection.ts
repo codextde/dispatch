@@ -156,13 +156,14 @@ export function resolveMailboxPaths(config: AccountConfig, mailboxes: MailboxInf
   const exists = (p: string | undefined) => (p && mailboxes.some((m) => m.path === p) ? p : null)
   const byUse = (use: string) => mailboxes.find((m) => m.specialUse === use)?.path ?? null
   const all = byUse("\\All")
+  const namedDrafts = mailboxes.filter((mailbox) => !mailbox.specialUse && /^(drafts|bozze)$/i.test(mailbox.name))
   return {
     inbox: exists(config.inboxPath) ?? "INBOX",
     sent: exists(config.sentPath) ?? byUse("\\Sent"),
     archive: exists(config.archivePath) ?? byUse("\\Archive") ?? all,
     trash: exists(config.trashPath) ?? byUse("\\Trash"),
     junk: exists(config.spamPath) ?? byUse("\\Junk"),
-    drafts: byUse("\\Drafts"),
+    drafts: byUse("\\Drafts") ?? (namedDrafts.length === 1 ? namedDrafts[0]!.path : null),
     all,
   }
 }

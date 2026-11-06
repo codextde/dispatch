@@ -1,7 +1,8 @@
 import { ApiError, route } from "@/server/api"
 import { assertUuid, inboxContext } from "@/server/conversations/context"
 import { INLINE_TYPES, getAuthorizedAttachment } from "@/server/conversations/files"
-import { getObject } from "@/server/storage"
+import { readAttachmentBuffer } from "@/server/mail/remote-attachments"
+import { getObject, REMOTE_ATTACHMENT_PREFIX } from "@/server/storage"
 
 /**
  * GET /api/w/[slug]/attachments/[id][?inline=1] — stream an attachment.
@@ -12,7 +13,9 @@ export const GET = route<{ slug: string; id: string }>(async (req, { params }) =
   const { slug, id } = await params
   const { ctx, scope } = await inboxContext(req, slug)
   const att = await getAuthorizedAttachment(ctx, scope, assertUuid(id, "Attachment"))
-  const body = await getObject(att.storageKey)
+  const remote = att.storageKey.startsWith(REMOTE_ATTACHMENT_PREFIX)
+  const remoteContent = remote ? await readAttachmentBuffer(att) : null
+  const body = remote ? (remoteContent ? Uint8Array.from(remoteContent) : null) : await getObject(att.storageKey)
   if (!body) throw new ApiError(404, "The file is no longer available", "not_found")
 
   const inline = req.nextUrl.searchParams.get("inline") === "1" && INLINE_TYPES.has(att.contentType)

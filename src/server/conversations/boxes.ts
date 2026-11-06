@@ -103,7 +103,14 @@ export function boxBaseSql(ctx: Ctx, scope: InboxScope, box: ParsedBox): SQL {
         case "scheduled":
           return and(eq(c.isTrash, false), myMessageSql(me, ["scheduled"]))!
         case "sent":
-          return and(eq(c.isTrash, false), myMessageSql(me, ["queued", "sending", "sent", "failed"], "outbound"))!
+          return and(
+            emailSql,
+            eq(c.isTrash, false),
+            or(
+              sql`exists (select 1 from messages m where m.conversation_id = ${CONV_ID} and m.org_id = ${ctx.org.id} and m.direction = 'outbound' and m.status = 'sent')`,
+              myMessageSql(me, ["queued", "sending", "failed"], "outbound")
+            )
+          )!
         case "all":
           return and(emailSql, activeSql, hasMessagesSql)!
         case "closed":

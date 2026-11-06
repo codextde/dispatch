@@ -61,7 +61,7 @@ function MessageDirectionBadge({ direction, compact = false }: { direction: Thre
 }
 
 function MessageBodyView({ message }: { message: ThreadMessage }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { slug, bootstrap } = useInbox()
   const pref = (bootstrap.me.preferences as { loadRemoteImages?: "always" | "ask" | "never" }).loadRemoteImages
   const policy = bootstrap.settings.remoteImages
@@ -89,6 +89,12 @@ function MessageBodyView({ message }: { message: ThreadMessage }) {
   }
   return (
     <div className="space-y-2">
+      {data.remoteHtmlUnavailable && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          {locale === "it" ? "Versione formattata non disponibile. È mostrata la copia di testo." : "The formatted version is unavailable. Showing the plain-text copy."}
+          <Button variant="link" size="sm" className="h-auto p-0" onClick={() => refetch()}>{t("messageRetry")}</Button>
+        </div>
+      )}
       {data.hasRemoteImages && !data.imagesLoaded && policy !== "never" && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-dashed bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
           <ImageOff className="size-3.5" />
@@ -176,10 +182,21 @@ export function MessageItem({
 }) {
   const { can } = useOrg()
   const { t, locale } = useI18n()
-  const { account, member, ownAddresses } = useInbox()
+  const { account, member, ownAddresses, slug } = useInbox()
+  const queryClient = useQueryClient()
   const from: Participant = { name: message.fromName, email: message.fromEmail }
   const author = message.direction === "outbound" && message.authorId ? member(message.authorId) : undefined
   const acc = account(message.accountId)
+  const compact = useMutation({
+    mutationFn: (part: "html" | "attachments") => api.post<void>(`/api/w/${slug}/messages/${message.id}${part === "attachments" ? "?attachments=1" : ""}`),
+    onSuccess: (_, part) => {
+      void queryClient.invalidateQueries({ queryKey: inboxKeys.thread(slug, conversationId) })
+      toast.success(part === "html"
+        ? (locale === "it" ? "Copia HTML locale rimossa" : "Local HTML copy released")
+        : (locale === "it" ? "Allegati disponibili dal server di posta" : "Attachments available from the mail server"))
+    },
+    onError: (error) => toast.error(error.message),
+  })
   const recipients = [...message.to, ...message.cc]
   const toLabel = recipients
     .slice(0, 3)
@@ -304,6 +321,16 @@ export function MessageItem({
                   <DropdownMenuItem onSelect={() => inboxUI.openComposer(conversationId, "forward", { messageId: message.id })}>
                     <Forward /> {t("forward")}
                   </DropdownMenuItem>
+                  {message.canReleaseHtml && acc?.level === "manage" && (
+                    <DropdownMenuItem disabled={compact.isPending} onSelect={() => compact.mutate("html")}>
+                      {locale === "it" ? "Conserva solo il testo in Dispatch" : "Keep only plain text in Dispatch"}
+                    </DropdownMenuItem>
+                  )}
+                  {message.canReleaseAttachments && acc?.level === "manage" && (
+                    <DropdownMenuItem disabled={compact.isPending} onSelect={() => compact.mutate("attachments")}>
+                      {locale === "it" ? "Conserva gli allegati sul server di posta" : "Keep attachments on the mail server"}
+                    </DropdownMenuItem>
+                  )}
                   {message.messageId && (
                     <>
                       <DropdownMenuSeparator />

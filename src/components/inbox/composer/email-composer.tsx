@@ -1,5 +1,7 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
+import { inboxUI } from "@/hooks/inbox/store"
 import { useEffect, useMemo, useState } from "react"
 import { Maximize2, Minimize2, Trash2, Users, X } from "lucide-react"
 import { toast } from "sonner"
@@ -13,6 +15,7 @@ import { firstName, memberName, relative } from "@/lib/inbox/format"
 import { purify } from "@/lib/inbox/purify"
 import { renderTemplate } from "@/lib/inbox/templates"
 import type { AccountSummary, AttachmentInfo, DraftInfo, Participant, SendResult } from "@/lib/inbox/types"
+import { api } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import { UploadChips } from "../attachments"
 import { useInbox } from "../inbox-provider"
@@ -102,6 +105,34 @@ export function EmailComposer({
     },
   })
   const { draft, update, syncRemote } = d
+  const [copyingDraft, setCopyingDraft] = useState(false)
+  const [linked, setLinked] = useState<string | null>(null)
+  const linkedKey = `${draft.id}:${draft.accountId}`
+  const pull = useQuery({
+    queryKey: ["imap-draft-edit", slug, draft.id, draft.accountId],
+    queryFn: async () => api.patch<{ draftId: string | null }>(`/api/w/${slug}/drafts/${draft.id}`),
+    enabled: Boolean(draft.id && (linked === linkedKey || (serverDraft?.syncToMailServer && serverDraft.authorId === meId && serverDraft.accountId === draft.accountId))),
+    refetchInterval: (query) => query.state.data?.draftId ? false : 45_000,
+    refetchOnWindowFocus: false,
+    retry: false,
+  })
+  const canCopyDraft = draft.mode === "new" && draft.id && draft.accountId &&
+    (!serverDraft || serverDraft.authorId === meId) &&
+    accounts.some((account) => account.id === draft.accountId && account.provider !== "demo")
+
+  async function copySavedDraft() {
+    if (!draft.id) return
+    setCopyingDraft(true)
+    try {
+      await api.post<void>(`/api/w/${slug}/drafts/${draft.id}`, { version: draft.version })
+      setLinked(linkedKey)
+      toast.success(locale === "it" ? "Sincronizzazione della bozza attivata" : "Draft sync enabled")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : (locale === "it" ? "Impossibile copiare la bozza" : "Could not copy the draft"))
+    } finally {
+      setCopyingDraft(false)
+    }
+  }
 
   useEffect(() => syncRemote(serverDraft), [serverDraft, syncRemote])
   useEffect(() => onDraftChange?.(draft), [draft, onDraftChange])
@@ -250,6 +281,19 @@ export function EmailComposer({
         )}
       </div>
 
+      {pull.data?.draftId && (
+        <div className="flex flex-wrap items-center gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
+          <span>{locale === "it" ? "È disponibile una versione modificata sul server di posta." : "An edited version is available from the mail server."}</span>
+          <Button size="sm" variant="outline" onClick={() => inboxUI.openCompose({ draftId: pull.data!.draftId! })}>
+            {locale === "it" ? "Apri la versione del server" : "Open server version"}
+          </Button>
+        </div>
+      )}
+      {serverDraft?.mailServerDraftConflict && (
+        <p role="status" className="border-t px-3 py-2 text-xs text-muted-foreground">
+          {locale === "it" ? "Controlla Bozze sul server di posta: Dispatch ha conservato le versioni precedenti." : "Check Drafts on the mail server: Dispatch kept earlier versions."}
+        </p>
+      )}
       {uploads.items.length > 0 && (
         <div className="border-t px-3 py-2">
           <UploadChips items={uploads.items} onRemove={uploads.remove} />
@@ -269,6 +313,11 @@ export function EmailComposer({
           onReplace={(html) => editor?.commands.setContent(html, { emitUpdate: true })}
         />
         <SignatureSelect value={draft.signatureId} accountId={draft.accountId} onChange={(signatureId) => update({ signatureId })} />
+        {canCopyDraft && (
+          <Button variant="outline" size="sm" disabled={copyingDraft || d.saving || d.sending} onClick={() => void copySavedDraft()}>
+            {locale === "it" ? "Sincronizza bozza con il server" : "Sync draft with mail server"}
+          </Button>
+        )}
         <span className="ml-auto flex items-center gap-1.5">
           <span className="font-mono text-[10.5px] text-muted-foreground max-sm:hidden" aria-live="polite">
             {d.saving ? (locale === "it" ? "Salvataggio…" : "Saving…") : lastEditor ? `${locale === "it" ? "Modificata da" : "Edited by"} ${memberName(lastEditor)}` : d.lastSavedAt ? `${locale === "it" ? "Salvata" : "Saved"} ${relative(d.lastSavedAt.toISOString(), locale)}` : ""}

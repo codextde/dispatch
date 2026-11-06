@@ -100,7 +100,10 @@ export async function getObjectBuffer(key: string): Promise<Buffer | null> {
   }
 }
 
+export const REMOTE_ATTACHMENT_PREFIX = "imap-attachment/"
+
 export async function deleteObject(key: string) {
+  if (key.startsWith(REMOTE_ATTACHMENT_PREFIX)) return
   const remote = await s3()
   if (remote) {
     await remote.client.send(new DeleteObjectCommand({ Bucket: remote.bucket, Key: key })).catch(() => {})

@@ -164,6 +164,8 @@ export type ThreadMessage = {
   snippet: string
   /** Whether a body (HTML or text) is available */
   hasBody: boolean
+  canReleaseHtml?: boolean
+  canReleaseAttachments?: boolean
   accountId: string | null
   authorId: string | null
   messageId: string | null
@@ -200,6 +202,8 @@ export type ThreadEvent = {
 export type DraftMode = "reply" | "reply_all" | "forward" | "new"
 
 export type DraftInfo = {
+  syncToMailServer?: boolean
+  mailServerDraftConflict?: boolean
   id: string
   conversationId: string
   authorId: string | null
@@ -244,6 +248,7 @@ export type ComposingKind = "comment" | "reply" | null
 
 export type MessageBody = {
   html: string
+  remoteHtmlUnavailable?: boolean
   hasRemoteImages: boolean
   imagesLoaded: boolean
   /** Plain text or written in Dispatch: safe to render with the app theme (dark mode) */

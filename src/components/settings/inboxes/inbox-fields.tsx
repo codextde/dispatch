@@ -88,8 +88,8 @@ export function IdentityFields({
 }
 
 export function SyncDaysField({ value, onChange }: { value: SyncDays; onChange: (v: SyncDays) => void }) {
-  const { t } = useI18n()
-  const labels: Record<SyncDays, string> = { 7: t("inbox7Days"), 30: t("inbox30Days"), 90: t("inbox90Days"), 365: t("inbox1Year") }
+  const { t, locale } = useI18n()
+  const labels: Record<SyncDays, string> = { 0: locale === "it" ? "Solo nuove" : "New only", 7: t("inbox7Days"), 30: t("inbox30Days"), 90: t("inbox90Days"), 365: t("inbox1Year") }
   return (
     <ToggleGroup
       type="single"
@@ -98,7 +98,7 @@ export function SyncDaysField({ value, onChange }: { value: SyncDays; onChange: 
       value={String(value)}
       onValueChange={(v) => v && onChange(Number(v) as SyncDays)}
       aria-label={t("inboxSyncHistory")}
-      className="w-full sm:w-auto"
+      className="w-full flex-wrap sm:w-auto"
     >
       {SYNC_DAY_OPTIONS.map((d) => (
         <ToggleGroupItem key={d} value={String(d)} className="flex-1 px-3 text-[13px] sm:flex-none">

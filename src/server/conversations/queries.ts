@@ -1,3 +1,4 @@
+import { REMOTE_ATTACHMENT_PREFIX } from "@/server/storage"
 import "server-only"
 import { and, asc, desc, eq, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm"
 import { db, schema } from "@/server/db"
@@ -222,6 +223,9 @@ export function toThreadMessage(
     subject: m.subject,
     snippet: m.snippet,
     hasBody: Boolean(m.htmlBody || m.textBody),
+    canReleaseAttachments: Boolean(m.status === "received" && m.imapMailbox && m.messageId &&
+      atts.some((attachment) => !attachment.storageKey.startsWith(REMOTE_ATTACHMENT_PREFIX))),
+    canReleaseHtml: Boolean(m.status === "received" && m.imapMailbox && m.messageId && m.htmlBody && m.textBody?.trim()),
     accountId: m.accountId,
     authorId: m.authorId,
     messageId: m.messageId,
@@ -236,10 +240,22 @@ export function toThreadMessage(
 export const DRAFT_MODE_HEADER = "x-dispatch-mode"
 
 export function toDraftInfo(slug: string, m: typeof schema.messages.$inferSelect, atts: (typeof schema.attachments.$inferSelect)[]): DraftInfo {
+  const link = m.headers["x-dispatch-imap-draft"]
+  let syncToMailServer = false
+  let mailServerDraftConflict = false
+  try {
+    const parsed = link ? JSON.parse(link) : null
+    syncToMailServer = Boolean(parsed && parsed.accountId === m.accountId)
+    mailServerDraftConflict = syncToMailServer && parsed.conflict === true
+  } catch {
+    // Unreadable link metadata cannot enable remote synchronization.
+  }
   const mode = (m.headers?.[DRAFT_MODE_HEADER] as DraftMode | undefined) ?? (m.replyToMessageId ? "reply" : "new")
   return {
     id: m.id,
     conversationId: m.conversationId,
+    syncToMailServer,
+    mailServerDraftConflict,
     authorId: m.authorId,
     isShared: m.isSharedDraft,
     version: m.draftVersion,

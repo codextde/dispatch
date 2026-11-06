@@ -6,7 +6,7 @@ import { z } from "zod"
 import { db, schema, type DbOrTx } from "@/server/db"
 import { ApiError, type ApiContext } from "@/server/api"
 import { getAccountAccess, getConversationAccess } from "@/server/access"
-import { getObjectBuffer } from "@/server/storage"
+import { readAttachmentBuffer } from "@/server/mail/remote-attachments"
 import { enqueueJob } from "@/server/jobs"
 import { publish } from "@/server/realtime"
 import { occurrenceFields, parseCalendar, writeEvent } from "./ical"
@@ -88,7 +88,7 @@ async function loadAttachment(orgId: string, attachmentId: string) {
 }
 
 async function readInvite(row: NonNullable<Awaited<ReturnType<typeof loadAttachment>>>) {
-  const content = await getObjectBuffer(row.attachment.storageKey)
+  const content = await readAttachmentBuffer(row.attachment)
   if (!content) throw new Error("Unable to read invitation attachment")
   return parseInvite(content.toString("utf8"), row.message.fromEmail, row.account.email, row.account.id)
 }
@@ -160,7 +160,7 @@ export async function handleInvitationUpdate(payload: Record<string, unknown>) {
   const orgId = payload.orgId
   const row = await loadAttachment(orgId, payload.attachmentId)
   if (!row) return
-  const content = await getObjectBuffer(row.attachment.storageKey)
+  const content = await readAttachmentBuffer(row.attachment)
   if (!content) throw new Error("Unable to read invitation attachment")
   const text = content.toString("utf8")
   if (await applyCalendarReply(orgId, row.account, row.message.fromEmail, text)) return

@@ -3,8 +3,17 @@ import { and, desc, eq, inArray, isNull, ne, notInArray, sql } from "drizzle-orm
 import { z } from "zod"
 import { db, schema, type Tx } from "@/server/db"
 import { ApiError } from "@/server/api"
+import { enqueueJob } from "@/server/jobs"
 import { publish } from "@/server/realtime"
 import { randomToken } from "@/server/crypto"
+import { draftLocation, findLinkedDraftEdit, linkedDraftMessageId } from "@/server/mail/archive"
+import { readAttachmentBuffer, remoteAttachmentKey } from "@/server/mail/remote-attachments"
+import type { ParsedEmail } from "@/server/mail/parse"
+import { storeUpload } from "./files"
+import { buildMimeMessage, type MimeAttachment } from "@/server/mail/mime"
+import { htmlDigest, recoverRemoteHtml, recoverRemotePart, REMOTE_HTML } from "@/server/mail/remote-body"
+import { REMOTE_ATTACHMENT_PREFIX } from "@/server/storage"
+import { audit } from "@/server/audit"
 import { getSettings } from "@/server/settings"
 import { nextConversationNumber } from "@/server/orgs"
 import { escapeHtml } from "@/lib/inbox/templates"
@@ -19,6 +28,7 @@ const m = schema.messages
 const QUOTE_MARKER = '<div class="dispatch-quote"'
 const SIGNATURE_MARKER = '<div class="dispatch-signature"'
 const CLOSE_HEADER = "x-dispatch-close"
+const DRAFT_ORIGIN = "x-dispatch-draft-origin"
 
 const participant = z.object({ name: z.string().max(200).nullish(), email: z.string().trim().min(3).max(320) })
 const strictParticipant = z.object({ name: z.string().max(200).nullish(), email: z.email() })
@@ -140,7 +150,8 @@ async function copyForwardAttachments(tx: Tx, ctx: Ctx, fromMessageId: string, t
   const atts = await tx
     .select()
     .from(schema.attachments)
-    .where(and(eq(schema.attachments.messageId, fromMessageId), eq(schema.attachments.isInline, false)))
+    .where(and(eq(schema.attachments.orgId, ctx.org.id), eq(schema.attachments.messageId, fromMessageId), eq(schema.attachments.isInline, false)))
+    .for("share")
   if (!atts.length) return
   await tx.insert(schema.attachments).values(
     atts.map((a) => ({
@@ -201,12 +212,95 @@ export async function getDraft(ctx: Ctx, scope: InboxScope, draftId: string): Pr
   return toDraftInfo(ctx.org.slug, draft, atts)
 }
 
+export async function buildDraftCopy(ctx: Ctx, scope: InboxScope, draftId: string, version: number) {
+  const { draft, mine } = await loadEditableDraft(ctx, scope, draftId)
+  if (!mine) throw new ApiError(403, "Only the draft author can copy it to the mail server.", "forbidden")
+  if (draft.headers[DRAFT_MODE_HEADER] !== "new") {
+    throw new ApiError(400, "Only new-message drafts can be copied to the mail server.", "invalid_mode")
+  }
+  if (draft.draftVersion !== version) throw new ApiError(409, "The draft changed. Save it before copying.", "draft_conflict")
+  const { account } = await resolveFrom(ctx, scope, draft.accountId, draft.fromEmail)
+  if (account.provider === "demo") throw new ApiError(400, "Demo accounts do not have a mail server.", "invalid_account")
+  const files = await db.query.attachments.findMany({
+    where: and(eq(schema.attachments.orgId, ctx.org.id), eq(schema.attachments.messageId, draft.id)),
+  })
+  if (files.reduce((sum, file) => sum + file.size, 0) > 18 * 1024 * 1024) {
+    throw new ApiError(413, "This draft is too large to copy.", "message_too_large")
+  }
+  const attachments: MimeAttachment[] = []
+  for (const file of files) {
+    const content = await readAttachmentBuffer(file)
+    if (!content) throw new ApiError(409, "A draft attachment is unavailable.", "missing_attachment")
+    attachments.push({ filename: file.filename, contentType: file.contentType, content, contentId: file.contentId, isInline: file.isInline })
+  }
+  const current = await db.query.messages.findFirst({
+    where: and(eq(m.orgId, ctx.org.id), eq(m.id, draft.id), eq(m.status, "draft"), eq(m.draftVersion, version)),
+    columns: { id: true },
+  })
+  if (!current) throw new ApiError(409, "The draft changed. Save it before copying.", "draft_conflict")
+  const copyId = linkedDraftMessageId(account.id, draft.id, version)
+  const { rawWithBcc } = await buildMimeMessage({
+    from: { email: draft.fromEmail, name: draft.fromName },
+    to: draft.to, cc: draft.cc, bcc: draft.bcc,
+    subject: draft.subject, html: draft.htmlBody, text: draft.textBody,
+    messageId: copyId,
+    attachments,
+  })
+  return { account, source: rawWithBcc, copyId }
+}
+
+export async function readLinkedDraftEdit(ctx: Ctx, scope: InboxScope, draftId: string) {
+  const { draft, mine } = await loadEditableDraft(ctx, scope, draftId)
+  if (!mine || !draft.accountId || !atLeast(scope.access.get(draft.accountId) ?? "read", "reply")) return null
+  const link = draftLocation(draft.headers["x-dispatch-imap-draft"])
+  if (!link || link.accountId !== draft.accountId) return null
+  const { account } = await resolveFrom(ctx, scope, draft.accountId, draft.fromEmail)
+  const edit = await findLinkedDraftEdit(account, draftId, link)
+  if (!edit || draft.headers["x-dispatch-imap-imported"] === edit.origin) return null
+  const saved = await importRemoteDraft(ctx, scope, account.id, edit.mail, edit.origin)
+  await db.update(m)
+    .set({ headers: sql`${m.headers} || jsonb_build_object('x-dispatch-imap-imported', ${edit.origin}::text)` })
+    .where(and(eq(m.id, draft.id), eq(m.orgId, ctx.org.id), eq(m.authorId, ctx.user.id), eq(m.status, "draft")))
+  return saved
+}
+
+export async function importRemoteDraft(ctx: Ctx, scope: InboxScope, accountId: string, remote: ParsedEmail, origin: string) {
+  const existing = await db.query.messages.findFirst({
+    where: and(eq(m.orgId, ctx.org.id), eq(m.authorId, ctx.user.id), eq(m.accountId, accountId),
+      eq(m.status, "draft"), sql`${m.headers}->>${DRAFT_ORIGIN} = ${origin}`),
+    columns: { id: true },
+  })
+  if (existing) return getDraft(ctx, scope, existing.id)
+  const draft = draftSchema.parse({
+    mode: "new", accountId, fromEmail: remote.from?.email ?? "",
+    to: remote.to, cc: remote.cc, bcc: remote.bcc, subject: remote.subject,
+    html: remote.html ? sanitizeEmailHtml(remote.html, { blockRemote: true }).html : textToHtml(remote.text ?? ""),
+  })
+  if (remote.attachments.length > 50) throw new ApiError(413, "This draft has too many attachments.", "message_too_large")
+  try {
+    for (const file of remote.attachments) {
+      const upload = await storeUpload(ctx, new File([Uint8Array.from(file.content)], file.filename, { type: file.contentType }))
+      draft.attachmentIds.push(upload.id)
+    }
+    return await saveDraft(ctx, scope, null, draft, origin)
+  } catch (error) {
+    if (draft.attachmentIds.length) {
+      const a = schema.attachments
+      const abandoned = await db.delete(a)
+        .where(and(eq(a.orgId, ctx.org.id), eq(a.uploadedBy, ctx.user.id), inArray(a.id, draft.attachmentIds), isNull(a.messageId), isNull(a.commentId)))
+        .returning({ key: a.storageKey })
+      await deleteUnreferencedObjects(abandoned.map((file) => file.key))
+    }
+    throw error
+  }
+}
+
 /**
  * Create (no `draftId`) or update a draft. New-message drafts create their
  * own conversation (hidden from boxes until something is sent). Updates are
  * version-checked: a stale `version` yields 409 with the current draft.
  */
-export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | null, input: DraftInput): Promise<DraftInfo> {
+export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | null, input: DraftInput, remoteOrigin?: string): Promise<DraftInfo> {
   const me = ctx.user.id
   const to = cleanList(input.to)
   const cc = cleanList(input.cc)
@@ -239,7 +333,7 @@ export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | n
           textBody: text,
           snippet: makeSnippet(text),
           isSharedDraft: mine && input.isShared !== undefined ? input.isShared : draft.isSharedDraft,
-          headers: { ...draft.headers, [DRAFT_MODE_HEADER]: mode },
+          headers: sql`${m.headers} || jsonb_build_object(${DRAFT_MODE_HEADER}::text, ${mode}::text)`,
           replyToMessageId: target?.id ?? draft.replyToMessageId,
           lastEditedBy: me,
           draftVersion: sql`${m.draftVersion} + 1`,
@@ -302,6 +396,21 @@ export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | n
   const from = await resolveFrom(ctx, scope, accountId, input.fromEmail)
 
   const created = await db.transaction(async (tx) => {
+    if (remoteOrigin && input.mode === "new") {
+      const key = `imap-draft-import:${ctx.org.id}:${me}:${from.account.id}:${remoteOrigin}`
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`)
+      const existing = await tx.query.messages.findFirst({
+        where: and(eq(m.orgId, ctx.org.id), eq(m.authorId, me), eq(m.accountId, from.account.id),
+          eq(m.status, "draft"), sql`${m.headers}->>${DRAFT_ORIGIN} = ${remoteOrigin}`),
+      })
+      if (existing) {
+        const a = schema.attachments
+        const abandoned = input.attachmentIds.length ? await tx.delete(a)
+          .where(and(eq(a.orgId, ctx.org.id), eq(a.uploadedBy, me), inArray(a.id, input.attachmentIds), isNull(a.messageId), isNull(a.commentId)))
+          .returning({ key: a.storageKey }) : []
+        return { draft: existing, abandoned: abandoned.map((file) => file.key) }
+      }
+    }
     if (!conversationId) conversationId = (await createConversationFor(tx, ctx, from.account.id, input.subject.trim(), to)).id
     const [draft] = await tx
       .insert(m)
@@ -320,7 +429,7 @@ export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | n
         htmlBody: html,
         textBody: text,
         snippet: makeSnippet(text),
-        headers: { [DRAFT_MODE_HEADER]: input.mode },
+        headers: { [DRAFT_MODE_HEADER]: input.mode, ...(remoteOrigin ? { [DRAFT_ORIGIN]: remoteOrigin } : {}) },
         authorId: me,
         isSharedDraft: input.isShared ?? false,
         draftVersion: 1,
@@ -333,10 +442,11 @@ export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | n
     await syncMessageAttachments(tx, ctx, draft!.id, input.attachmentIds)
     if (input.mode === "forward" && replyTarget) await copyForwardAttachments(tx, ctx, replyTarget.id, draft!.id)
     if (await countFiles(tx, draft!.id)) await tx.update(m).set({ hasAttachments: true }).where(eq(m.id, draft!.id))
-    return draft!
+    return { draft: draft!, abandoned: [] }
   })
-  const info = await getDraft(ctx, scope, created.id)
-  await publish({ orgId: ctx.org.id, type: "draft.updated", conversationId: created.conversationId, actorId: me, userIds: [me], data: { draftId: created.id } })
+  await deleteUnreferencedObjects(created.abandoned)
+  const info = await getDraft(ctx, scope, created.draft.id)
+  await publish({ orgId: ctx.org.id, type: "draft.updated", conversationId: created.draft.conversationId, actorId: me, userIds: [me], data: { draftId: created.draft.id } })
   return info
 }
 
@@ -344,6 +454,13 @@ export async function saveDraft(ctx: Ctx, scope: InboxScope, draftId: string | n
 export async function discardDraft(ctx: Ctx, scope: InboxScope, draftId: string) {
   const { draft, conversation } = await loadEditableDraft(ctx, scope, draftId)
   const keys = await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`imap-draft-copy:${draft.id}`}, 0))`)
+    const [current] = await tx.select({ headers: m.headers }).from(m)
+      .where(and(eq(m.id, draft.id), eq(m.orgId, ctx.org.id), eq(m.status, "draft"), eq(m.draftVersion, draft.draftVersion)))
+      .for("update")
+    if (!current) throw new ApiError(409, "The draft changed. Refresh before discarding it.", "draft_conflict")
+    const link = current.headers["x-dispatch-imap-draft"]
+    if (link) await enqueueJob("imap.remove_draft", { orgId: ctx.org.id, link }, { tx })
     const atts = await tx.delete(schema.attachments).where(eq(schema.attachments.messageId, draft.id)).returning({ storageKey: schema.attachments.storageKey })
     await tx.delete(m).where(eq(m.id, draft.id))
     const [{ remaining }] = (await tx
@@ -447,7 +564,8 @@ export async function sendMessage(ctx: Ctx, scope: InboxScope, input: SendInput)
   if (!userText && !input.attachmentIds.length && mode !== "forward") throw new ApiError(400, "Write a message first", "empty_message")
 
   const timeZone = ctx.user.timezone || ctx.org.settings?.timezone || "UTC"
-  const fullHtml = replyTarget && mode !== "new" ? `${userHtml}${buildQuote(mode, replyTarget, timeZone)}` : userHtml
+  const quoteTarget = replyTarget && mode !== "new" ? await hydrateMessageHtml(replyTarget) : null
+  const fullHtml = quoteTarget ? `${userHtml}${buildQuote(mode, quoteTarget, timeZone)}` : userHtml
   const baseSubject = conversation ? conversation.subject : ""
   const subject = subjectFor(mode, input.subject, replyTarget?.subject || baseSubject)
   if (mode === "new" && !subject) throw new ApiError(400, "Add a subject", "missing_subject")
@@ -498,9 +616,16 @@ export async function sendMessage(ctx: Ctx, scope: InboxScope, input: SendInput)
     if (!convId) convId = (await createConversationFor(tx, ctx, from.account.id, subject, to)).id
     let message: typeof schema.messages.$inferSelect
     if (draft) {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`imap-draft-copy:${draft.id}`}, 0))`)
       const [updated] = await tx
         .update(m)
-        .set({ ...values, isSharedDraft: false })
+        .set({
+          ...values,
+          headers: sql`${JSON.stringify(values.headers)}::jsonb || case
+            when ${m.headers} ? 'x-dispatch-imap-draft' then jsonb_build_object('x-dispatch-imap-draft', ${m.headers}->'x-dispatch-imap-draft')
+            else '{}'::jsonb end`,
+          isSharedDraft: false,
+        })
         .where(and(eq(m.id, draft.id), eq(m.status, "draft")))
         .returning()
       if (!updated) throw new ApiError(409, "This draft was already sent", "already_sent")
@@ -617,6 +742,95 @@ export async function sendNow(ctx: Ctx, scope: InboxScope, messageId: string) {
 
 /* ------------------------------ Message bodies ------------------------------ */
 
+async function hydrateMessageHtml(msg: typeof m.$inferSelect) {
+  const digest = msg.headers[REMOTE_HTML]
+  if (msg.htmlBody || !digest || !msg.accountId) return msg
+  const account = await db.query.accounts.findFirst({
+    where: and(eq(schema.accounts.id, msg.accountId), eq(schema.accounts.orgId, msg.orgId)),
+  })
+  if (!account) return msg
+  try {
+    const htmlBody = await recoverRemoteHtml(account, msg, digest)
+    return htmlBody ? { ...msg, htmlBody } : msg
+  } catch {
+    // The indexed plain-text copy still works during an IMAP outage.
+    return msg
+  }
+}
+
+export async function compactMessageHtml(ctx: Ctx, scope: InboxScope, messageId: string) {
+  const msg = await db.query.messages.findFirst({ where: and(eq(m.id, messageId), eq(m.orgId, ctx.org.id)) })
+  if (!msg?.accountId || !(await loadOneAccessible(ctx, scope, msg.conversationId))) {
+    throw new ApiError(404, "Message not found", "not_found")
+  }
+  if (scope.access.get(msg.accountId) !== "manage") throw new ApiError(403, "You can't manage this mailbox.", "forbidden")
+  if (msg.headers[REMOTE_HTML] && !msg.htmlBody) return
+  if (msg.status !== "received" || !msg.imapMailbox || !msg.messageId || !msg.htmlBody || !msg.textBody?.trim()) {
+    throw new ApiError(409, "This message has no HTML copy that can be safely released.", "not_compactable")
+  }
+  const account = await db.query.accounts.findFirst({
+    where: and(eq(schema.accounts.id, msg.accountId), eq(schema.accounts.orgId, ctx.org.id)),
+  })
+  if (!account || account.provider === "demo") throw new ApiError(404, "Inbox not found", "not_found")
+  const digest = htmlDigest(msg.htmlBody)
+  const remote = await recoverRemoteHtml(account, msg, digest).catch(() => null)
+  if (!remote) throw new ApiError(409, "The original HTML could not be verified on the mail server.", "remote_copy_unverified")
+  const [updated] = await db.update(m)
+    .set({ htmlBody: null, headers: sql`${m.headers} || jsonb_build_object(${REMOTE_HTML}::text, ${digest}::text)` })
+    .where(and(eq(m.id, msg.id), eq(m.orgId, ctx.org.id), eq(m.accountId, account.id),
+      eq(m.status, "received"), eq(m.htmlBody, msg.htmlBody), eq(m.textBody, msg.textBody)))
+    .returning({ id: m.id })
+  if (!updated) throw new ApiError(409, "The message changed. Refresh before trying again.", "message_changed")
+  await audit({ orgId: ctx.org.id, actorId: ctx.user.id, action: "mail.html_released", targetType: "message", targetId: msg.id })
+  await publish({ orgId: ctx.org.id, type: "conversation.updated", conversationId: msg.conversationId })
+}
+
+export async function compactMessageAttachments(ctx: Ctx, scope: InboxScope, messageId: string) {
+  const msg = await db.query.messages.findFirst({ where: and(eq(m.id, messageId), eq(m.orgId, ctx.org.id)) })
+  if (!msg?.accountId || !(await loadOneAccessible(ctx, scope, msg.conversationId))) {
+    throw new ApiError(404, "Message not found", "not_found")
+  }
+  if (scope.access.get(msg.accountId) !== "manage") throw new ApiError(403, "You can't manage this mailbox.", "forbidden")
+  if (msg.status !== "received" || !msg.imapMailbox || !msg.messageId) {
+    throw new ApiError(409, "This message has no IMAP copy to verify.", "not_compactable")
+  }
+  const account = await db.query.accounts.findFirst({
+    where: and(eq(schema.accounts.id, msg.accountId), eq(schema.accounts.orgId, ctx.org.id)),
+  })
+  if (!account || account.provider === "demo") throw new ApiError(404, "Inbox not found", "not_found")
+  const a = schema.attachments
+  const rows = await db.query.attachments.findMany({ where: and(eq(a.orgId, ctx.org.id), eq(a.messageId, msg.id)) })
+  const local = rows.filter((file) => !file.storageKey.startsWith(REMOTE_ATTACHMENT_PREFIX))
+  if (!local.length) return
+  if (local.reduce((sum, file) => sum + file.size, 0) > 25 * 1024 * 1024) {
+    throw new ApiError(413, "These attachments are too large to verify.", "message_too_large")
+  }
+  const originalId = msg.messageId
+  const replacements: { id: string; previous: string; key: string }[] = []
+  for (const file of local) {
+    const content = await readAttachmentBuffer(file)
+    if (!content || content.length !== file.size) throw new ApiError(409, "A local attachment could not be verified.", "local_copy_unverified")
+    replacements.push({ id: file.id, previous: file.storageKey, key: remoteAttachmentKey(account.id, originalId, content) })
+  }
+  const verified = await recoverRemotePart(account, msg, ({ attachments }) => {
+    const keys = new Set(attachments.map((file) => remoteAttachmentKey(account.id, originalId, file.content)))
+    return replacements.every((replacement) => keys.has(replacement.key)) ? true : null
+  }).catch(() => null)
+  if (!verified) throw new ApiError(409, "The original attachments could not be verified on the mail server.", "remote_copy_unverified")
+
+  await db.transaction(async (tx) => {
+    for (const replacement of replacements.sort((left, right) => left.id.localeCompare(right.id))) {
+      const [updated] = await tx.update(a).set({ storageKey: replacement.key })
+        .where(and(eq(a.orgId, ctx.org.id), eq(a.messageId, msg.id), eq(a.id, replacement.id), eq(a.storageKey, replacement.previous)))
+        .returning({ id: a.id })
+      if (!updated) throw new ApiError(409, "The attachments changed. Refresh before trying again.", "message_changed")
+    }
+  })
+  await deleteUnreferencedObjects(replacements.map((replacement) => replacement.previous))
+  await audit({ orgId: ctx.org.id, actorId: ctx.user.id, action: "mail.attachments_released", targetType: "message", targetId: msg.id })
+  await publish({ orgId: ctx.org.id, type: "conversation.updated", conversationId: msg.conversationId })
+}
+
 /** Sanitized HTML body of a message for the sandboxed iframe. */
 export async function getMessageBody(ctx: Ctx, scope: InboxScope, messageId: string, loadImages: boolean): Promise<MessageBody> {
   const msg = await db.query.messages.findFirst({ where: and(eq(m.id, messageId), eq(m.orgId, ctx.org.id)) })
@@ -630,15 +844,16 @@ export async function getMessageBody(ctx: Ctx, scope: InboxScope, messageId: str
   // Outbound messages may quote inbound HTML (tracking pixels), so they follow the same policy.
   const allowRemote = security.remoteImages !== "never" && (loadImages || security.remoteImages === "always")
 
-  if (!msg.htmlBody) {
-    return { html: textToHtml(msg.textBody ?? ""), hasRemoteImages: false, imagesLoaded: true, simple: true }
+  const hydrated = await hydrateMessageHtml(msg)
+  if (!hydrated.htmlBody) {
+    return { html: textToHtml(hydrated.textBody ?? ""), remoteHtmlUnavailable: Boolean(msg.headers[REMOTE_HTML]), hasRemoteImages: false, imagesLoaded: true, simple: true }
   }
   const inline = await db
     .select({ id: schema.attachments.id, contentId: schema.attachments.contentId })
     .from(schema.attachments)
     .where(and(eq(schema.attachments.messageId, msg.id), sql`${schema.attachments.contentId} is not null`))
   const cidMap = new Map(inline.map((a) => [a.contentId!.replace(/^<|>$/g, ""), `${attachmentUrl(ctx.org.slug, a.id)}?inline=1`]))
-  const { html, hasRemoteImages } = sanitizeEmailHtml(msg.htmlBody, { blockRemote: !allowRemote, cidMap })
+  const { html, hasRemoteImages } = sanitizeEmailHtml(hydrated.htmlBody, { blockRemote: !allowRemote, cidMap })
   return { html, hasRemoteImages, imagesLoaded: allowRemote, simple: msg.direction === "outbound" && msg.authorId !== null }
 }
 

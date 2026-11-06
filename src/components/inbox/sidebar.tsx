@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, usePathname } from "next/navigation"
 import { useMemo, useState } from "react"
 import {
   AtSign,
@@ -13,6 +13,7 @@ import {
   Clock,
   Contact,
   FilePen,
+  FolderOpen,
   Hash,
   Inbox,
   Layers,
@@ -200,6 +201,7 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
   const [hiddenSections, setHiddenSections] = useState<CustomizableSection[]>(initialSidebarPreferences?.hiddenSections ?? [])
   const { pending: savingSidebar, run: saveSidebar } = useServerAction()
   const hint = useShortcutHint()
+  const pathname = usePathname()
   const params = useParams<{ box?: string; conversationId?: string }>()
   const current = params.box ? decodeURIComponent(params.box) : ""
   const conversationId = params.conversationId
@@ -378,6 +380,15 @@ export function Sidebar({ onNavigate, onCollapse }: { onNavigate?: () => void; o
               )
             }
           >
+            {bootstrap.accounts.some((account) => account.provider !== "demo") && (
+              <NavItem
+                href={`${base}/mail-archive`}
+                active={pathname === `${base}/mail-archive`}
+                label={locale === "it" ? "Cartelle sul server" : "Server folders"}
+                icon={FolderOpen}
+                onNavigate={onNavigate}
+              />
+            )}
             {bootstrap.accounts.map((a) => (
               <NavItem
                 key={a.id}

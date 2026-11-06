@@ -1,10 +1,11 @@
+import { readAttachmentBuffer } from "@/server/mail/remote-attachments"
 import "server-only"
 import { and, asc, eq, gt, inArray, isNull, or, sql } from "drizzle-orm"
 import { db, schema } from "@/server/db"
 import type { Account, Conversation, Message, Rule, RuleAction } from "@/server/db/schema"
 import { publish } from "@/server/realtime"
 import { emitWebhook, enqueueJob } from "@/server/jobs"
-import { deleteObject, getObjectBuffer, makeStorageKey, putObject } from "@/server/storage"
+import { deleteObject, makeStorageKey, putObject } from "@/server/storage"
 import { renderTemplate, escapeHtml } from "@/lib/inbox/templates"
 import { createRegexBudget, evaluateConditions, isWithinBusinessHours, unsafePatterns, type RuleEvalContext } from "./conditions"
 import { getSettings } from "@/server/settings"
@@ -520,7 +521,7 @@ async function forward(s: RunState, toRaw: string): Promise<boolean> {
   try {
     const atts = await db.select().from(schema.attachments).where(eq(schema.attachments.messageId, m.id))
     for (const a of atts) {
-      const buf = await getObjectBuffer(a.storageKey)
+      const buf = await readAttachmentBuffer(a)
       if (!buf) throw new Error(`Attachment ${a.filename} could not be read from storage`)
       const key = makeStorageKey(s.orgId, a.filename)
       await putObject(key, buf, a.contentType)

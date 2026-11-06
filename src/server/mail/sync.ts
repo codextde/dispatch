@@ -15,6 +15,7 @@ import type { MailboxPaths } from "./connection"
  *
  *  - Initial backfill: messages of the last `config.syncDays` (default 30)
  *    days, capped per folder, oldest first so threads build naturally.
+ *    A zero-day window starts at the current UID without copying history.
  *  - Incremental: UIDs above the stored cursor (mailbox_sync_state).
  *  - UIDVALIDITY change: stored UIDs are invalidated and the window is
  *    re-scanned (messages dedupe by Message-ID, so nothing is duplicated).
@@ -162,7 +163,7 @@ export async function syncMailbox(ctx: SyncContext, path: string, role: FolderRo
           .where(and(eq(schema.messages.accountId, account.id), eq(schema.messages.imapMailbox, path)))
       }
       let found: number[] = []
-      if (mb.exists > 0) {
+      if (mb.exists > 0 && account.config.syncDays !== 0) {
         const res = await client.search({ since: syncWindowStart(account) }, { uid: true })
         // imapflow returns false instead of throwing when SEARCH fails
         if (!Array.isArray(res)) throw new Error(`IMAP SEARCH failed for ${path}`)

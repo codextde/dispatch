@@ -19,9 +19,10 @@ import { sendCalendarReminders } from "@/server/calendar/reminders"
 import { syncArubaCalendars } from "@/server/calendar/sync"
 import fs from "node:fs"
 import postgres from "postgres"
-import { sql } from "drizzle-orm"
-import { db } from "@/server/db"
+import { and, eq, sql } from "drizzle-orm"
+import { db, schema } from "@/server/db"
 import { getDatabaseUrl } from "@/server/env"
+import { draftLocation, removeLinkedArchiveDraft } from "@/server/mail/archive"
 import { appendSentCopy, claimDueMessages, deliverMessage, recoverStuckSends } from "@/server/mail/send"
 import type { Message } from "@/server/db/schema"
 import { AccountManager } from "./accounts"
@@ -147,6 +148,15 @@ async function main() {
     "account.test": broadcastRestart,
     "imap.append_sent": async (p) => {
       if (typeof p.messageId === "string") await appendSentCopy(p.messageId, (account, raw) => accounts.appendToSent(account, raw))
+    },
+    "imap.remove_draft": async (payload) => {
+      if (typeof payload.orgId !== "string" || typeof payload.link !== "string") return
+      const location = draftLocation(payload.link)
+      if (!location?.accountId) return
+      const account = await db.query.accounts.findFirst({
+        where: and(eq(schema.accounts.orgId, payload.orgId), eq(schema.accounts.id, location.accountId)),
+      })
+      if (account) await removeLinkedArchiveDraft(account, location)
     },
     "notify.email": handleNotifyEmail,
     "rules.run": handleRulesRun,
